@@ -3,6 +3,7 @@ import { PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
 import { mulberry32 } from '../../sim/rng.js'
 import { FENCES } from '../../sim/style.js'
+import { ARCH_H, ARCH_INNER, ARCH_RISE, ARCH_W, PILLAR, squarePixel } from '../square.js'
 
 const T = 16
 
@@ -50,7 +51,9 @@ export const DECO_VARIANTS = {
  * How many looks each tall static has. Trees: 0 broadleaf, 1 pine, 2 fruit, 3 birch, 4 autumn,
  * 5 willow. A board's variant is how many notes it shows.
  */
-export const STATIC_VARIANTS = { tree: 6, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, board: 7 }
+export const STATIC_VARIANTS = { tree: 6, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, planter: 2, board: 7 }
+/** The arrival square's floor comes in one tile per spot of its 12×12 cell: `tile.square.<y * 12 + x>`. */
+export const SQUARE_TILES = 144
 
 /** A plot's lawn greens, by the tone in its style. */
 const lawn = (tone) => P.yardTones[(tone || 0) % P.yardTones.length]
@@ -214,6 +217,11 @@ export function drawTile(kind, variant, opts = {}) {
       }
     }
     if (variant === 5) tuft(pc, 5 + Math.floor(rand() * 6), 6 + Math.floor(rand() * 6), P.grass[3], P.grass[0])
+  } else if (kind === 'square') {
+    // One tile of the arrival square's floor, cut from the whole (see src/render/square.js).
+    const ox = (variant % 12) * T
+    const oy = Math.floor(variant / 12) * T
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) pc.px(x, y, squarePixel(ox + x, oy + y))
   } else if (kind === 'trail') {
     footpath(pc, rand, variant, opts.links || 0, opts.tone)
   } else if (kind === 'water') {
@@ -340,6 +348,143 @@ function fringe(pc, variant, ground, tone) {
     set(i, 0, g[0])
     if (len === 2) set(i, 1, g[1])
   }
+}
+
+// ---------- the arrival square ----------
+
+/** Capitals 3×5 (N 4 wide), enough to spell the village's name on its arch. */
+const LETTERS = {
+  A: ['.#.', '#.#', '###', '#.#', '#.#'],
+  G: ['.##', '#..', '#.#', '#.#', '.##'],
+  E: ['###', '#..', '##.', '#..', '###'],
+  N: ['#..#', '##.#', '#.##', '#..#', '#..#'],
+  T: ['###', '.#.', '.#.', '.#.', '.#.'],
+  V: ['#.#', '#.#', '#.#', '#.#', '.#.'],
+  I: ['###', '.#.', '.#.', '.#.', '###'],
+  L: ['#..', '#..', '#..', '#..', '###'],
+}
+
+/** Width of `text` in LETTERS, a pixel between letters. */
+export const textWidth = (text) => [...text].reduce((w, ch, i) => w + LETTERS[ch][0].length + (i ? 1 : 0), 0)
+
+function letters(pc, text, x, y, c) {
+  for (const ch of text) {
+    const g = LETTERS[ch]
+    g.forEach((row, dy) => [...row].forEach((on, dx) => on === '#' && pc.px(x + dx, y + dy, c)))
+    x += g[0].length + 1
+  }
+}
+
+/**
+ * The portal: two stone pillars with runes cut down them and a round arch of wedge stones over
+ * them, a keystone set with a portal-blue gem, and the village's name on a board hung under it.
+ * Its opening is empty: the renderer fills it with the shimmering veil (see portalOpening).
+ */
+function portalArch() {
+  const pc = new PixelCanvas(ARCH_W, ARCH_H)
+  const cx = ARCH_W / 2
+  const outer = cx - 0.5
+  // The arch: wedge stones every 15°, lit on their upper faces.
+  for (let y = 0; y < ARCH_RISE; y++) {
+    for (let x = 0; x < ARCH_W; x++) {
+      const dx = x + 0.5 - cx
+      const dy = ARCH_RISE - y - 0.5
+      const d = Math.hypot(dx, dy)
+      if (d > outer || d < ARCH_INNER) continue
+      const deg = (Math.atan2(dy, dx) * 180) / Math.PI
+      const joint = Math.abs(((deg + 7.5) % 15) - 7.5) < 1.6
+      pc.px(x, y, joint ? P.stoneDark : d > outer - 1.5 ? P.stoneLight : d < ARCH_INNER + 1 ? P.stoneDark : P.stone)
+    }
+  }
+  // The keystone, standing proud, with a gem in it.
+  pc.rect(cx - 4, 0, 8, 9, P.stoneLight)
+  pc.vline(cx + 3, 1, 8, P.stoneDark)
+  pc.hline(cx - 4, cx + 3, 8, P.stoneDark)
+  pc.rect(cx - 2, 3, 4, 4, P.portalDeep)
+  pc.rect(cx - 2, 3, 2, 2, P.portal)
+  pc.px(cx - 2, 3, P.portalCore)
+  // The pillars, capitals and plinths, with a column of runes cut into each.
+  for (const x0 of [0, ARCH_W - PILLAR]) {
+    pc.rect(x0, ARCH_RISE, PILLAR, ARCH_H - ARCH_RISE, P.stone)
+    for (let y = ARCH_RISE + 4; y < ARCH_H; y += 5) pc.hline(x0, x0 + PILLAR - 1, y, P.stoneDark)
+    pc.vline(x0 + PILLAR - 1, ARCH_RISE, ARCH_H - 1, P.stoneDark)
+    pc.vline(x0, ARCH_RISE, ARCH_H - 1, P.stoneLight)
+    pc.rect(x0, ARCH_RISE - 1, PILLAR, 3, P.stoneLight)
+    pc.hline(x0, x0 + PILLAR - 1, ARCH_RISE + 1, P.stoneDark)
+    pc.rect(x0, ARCH_H - 5, PILLAR, 5, P.stoneLight)
+    pc.hline(x0, x0 + PILLAR - 1, ARCH_H - 5, P.stone)
+    pc.hline(x0, x0 + PILLAR - 1, ARCH_H - 1, P.stoneDark)
+    for (let y = ARCH_RISE + 6; y < ARCH_H - 8; y += 4) {
+      pc.px(x0 + 3, y, P.rune)
+      pc.px(x0 + 4, y + 1, P.rune)
+      pc.px(x0 + ((y >> 2) % 2 ? 3 : 4), y + 2, P.rune)
+    }
+    // Ivy up the outer face.
+    const side = x0 ? PILLAR - 2 : 1
+    for (let y = ARCH_RISE + 8; y < ARCH_H - 6; y += 5) {
+      pc.px(x0 + side, y, P.leaf)
+      pc.px(x0 + side + (x0 ? 1 : -1), y + 1, P.leafDark)
+      pc.px(x0 + side, y + 2, P.leafLight)
+    }
+  }
+  // The name board, hung on two chains under the keystone.
+  const name = 'AGENTVILLE'
+  const w = textWidth(name) + 6
+  const x0 = Math.round(cx - w / 2)
+  const y0 = 13
+  for (const x of [x0 + 3, x0 + w - 4]) pc.vline(x, 9, y0 - 1, P.metalDark)
+  pc.rect(x0, y0, w, 9, P.woodDark)
+  pc.rect(x0 + 1, y0 + 1, w - 2, 7, P.wood)
+  pc.hline(x0 + 1, x0 + w - 2, y0 + 1, P.woodLight)
+  letters(pc, name, x0 + 3, y0 + 2, P.windowLitCore)
+  return pc.outline(P.outline)
+}
+
+/** A cast-iron lamppost with a lantern on top; `lit` after dark. */
+function lamppost(lit) {
+  const pc = new PixelCanvas(12, 30)
+  const glass = lit ? P.windowLit : P.windowShine
+  pc.rect(3, 26, 6, 4, P.metalDark) // plinth
+  pc.hline(3, 8, 26, P.metal)
+  pc.rect(5, 12, 2, 14, P.metalDark) // pole
+  pc.vline(5, 12, 25, P.metal)
+  pc.rect(4, 18, 4, 2, P.metalDark) // a collar
+  pc.hline(2, 9, 11, P.metalDark) // the lantern's floor
+  pc.rect(3, 5, 6, 6, P.metalDark)
+  pc.rect(4, 6, 4, 4, glass)
+  if (lit) pc.rect(5, 7, 2, 2, P.windowLitCore)
+  else pc.px(4, 6, P.white)
+  pc.hline(2, 9, 4, P.metalDark) // its roof
+  pc.hline(3, 8, 3, P.metalDark)
+  pc.hline(4, 7, 2, P.metal)
+  pc.vline(5, 0, 1, P.metalDark) // finial
+  pc.vline(6, 0, 1, P.metal)
+  return pc.outline(P.outline)
+}
+
+/** A stone planter by the portal: a clipped shrub, in flower; variant 1 flowers another colour. */
+function planter(variant) {
+  const pc = new PixelCanvas(16, 20)
+  const rand = mulberry32(variant * 31 + 7)
+  pc.rect(2, 12, 12, 8, P.stone)
+  pc.hline(1, 14, 12, P.stoneLight)
+  pc.hline(1, 14, 13, P.stone)
+  pc.vline(13, 13, 19, P.stoneDark)
+  pc.hline(2, 13, 19, P.stoneDark)
+  pc.rect(5, 15, 6, 2, P.cobbleSlate)
+  pc.ellipse(8, 7.5, 6, 5.5, P.leafDark)
+  pc.ellipse(7.5, 7, 5, 4.5, P.leaf)
+  pc.px(5, 4, P.leafLight)
+  pc.px(6, 4, P.leafLight)
+  const bloom = [P.flower[0], P.flower[4]][variant % 2]
+  for (let i = 0; i < 6; i++) {
+    const x = 3 + Math.floor(rand() * 10)
+    const y = 3 + Math.floor(rand() * 8)
+    if (!pc.opaque(x, y)) continue
+    pc.px(x, y, bloom)
+    pc.px(x + 1, y, shade(bloom, 0.3))
+  }
+  return pc.outline(P.outline)
 }
 
 // ---------- a lawn's cover ----------
@@ -881,47 +1026,9 @@ export function drawStatic(sprite, variant = 0, opts = {}) {
   if (sprite === 'stump') return stump()
   if (sprite === 'log') return log()
   if (sprite === 'sapling') return sapling()
-  if (sprite === 'lamp') {
-    const pc = new PixelCanvas(8, 24)
-    pc.vline(3, 8, 22, P.metalDark)
-    pc.vline(4, 8, 22, P.metal)
-    pc.rect(2, 21, 4, 3, P.metalDark)
-    pc.rect(1, 2, 6, 6, P.metalDark)
-    pc.rect(2, 3, 4, 4, opts.lit ? P.windowLit : P.windowShine)
-    pc.hline(0, 7, 1, P.metalDark)
-    return pc.outline(P.outline)
-  }
-  if (sprite === 'arch') {
-    const pc = new PixelCanvas(64, 44)
-    for (const x0 of [0, 56]) {
-      pc.rect(x0, 12, 8, 32, P.stone)
-      for (let y = 12; y < 44; y += 4) {
-        pc.hline(x0, x0 + 7, y, P.stoneDark)
-        pc.vline(x0 + (y % 8 ? 3 : 5), y, y + 3, P.stoneDark)
-      }
-      pc.vline(x0 + 7, 12, 43, P.stoneDark)
-      pc.rect(x0 - 1 + (x0 ? 0 : 1), 10, 8, 2, P.stoneLight)
-      for (let y = 16; y < 40; y += 5) {
-        pc.px(x0 + (y % 2 ? 1 : 6), y, P.leaf)
-        pc.px(x0 + (y % 2 ? 2 : 5), y + 1, P.leafDark)
-      }
-      pc.px(x0 + 2, 22, P.flower[0])
-      pc.px(x0 + 5, 33, P.flower[3])
-    }
-    pc.rect(0, 4, 64, 6, P.wood)
-    pc.hline(0, 63, 4, P.woodLight)
-    pc.hline(0, 63, 9, P.woodDark)
-    pc.rect(18, 11, 28, 9, P.plaster)
-    pc.hline(18, 45, 11, P.woodDark)
-    pc.hline(18, 45, 19, P.woodDark)
-    pc.vline(18, 11, 19, P.woodDark)
-    pc.vline(45, 11, 19, P.woodDark)
-    pc.vline(22, 9, 11, P.woodDark)
-    pc.vline(41, 9, 11, P.woodDark)
-    // "AgentVille" as a row of little letter-strokes: legible as a sign, not as text.
-    for (let x = 21; x <= 42; x += 2) pc.vline(x, 14, (x * 7) % 3 ? 16 : 17, P.woodDark)
-    return pc.outline(P.outline)
-  }
+  if (sprite === 'lamp') return lamppost(opts.lit)
+  if (sprite === 'arch') return portalArch()
+  if (sprite === 'planter') return planter(variant)
   if (sprite === 'board') {
     // A notice board with `variant` notes pinned to it (0–6), filled left to right, top row first.
     // One pixel of margin all round leaves room for the outline.

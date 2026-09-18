@@ -12,10 +12,12 @@
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
+//         fx.bunting                    (the arrival square's, the size of its cell; two frames)
+//         tile.square.<y * 12 + x>      (one tile of the arrival square's floor)
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
-import { drawBadge, drawBird, drawButterfly, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawBadge, drawBird, drawBunting, drawButterfly, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 
 const memo = new Map()
@@ -45,6 +47,7 @@ export function generate(name, frame, p) {
       if (a === 'ring') return drawRing(b)
       if (a === 'butterfly') return drawButterfly(Number(b), frame)
       if (a === 'bird') return drawBird(frame)
+      if (a === 'bunting') return drawBunting(frame)
       if (a === 'shadow') {
         // A bare width gets a shadow a third as deep; a building's is far wider than it is deep.
         const [w, h] = b.split('x').map(Number)

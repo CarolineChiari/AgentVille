@@ -378,3 +378,14 @@ test('a villager whose every step is shoved straight back counts as stuck, and w
   }
   assert.ok(through, 'walking on the spot never counted as stuck')
 })
+
+test('the square keeps the way out of the portal open, with planters either side of it', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')])
+  const gx = Math.floor(w.gate.x)
+  const gy = Math.floor(w.gate.y)
+  for (const [x, y] of [[gx, gy], [gx - 1, gy], [gx, gy + 1], [gx - 1, gy + 1], [gx, gy - 1]]) assert.ok(!w.nav.isBlocked(x, y), `${x},${y} by the portal is blocked`)
+  const planters = w.statics.filter((s) => s.sprite === 'planter')
+  assert.equal(planters.length, 2)
+  for (const p of planters) assert.ok(w.nav.isBlocked(...p.blocks[0]))
+})

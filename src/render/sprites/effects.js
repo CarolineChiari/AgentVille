@@ -1,6 +1,7 @@
 // Badges over heads and the little bits of weather villagers make: sparks, confetti, z's.
-import { BADGE, BUTTERFLIES, PALETTE as P, shade } from './palette.js'
+import { BADGE, BUTTERFLIES, CONFETTI, PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
+import { SIZE, buntingStrings, pennants } from '../square.js'
 
 const GLYPHS = {
   waiting: ['.###.', '#...#', '....#', '...#.', '..#..', '.....', '..#..'],
@@ -92,5 +93,22 @@ export function drawBird(frame) {
     pc.px(6, 2, P.bird)
     pc.px(3, 2, P.bird)
   }
+  return pc
+}
+
+/**
+ * The arrival square's bunting, the size of the whole square: strings from lamppost to lamppost
+ * and up to the arch, a pennant every few pixels. Frame 1 has every other pennant blown aside.
+ */
+export function drawBunting(frame) {
+  const pc = new PixelCanvas(SIZE, SIZE)
+  for (const pts of buntingStrings()) for (const [x, y] of pts) pc.px(x, y, P.woodDark)
+  pennants().forEach(([x, y, c], i) => {
+    const color = CONFETTI[c % CONFETTI.length]
+    const blown = frame % 2 === 1 && i % 2 === 0 ? 1 : 0
+    pc.hline(x - 1, x + 1, y + 1, color)
+    pc.hline(x - 1, x + 1, y + 2, shade(color, -0.15))
+    pc.px(x + blown, y + 3, color)
+  })
   return pc
 }

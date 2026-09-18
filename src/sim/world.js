@@ -1,6 +1,6 @@
 // The village: plots, buildings and villagers, stepped by `tick` and read out by `snapshot`.
 // Nothing here knows about pixels; a renderer draws the Frame this produces.
-import { CELL_TILES, GATE_CELL, GATE_TILE, MAX_ENTERING } from './constants.js'
+import { CELL_TILES, GATE_CELL, GATE_TILE, MAX_ENTERING, SQUARE_LAMPS, SQUARE_PLANTERS } from './constants.js'
 import { key, ringOf } from './grid.js'
 import { allocatePlots } from './layout.js'
 import { Nav } from './nav.js'
@@ -300,10 +300,12 @@ export class World {
     const gy = Math.floor(this.gate.y)
     // The arch's two pillars; the villagers walk between them.
     statics.push({ id: 'arch', sprite: 'arch', x: this.gate.x, y: gy + 1, blocks: [[x0 + 4, gy], [x0 + 7, gy]] })
-    const corners = [[1, 1], [10, 1], [1, 10], [10, 10]]
-    for (const [lx, ly] of corners) {
+    for (const [lx, ly] of SQUARE_LAMPS) {
       statics.push({ id: `lamp:${lx},${ly}`, sprite: 'lamp', x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]] })
     }
+    SQUARE_PLANTERS.forEach(([lx, ly], i) => {
+      statics.push({ id: `planter:${lx},${ly}`, sprite: 'planter', variant: i, x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]] })
+    })
   }
 
   /**

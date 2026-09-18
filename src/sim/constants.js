@@ -12,6 +12,10 @@ export const MAX_RING = 12
 /** The village square: where villagers arrive and leave. Never allocated to a plot. */
 export const GATE_CELL = [0, 0]
 export const GATE_TILE = { x: 6, y: 6.5 } // the arch's walk-through point inside the square
+/** Where the square's lampposts stand, in tiles inside its cell: one near each corner. */
+export const SQUARE_LAMPS = [[1, 1], [10, 1], [1, 10], [10, 10]]
+/** Planters either side of the arch, two tiles out from its pillars. */
+export const SQUARE_PLANTERS = [[2, 6], [9, 6]]
 
 /** Road ring plus fence ring: the yard starts this many tiles in from a plot's edge. */
 export const YARD_INSET = 2

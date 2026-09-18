@@ -181,6 +181,14 @@ test('sprite params are part of the cache key, whatever order they come in', () 
   assert.equal(paramKey(undefined), '')
 })
 
+test('the palette never names a colour twice', () => {
+  // A second entry with the same name silently replaces the first, and every sprite using it.
+  const text = readFileSync(join(SRC, 'render', 'sprites', 'palette.js'), 'utf8')
+  const body = text.slice(text.indexOf('export const PALETTE = {'), text.indexOf('\n}\n', text.indexOf('export const PALETTE = {')))
+  const names = [...body.matchAll(/^ {2}([A-Za-z]+):/gm)].map((m) => m[1])
+  assert.equal(new Set(names).size, names.length, `named twice: ${names.filter((n, i) => names.indexOf(n) !== i).join(', ')}`)
+})
+
 test('colours are only ever written down in the palette', () => {
   const files = []
   const walk = (dir) => {

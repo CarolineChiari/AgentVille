@@ -1,5 +1,5 @@
 // The Canvas 2D renderer. It reads a Frame and nothing else; see src/sim/frame.js.
-import { CELL_TILES } from '../sim/constants.js'
+import { CELL_TILES, GATE_CELL } from '../sim/constants.js'
 import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, BUTTERFLIES, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, hexToRgb, rgba } from './sprites/palette.js'
@@ -9,6 +9,7 @@ import { lawnCover, lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
+import { ARCH_H, ARCH_W, CENTER, SIZE, arrivalSparkles, portalOpening, runePixels, veilColor } from './square.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
@@ -40,7 +41,14 @@ const LAWN_TONED = new Set(['clover', 'lawnflowers', 'tuft'])
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
-const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8 }
+const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14 }
+/** The arrival square's top-left corner in world pixels, and its portal's opening and runes. */
+const SQUARE_X = GATE_CELL[0] * CELL_TILES * T
+const SQUARE_Y = GATE_CELL[1] * CELL_TILES * T
+const OPENING = portalOpening()
+const RUNE_PX = runePixels()
+/** How near the gate someone fading in or out has to be to set the portal flaring, in tiles. */
+const PORTAL_REACH = 1.5
 /** Statics that light up after dark. */
 const LIT_STATICS = new Set(['lamp'])
 /** How dark a cloud's shadow is at noon; see ambient.js for where clouds are. */
@@ -84,6 +92,10 @@ export class Canvas2dRenderer {
     this.underfoot = new Set() // "x,y" of every tile a building or a board stands on: no lawn cover there
     this.styleVersion = -1
     this.flock = null // the birds crossing now, if any; see ambient.js
+    this.flare = 0 // 0..1: the portal lights up while somebody steps through it
+    this.lastTime = null
+    this.time = 0
+    this.veil = null // a small canvas the portal's veil is painted into each frame
     this.hashes = new Map() // id → hashString(id), so per-frame passes don't rehash every id
     this.chimneys = new Map() // building look → where its chimney is, or null
   }
@@ -146,7 +158,9 @@ export class Canvas2dRenderer {
           SIDES.forEach(([dx, dy], side) => PATHS.has(tileAt(x + dx, y + dy)) && (links |= SIDE_LINK[side]))
           params = { links, tone }
         } else if (kind === TILE.YARD) params = { tone }
-        g.drawImage(sprites.get(`tile.${name}.${variant}`, 0, params), lx * T, ly * T)
+        // The arrival square's floor is one picture cut into tiles, so each spot has its own.
+        const tile = kind === TILE.PLAZA ? `tile.square.${ly * CELL_TILES + lx}` : `tile.${name}.${variant}`
+        g.drawImage(sprites.get(tile, 0, params), lx * T, ly * T)
         if (kind === TILE.YARD && !decoAt(x, y) && !this.underfoot.has(`${x},${y}`)) {
           const cover = lawnCover(x, y)
           if (cover) g.drawImage(sprites.get(`deco.${cover.kind}.${cover.variant}`, 0, LAWN_TONED.has(cover.kind) ? { tone } : undefined), lx * T, ly * T)
@@ -300,7 +314,91 @@ export class Canvas2dRenderer {
     const img = sprites.get(`static.${st.sprite}.${st.variant || 0}`, 0, lit)
     const shadow = STATIC_SHADOW[st.sprite]
     if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
+    // The portal's veil goes in first, so the stone frames it and anyone arriving shows through it.
+    if (st.sprite === 'arch') this._drawVeil(st.x * T - ARCH_W / 2, st.y * T - ARCH_H)
     this._blit(img, st.x * T - img.width / 2, st.y * T - img.height)
+  }
+
+  // ---------- the arrival square ----------
+
+  /** The shimmering veil in the portal's opening, painted afresh into a small canvas each frame. */
+  _drawVeil(wx, wy) {
+    if (!this.veil) {
+      this.veil = document.createElement('canvas')
+      this.veil.width = ARCH_W
+      this.veil.height = ARCH_H
+      this.veilCtx = this.veil.getContext('2d')
+      this.veilImg = this.veilCtx.createImageData(ARCH_W, ARCH_H)
+    }
+    const d = this.veilImg.data
+    for (const [y, x0, x1] of OPENING) {
+      for (let x = x0; x <= x1; x++) {
+        const [r, g, b, a] = veilColor(x, y, this.time, this.flare)
+        const i = (y * ARCH_W + x) * 4
+        d[i] = r
+        d[i + 1] = g
+        d[i + 2] = b
+        d[i + 3] = Math.round(a * 255)
+      }
+    }
+    this.veilCtx.putImageData(this.veilImg, 0, 0)
+    this._blit(this.veil, wx, wy)
+  }
+
+  _squareInView(view) {
+    return view.x1 > SQUARE_X && view.x0 < SQUARE_X + SIZE && view.y1 > SQUARE_Y && view.y0 < SQUARE_Y + SIZE
+  }
+
+  /** Light running round the ring of runes at the portal's foot, blazing while somebody arrives. */
+  _drawRunes(frame, view) {
+    if (!this._squareInView(view)) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.fillStyle = P.runeGlow
+    for (const [px, py, a] of RUNE_PX) {
+      const wave = 0.5 + 0.5 * Math.sin(a * 2 - frame.time * 1.8)
+      ctx.globalAlpha = Math.min(1, 0.12 + 0.55 * wave ** 3 + 0.8 * this.flare)
+      ctx.fillRect(cam.offX + (SQUARE_X + px) * s, cam.offY + (SQUARE_Y + py) * s, s, s)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** The square's bunting, fluttering: over everything, as it hangs overhead. */
+  _drawBunting(frame, view) {
+    if (!this._squareInView(view)) return
+    this._blit(sprites.get('fx.bunting', Math.floor(frame.time * 1.5) % 2), SQUARE_X, SQUARE_Y)
+  }
+
+  /** While somebody steps through: a glow round the portal and sparkles rising off its pad. */
+  _drawArrival(frame, view) {
+    if (this.flare < 0.02 || !this._squareInView(view)) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    const cx = cam.offX + (SQUARE_X + CENTER.x) * s
+    const cy = cam.offY + (SQUARE_Y + CENTER.y - 20) * s
+    const rad = 40 * s
+    ctx.globalCompositeOperation = 'lighter'
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
+    g.addColorStop(0, rgba(P.portal, 0.35 * this.flare))
+    g.addColorStop(1, rgba(P.portal, 0))
+    ctx.fillStyle = g
+    ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2)
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.fillStyle = P.portalCore
+    for (const [px, py, a] of arrivalSparkles(frame.time, this.flare)) {
+      if (a < 0.1) continue
+      const x = cam.offX + (SQUARE_X + px) * s
+      const y = cam.offY + (SQUARE_Y + py) * s
+      ctx.globalAlpha = a
+      ctx.fillRect(x, y, s, s)
+      if (a > 0.6) {
+        ctx.fillRect(x - s, y, s, s)
+        ctx.fillRect(x + s, y, s, s)
+        ctx.fillRect(x, y - s, s, s)
+        ctx.fillRect(x, y + s, s, s)
+      }
+    }
+    ctx.globalAlpha = 1
   }
 
   /** A notice board: one note pinned up per open issue, up to six. */
@@ -528,17 +626,19 @@ export class Canvas2dRenderer {
     ctx.fillStyle = tint(NIGHT, 0.62 * night)
     ctx.fillRect(0, 0, cam.width, cam.height)
     ctx.globalCompositeOperation = 'lighter'
-    const glow = (wx, wy, r, a) => {
+    const glow = (wx, wy, r, a, color = P.lampGlow) => {
       const p = { x: cam.offX + wx * cam.scale, y: cam.offY + wy * cam.scale }
       const rad = r * cam.scale
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad)
-      g.addColorStop(0, rgba(P.lampGlow, a * night))
-      g.addColorStop(1, rgba(P.lampGlow, 0))
+      g.addColorStop(0, rgba(color, a * night))
+      g.addColorStop(1, rgba(color, 0))
       ctx.fillStyle = g
       ctx.fillRect(p.x - rad, p.y - rad, rad * 2, rad * 2)
     }
     for (const b of frame.buildings) if (b.lit && b.stage >= 2) glow((b.x + b.w / 2) * T, (b.y + b.h) * T - 12, 22, 0.33)
-    for (const st of frame.statics) if (st.sprite === 'lamp') glow(st.x * T, st.y * T - 20, 28, 0.38)
+    for (const st of frame.statics) if (st.sprite === 'lamp') glow(st.x * T, st.y * T - 22, 28, 0.38)
+    // The portal lights the whole square after dark.
+    glow(SQUARE_X + CENTER.x, SQUARE_Y + CENTER.y - 24, 56, 0.4 + 0.3 * this.flare, P.portal)
     ctx.globalCompositeOperation = 'source-over'
   }
 
@@ -603,8 +703,18 @@ export class Canvas2dRenderer {
       for (const b of frame.boards || []) this.underfoot.add(`${b.tx},${b.ty}`)
       this.styleVersion = frame.map.version
     }
+    // The portal flares while anybody fades in or out beside it, and dies down slowly after.
+    const dt = this.lastTime === null ? 0 : Math.max(0, Math.min(0.1, frame.time - this.lastTime))
+    this.lastTime = frame.time
+    this.time = frame.time
+    const gate = frame.gate
+    const busy = gate && frame.villagers.some((v) => v.alpha < 1 && Math.abs(v.x - gate.x) < PORTAL_REACH && Math.abs(v.y - gate.y) < PORTAL_REACH)
+    this.flare = busy ? Math.min(1, this.flare + dt * 3) : Math.max(0, this.flare - dt * 0.6)
+    const view = this._view()
+
     this._drawGround(frame)
     this._drawWater(frame)
+    this._drawRunes(frame, view)
 
     const night = ui.night
     // Everything that stands up is drawn back to front by the y of its base, so a lower flower's
@@ -624,7 +734,7 @@ export class Canvas2dRenderer {
       else if (kind === 3) this._drawFlower(it, frame.time)
       else this._drawBoard(it)
     }
-    const view = this._view()
+    this._drawBunting(frame, view)
     this._drawSmoke(frame, view)
     this._drawClouds(frame, view, night)
     this._drawButterflies(frame, flowers, night)
@@ -632,6 +742,7 @@ export class Canvas2dRenderer {
     this._drawEffects(frame)
     this._drawDusk(ui.dusk || 0)
     this._drawNight(frame, night)
+    this._drawArrival(frame, view)
     this._drawGlitter(frame)
     this._drawBadges(frame)
     this._drawLabels(frame, ui)

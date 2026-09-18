@@ -69,8 +69,8 @@ Only files under your home directory, and only ever read.
 | Slumped with `!` | Errored |
 | Jumping with a gold ★ | PR merged, in the last three days |
 | Sitting with `z` | Nothing for three days |
-| Walking in from the gate | A session that just appeared |
-| Walking out through the gate | You archived it |
+| Stepping out of the portal in the square | A session that just appeared |
+| Walking back into the portal | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
 | A notice board below the garden | The repo's open GitHub issues, one pinned note each |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
@@ -89,7 +89,7 @@ while the thread is working or waiting, and stays at the newest message if that'
 It's read straight from the transcript file; nothing is sent anywhere.
 
 **+ New session** (or `C`) picks a repo, or any folder, where to open it, the model, the effort
-level, and an optional first prompt. The new villager walks in from the gate a few seconds later.
+level, and an optional first prompt. The new villager steps out of the portal a few seconds later.
 
 | Open in | Model and effort | First prompt |
 | --- | --- | --- |
