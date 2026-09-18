@@ -80,6 +80,12 @@ export const PALETTE = {
   berry: '#5b6fd6',
   lampGlow: '#ffc86e', // the warm pool a lit window or lamp throws at night
   water: '#5a93cf',
+  waterDeep: '#4677b4', // along the north bank, where the ground shades the pond
+  waterLight: '#8cbde8', // ripples and shallows
+  waterGlint: '#e8f5ff',
+  shore: '#9a8659', // wet mud at the water's edge
+  lily: '#5aa04a',
+  lilyDark: '#3d7b36',
 
   bed: '#8b6445',
   bedDark: '#74523a',

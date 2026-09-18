@@ -8,7 +8,8 @@ import { DECO, Plot, TILE } from './plot.js'
 import { Building } from './building.js'
 import { Villager } from './villager.js'
 import { STATUS_RANK } from './status.js'
-import { hashString, pick, rngFor } from './rng.js'
+import { hashString } from './rng.js'
+import { paintWild } from './wild.js'
 
 export const ACCENT_COUNT = 10
 /** A villager sprite is one tile wide; at 0.6 two bodies at rest still overlapped by 6 px. */
@@ -44,10 +45,6 @@ export class TileMap {
 }
 
 const BLOCKING_DECO = new Set([DECO.FENCE_H, DECO.FENCE_V, DECO.POST])
-/** Trees of the open countryside, weighted: broadleaf, pine, fruit, birch, autumn. Willows grow by water. */
-const WILD_TREES = [0, 0, 0, 1, 1, 2, 3, 3, 4]
-/** What is scattered on the grass between them, weighted. */
-const WILD_DECO = [DECO.FLOWERS, DECO.FLOWERS, DECO.FLOWERS, DECO.TALLGRASS, DECO.TALLGRASS, DECO.CLOVER, DECO.PEBBLES, DECO.MUSHROOMS]
 
 export class World {
   constructor() {
@@ -268,7 +265,7 @@ export class World {
       for (let cx = -R; cx <= R; cx++) {
         const k = key(cx, cy)
         if (cx === GATE_CELL[0] && cy === GATE_CELL[1]) this._paintSquare(map, cx, cy, statics)
-        else if (!this.owner.has(k)) this._paintWild(map, cx, cy, statics)
+        else if (!this.owner.has(k)) paintWild(map, cx, cy, statics)
       }
     }
     for (const p of this.plots.values()) p.paint(map)
@@ -278,8 +275,8 @@ export class World {
     for (let y = map.oy; y < map.oy + map.h; y++) {
       for (let x = map.ox; x < map.ox + map.w; x++) {
         // The garden bed is walkable: with it blocked, a yard was two 8-tile corridors and three
-        // villagers ended up standing on each other in the top one.
-        if (BLOCKING_DECO.has(map.decoAt(x, y))) nav.setBlocked(x, y)
+        // villagers ended up standing on each other in the top one. Ponds are not.
+        if (BLOCKING_DECO.has(map.decoAt(x, y)) || map.tileAt(x, y) === TILE.WATER) nav.setBlocked(x, y)
       }
     }
     for (const s of statics) if (s.blocks) for (const [bx, by] of s.blocks) nav.setBlocked(bx, by)
@@ -304,32 +301,6 @@ export class World {
     const corners = [[1, 1], [10, 1], [1, 10], [10, 10]]
     for (const [lx, ly] of corners) {
       statics.push({ id: `lamp:${lx},${ly}`, sprite: 'lamp', x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]] })
-    }
-  }
-
-  _paintWild(map, cx, cy, statics) {
-    const rand = rngFor(`wild:${cx},${cy}`)
-    const x0 = cx * CELL_TILES
-    const y0 = cy * CELL_TILES
-    // Trees only in the middle of a cell, so every cell keeps an open ring and the countryside
-    // can always be crossed.
-    const trees = Math.floor(rand() * 6)
-    const used = new Set()
-    for (let i = 0; i < trees; i++) {
-      const lx = 2 + Math.floor(rand() * 8)
-      const ly = 2 + Math.floor(rand() * 8)
-      if (used.has(key(lx, ly))) continue
-      used.add(key(lx, ly))
-      statics.push({
-        id: `tree:${x0 + lx},${y0 + ly}`, sprite: 'tree', variant: pick(rand, WILD_TREES),
-        x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]],
-      })
-    }
-    const flowers = 3 + Math.floor(rand() * 7)
-    for (let i = 0; i < flowers; i++) {
-      const lx = Math.floor(rand() * CELL_TILES)
-      const ly = Math.floor(rand() * CELL_TILES)
-      if (!used.has(key(lx, ly))) map.setDeco(x0 + lx, y0 + ly, pick(rand, WILD_DECO))
     }
   }
 

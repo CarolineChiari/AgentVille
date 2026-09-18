@@ -9,7 +9,7 @@ function speckle(pc, rand, colors, n) {
   for (let i = 0; i < n; i++) pc.px(Math.floor(rand() * T), Math.floor(rand() * T), colors[Math.floor(rand() * colors.length)])
 }
 
-export const TILE_VARIANTS = { wild: 8, yard: 6, road: 6, plaza: 4, bed: 2, trail: 4 }
+export const TILE_VARIANTS = { wild: 8, yard: 6, road: 6, plaza: 4, bed: 2, trail: 4, water: 2 }
 /**
  * How often each variant comes up, by position hash. The plain ones carry the ground; a tile
  * with something in it (clover, a scuff, a daisy) only reads as a find if it is rare, and a
@@ -39,7 +39,7 @@ export function tileVariant(kind, hash) {
 /** How many looks each decoration has; the renderer picks one by a hash of the tile. */
 export const DECO_VARIANTS = {
   fenceh: 1, fencev: 1, post: 1, flowers: 6, pebbles: 3, fringe: 16,
-  tallgrass: 3, clover: 2, mushrooms: 2, reeds: 2,
+  tallgrass: 3, clover: 2, mushrooms: 2, reeds: 2, lilypad: 2,
 }
 /**
  * How many looks each tall static has. Trees: 0 broadleaf, 1 pine, 2 fruit, 3 birch, 4 autumn,
@@ -208,6 +208,15 @@ export function drawTile(kind, variant, opts = {}) {
     if (variant === 5) tuft(pc, 5 + Math.floor(rand() * 6), 6 + Math.floor(rand() * 6), P.grass[3], P.grass[0])
   } else if (kind === 'trail') {
     footpath(pc, rand, variant, opts.links || 0)
+  } else if (kind === 'water') {
+    // Open water; its banks are drawn over it by the renderer (see `shoreline`).
+    pc.rect(0, 0, T, T, P.water)
+    for (let i = 0; i < 3 - variant; i++) {
+      const x = 2 + Math.floor(rand() * 10)
+      const y = 3 + Math.floor(rand() * 10)
+      pc.hline(x, x + 2, y, P.waterLight)
+      pc.hline(x + 1, x + 3, y + 1, P.waterDeep)
+    }
   } else if (kind === 'bed') {
     // Ploughed soil. The empty dimples mark where flowers will go, 8 px apart, the way a
     // contribution graph shows empty days. Variant 0 is a field's top row, whose first row of
@@ -260,6 +269,46 @@ export function drawTile(kind, variant, opts = {}) {
 }
 
 /**
+ * A pond's bank, drawn over a water tile. `mask` says which sides are land (1 N, 2 E, 4 S, 8 W).
+ * The north bank shades the water under it; the others show a line of shallows. An outside
+ * corner is rounded off with grass, or a pond is a stack of squares.
+ */
+function shoreline(pc, mask) {
+  const N = mask & 1
+  const E = mask & 2
+  const S = mask & 4
+  const W = mask & 8
+  if (S) pc.hline(0, T - 1, T - 2, P.waterLight)
+  if (W) pc.vline(1, 0, T - 1, P.waterLight)
+  if (E) pc.vline(T - 2, 0, T - 1, P.waterLight)
+  if (N) {
+    pc.hline(0, T - 1, 1, P.waterDeep)
+    pc.hline(0, T - 1, 2, P.waterDeep)
+  }
+  if (N) pc.hline(0, T - 1, 0, P.shore)
+  if (S) pc.hline(0, T - 1, T - 1, P.shore)
+  if (W) pc.vline(0, 0, T - 1, P.shore)
+  if (E) pc.vline(T - 1, 0, T - 1, P.shore)
+  // A quarter circle of this radius, in px: grass outside it, the muddy edge along it.
+  const R = 5
+  const round = (fx, fy) => {
+    for (let d = 0; d < R; d++) {
+      for (let e = 0; e < R; e++) {
+        const r2 = (R - d - 0.5) ** 2 + (R - e - 0.5) ** 2
+        const x = fx ? T - 1 - d : d
+        const y = fy ? T - 1 - e : e
+        if (r2 > R * R) pc.px(x, y, P.grass[0])
+        else if (r2 > (R - 1.2) ** 2) pc.px(x, y, P.shore)
+      }
+    }
+  }
+  if (N && W) round(false, false)
+  if (N && E) round(true, false)
+  if (S && W) round(false, true)
+  if (S && E) round(true, true)
+}
+
+/**
  * Blades of grass hanging over the edge of a path. Variant `side * 2 + k`: side 0 top, 1 right,
  * 2 bottom, 3 left of the path tile; k picks one of two scatters; add 8 to leave a footpath's
  * mouth open. `ground` is the grass they belong to, so a lawn's edge is lawn-coloured.
@@ -290,6 +339,26 @@ export function drawDeco(kind, variant = 0, opts = {}) {
   const rand = mulberry32(variant * 977 + 3)
   if (kind === 'fringe') {
     fringe(pc, variant, opts.ground)
+    return pc
+  }
+  if (kind === 'shore') {
+    shoreline(pc, variant)
+    return pc
+  }
+  if (kind === 'lilypad') {
+    // Round pads with a notch cut in, lying flat; variant 1 has a flower on one.
+    for (const [x, y] of [[5, 5], [10, 10]]) {
+      pc.ellipse(x, y, 3, 2, P.lilyDark)
+      pc.ellipse(x - 0.5, y - 0.5, 2.5, 1.5, P.lily)
+      pc.clearPx(x, y - 1)
+      pc.clearPx(x + 1, y - 2)
+    }
+    if (variant === 1) {
+      pc.px(10, 8, P.flower[0])
+      pc.px(9, 9, P.flower[0])
+      pc.px(11, 9, P.flower[0])
+      pc.px(10, 9, P.petalWhite)
+    }
     return pc
   }
   const post = (x, y0, y1) => {

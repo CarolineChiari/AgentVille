@@ -13,12 +13,12 @@ import { BADGE_H, BADGE_W } from './sprites/effects.js'
 const CHUNK = CELL_TILES * T
 const TILE_NAME = {
   [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
-  [TILE.TRAIL]: 'trail',
+  [TILE.TRAIL]: 'trail', [TILE.WATER]: 'water',
 }
 const DECO_NAME = {
   [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers',
   [DECO.PEBBLES]: 'pebbles', [DECO.TALLGRASS]: 'tallgrass', [DECO.CLOVER]: 'clover', [DECO.MUSHROOMS]: 'mushrooms',
-  [DECO.REEDS]: 'reeds',
+  [DECO.REEDS]: 'reeds', [DECO.LILYPAD]: 'lilypad',
 }
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
 /** Ground a path's grass fringe grows from, and whose greens it wears. A footpath runs through lawn. */
@@ -56,7 +56,7 @@ export class Canvas2dRenderer {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d', { alpha: false })
     this.camera = camera
-    this.chunks = new Map() // "cx,cy" → { version, canvas, water, flowers }
+    this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
   }
 
@@ -103,6 +103,12 @@ export class Canvas2dRenderer {
           params = { links }
         }
         g.drawImage(sprites.get(`tile.${name}.${variant}`, 0, params), lx * T, ly * T)
+        if (kind === TILE.WATER) {
+          let land = 0
+          SIDES.forEach(([dx, dy], side) => tileAt(x + dx, y + dy) !== TILE.WATER && (land |= SIDE_LINK[side]))
+          if (land) g.drawImage(sprites.get(`deco.shore.${land}`), lx * T, ly * T)
+          entry.water.push([x, y, hashString(`w${x},${y}`)])
+        }
         // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it,
         // leaving a gap where a footpath comes in.
         if (PAVED.has(kind)) {
@@ -166,6 +172,24 @@ export class Canvas2dRenderer {
         const chunk = this._chunk(frame.map, cx, cy)
         this.inView.push(chunk)
         ctx.drawImage(chunk.canvas, cam.offX + cx * CHUNK * s, cam.offY + cy * CHUNK * s, CHUNK * s, CHUNK * s)
+      }
+    }
+  }
+
+  /** Light glinting off the ponds on screen: a pixel or two per tile, each on its own slow clock. */
+  _drawWater(frame) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.fillStyle = P.waterGlint
+    for (const chunk of this.inView) {
+      for (const [x, y, h] of chunk.water) {
+        const t = (frame.time * 0.35 + (h % 1000) / 1000) % 1
+        // Lit for a fifth of each cycle, longest in the middle of it.
+        if (t > 0.2) continue
+        const len = t > 0.06 && t < 0.14 ? 2 : 1
+        const gx = x * T + 3 + ((h >>> 10) % 9)
+        const gy = y * T + 4 + ((h >>> 14) % 8)
+        ctx.fillRect(cam.offX + gx * s, cam.offY + gy * s, len * s, s)
       }
     }
   }
@@ -407,6 +431,7 @@ export class Canvas2dRenderer {
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
     this._drawGround(frame)
+    this._drawWater(frame)
 
     const night = ui.night
     // Everything that stands up is drawn back to front by the y of its base, so a lower flower's

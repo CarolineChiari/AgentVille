@@ -55,6 +55,13 @@ test('every decoration draws something inside its tile', () => {
   }
 })
 
+test('a pond\'s bank draws for every combination of dry sides', () => {
+  for (let mask = 1; mask < 16; mask++) {
+    const pc = generate(`deco.shore.${mask}`, 0, {})
+    assert.ok(opaque(pc) >= 16, `deco.shore.${mask} is missing its edge`)
+  }
+})
+
 test('every static stands on the ground, lit or not', () => {
   for (const [sprite, n] of Object.entries(STATIC_VARIANTS)) {
     for (let v = 0; v < n; v++) {

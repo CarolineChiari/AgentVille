@@ -8,7 +8,10 @@ import { STATUS_RANK } from './status.js'
 /** Ground kinds. None is saved anywhere, so the numbers are free to change. */
 export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4, TRAIL: 5, WATER: 6 }
 /** What lies on the ground. Fences block; the rest is underfoot. */
-export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, TALLGRASS: 6, CLOVER: 7, MUSHROOMS: 8, REEDS: 9 }
+export const DECO = {
+  NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, TALLGRASS: 6, CLOVER: 7, MUSHROOMS: 8, REEDS: 9,
+  LILYPAD: 10,
+}
 
 export class Plot {
   constructor(name, accent) {

@@ -265,3 +265,53 @@ test('in a full plot, the thread you are working in still has a villager', () =>
   run(w, 30)
   assert.equal(w.villager('t99').badge, 'working')
 })
+
+/** A village big enough to have plenty of countryside round it, ponds and woods included. */
+function sprawl() {
+  const w = new World()
+  const roster = []
+  for (let i = 0; i < 14; i++) roster.push(T(`s${i}`, `repo${i}`))
+  w.setRoster(roster)
+  return w
+}
+
+test('the countryside can always be crossed: every road can be reached from the gate', () => {
+  const w = sprawl()
+  const { map, nav } = w
+  const start = [Math.floor(w.gate.x), Math.floor(w.gate.y)]
+  const seen = new Set([start.join()])
+  const queue = [start]
+  while (queue.length) {
+    const [x, y] = queue.pop()
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx
+      const ny = y + dy
+      const k = `${nx},${ny}`
+      if (seen.has(k) || !nav.inside(nx, ny) || nav.isBlocked(nx, ny)) continue
+      seen.add(k)
+      queue.push([nx, ny])
+    }
+  }
+  let roads = 0
+  for (let y = map.oy; y < map.oy + map.h; y++) {
+    for (let x = map.ox; x < map.ox + map.w; x++) {
+      if (map.tileAt(x, y) !== TILE.ROAD) continue
+      roads++
+      assert.ok(seen.has(`${x},${y}`), `the road at ${x},${y} is cut off`)
+    }
+  }
+  assert.ok(roads > 100)
+})
+
+test('nobody can walk on water', () => {
+  const w = sprawl()
+  let water = 0
+  for (let y = w.map.oy; y < w.map.oy + w.map.h; y++) {
+    for (let x = w.map.ox; x < w.map.ox + w.map.w; x++) {
+      if (w.map.tileAt(x, y) !== TILE.WATER) continue
+      water++
+      assert.ok(w.nav.isBlocked(x, y), `the water at ${x},${y} is walkable`)
+    }
+  }
+  assert.ok(water > 0, 'a village this size should have a pond somewhere')
+})
