@@ -3,6 +3,7 @@
 import { BED, BOARD_LOCAL, CELL_TILES, FLOWER_PITCH, FLOWER_ROWS, FLOWER_TOP, FLOWERS_PER_CELL, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
 import { key } from './grid.js'
 import { signature } from './layout.js'
+import { STATUS_RANK } from './status.js'
 
 export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4 }
 export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, CROPS: 6 }
@@ -33,9 +34,14 @@ export class Plot {
   }
 
   /**
-   * Slots are assigned by `createdAt` order and then never move: archiving one thread must not
-   * shuffle its siblings. Newcomers take the lowest free slot; a slot beyond a shrunken plot's
-   * capacity is reassigned.
+   * A thread keeps its slot once it has one: archiving one thread must not shuffle its siblings.
+   * Newcomers take the lowest free slot, most urgent first, then oldest; a slot beyond a shrunken
+   * plot's capacity is reassigned.
+   *
+   * A plot boxed in by its neighbours can have more threads than slots. Then a thread that wants
+   * something (stuck, waiting on you, done, working) takes the slot of one strictly quieter,
+   * sleepiest first. Handing slots out oldest first left the newest threads homeless, and those
+   * are the ones you are working in. Equal ranks never displace each other, so nothing churns.
    */
   assignSlots(threads) {
     const ids = new Set(threads.map((t) => t.id))
@@ -45,14 +51,30 @@ export class Plot {
       if (s < this.capacity && !used.has(s)) used.add(s)
       else this.slotOf.delete(id)
     }
-    const sorted = [...threads].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1))
+    const byId = new Map(threads.map((t) => [t.id, t]))
+    const rank = (t) => STATUS_RANK[t.status] ?? STATUS_RANK.idle
+    const older = (a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1)
+    const sorted = [...threads].sort((a, b) => rank(a) - rank(b) || older(a, b))
     let next = 0
     for (const t of sorted) {
       if (this.slotOf.has(t.id)) continue
       while (used.has(next)) next++
-      if (next >= this.capacity) break // over capacity: no building for this one
-      this.slotOf.set(t.id, next)
-      used.add(next)
+      if (next < this.capacity) {
+        this.slotOf.set(t.id, next)
+        used.add(next)
+        continue
+      }
+      // Full. The quietest holder, and of those the oldest, gives way if it is quieter than `t`.
+      let victim = null
+      for (const id of this.slotOf.keys()) {
+        const h = byId.get(id)
+        if (rank(h) <= rank(t)) continue
+        if (!victim || rank(h) > rank(victim) || (rank(h) === rank(victim) && older(h, victim) < 0)) victim = h
+      }
+      // Sorted most urgent first: if this one can't displace anybody, nobody after it can.
+      if (!victim) break
+      this.slotOf.set(t.id, this.slotOf.get(victim.id))
+      this.slotOf.delete(victim.id)
     }
   }
 

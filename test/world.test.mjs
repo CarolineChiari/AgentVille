@@ -228,3 +228,15 @@ test('a villager standing where a board goes up walks off it', () => {
   run(w, 3)
   assert.ok(w.nav.standable(v.x, v.y), `still inside the board at ${v.x.toFixed(2)},${v.y.toFixed(2)}`)
 })
+
+test('in a full plot, the thread you are working in still has a villager', () => {
+  const w = new World()
+  // More threads than the largest plot has slots; the newest is the one working.
+  const threads = Array.from({ length: 40 }, (_, i) => T(`t${i + 1}`, 'a', 'sleeping'))
+  threads.push(T('t99', 'a', 'working'))
+  w.setRoster(threads)
+  assert.ok(w.buildings.has('t99'), 'it has a building')
+  assert.ok(w.villager('t99'), 'and a villager')
+  run(w, 30)
+  assert.equal(w.villager('t99').badge, 'working')
+})
