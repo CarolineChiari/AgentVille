@@ -148,10 +148,13 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     else if (e.key === 'Escape') close()
   })
 
-  function open(preselect = village.selectedPlot) {
+  /** `prompt` starts the form with a first prompt already written, e.g. an issue to fix. */
+  function open(preselect = village.selectedPlot, { prompt = '' } = {}) {
     render(preselect)
+    const p = box.querySelector('[data-f="prompt"]')
+    if (p && prompt) p.value = prompt
     box.hidden = false
-    ;(box.querySelector('[data-f="prompt"]') || box.querySelector('[data-act="cancel"]')).focus()
+    ;(p || box.querySelector('[data-act="cancel"]')).focus()
   }
   function close() {
     box.hidden = true

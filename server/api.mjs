@@ -5,7 +5,7 @@ import { ConflictError, createStateStore } from './state.mjs'
 import { createOpener, resolveFolder } from './opener.mjs'
 import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
-import { createPrStore } from './github.mjs'
+import { createIssueStore, createPrStore } from './github.mjs'
 import { openInTerminal } from './terminal.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
@@ -91,11 +91,16 @@ export function createApiMiddleware(opts = {}) {
   const terminal = opts.terminal ?? ((spec) => openInTerminal(spec, { dataDir: opts.dataDir ?? DEFAULT_DATA_DIR }))
   const extraHosts = new Set(opts.extraHosts ?? [])
   const prStore = opts.prStore ?? createPrStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
-  // Repo name → folder, from the latest scan: the PR lookup reads each folder's git remote.
+  const issueStore = opts.issueStore ?? createIssueStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
+  // Repo name → folder, from the latest scan: the PR and issue lookups read each folder's git remote.
   let projects = new Map()
   const remember = (threads) => {
     projects = new Map()
     for (const t of threads) if (t.project && t.projectPath && !projects.has(t.project)) projects.set(t.project, t.projectPath)
+  }
+  const projectList = async () => {
+    if (!projects.size) remember((await scanAll({ harnesses })).threads)
+    return [...projects].map(([name, dir]) => ({ name, path: dir }))
   }
 
   // An adapter may hand back several URLs to open in order (folder first, then session), or a
@@ -199,13 +204,11 @@ export function createApiMiddleware(opts = {}) {
       return [r.ok ? 200 : 404, r]
     },
 
-    'GET /api/prs': async () => {
-      if (!projects.size) remember((await scanAll({ harnesses })).threads)
-      const list = [...projects].map(([name, dir]) => ({ name, path: dir }))
-      return [200, await prStore.get(list)]
-    },
+    'GET /api/prs': async () => [200, await prStore.get(await projectList())],
 
-    /** Only GitHub pages, over https: this endpoint exists to open a PR, not arbitrary links. */
+    'GET /api/issues': async () => [200, await issueStore.get(await projectList())],
+
+    /** Only GitHub pages, over https: this endpoint exists to open a PR or an issue, not arbitrary links. */
     'POST /api/open-url': async (body) => {
       let u
       try {

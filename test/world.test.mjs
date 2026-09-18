@@ -170,3 +170,61 @@ test('idle villagers spread over the whole yard, garden included', () => {
   }
   assert.ok([...rows].some((r) => r >= 5), `only ever stood on rows ${[...rows].sort().join(',')}`)
 })
+
+const notes = (n, repo = 'a') => Array.from({ length: n }, (_, i) => ({ id: `issue:me/${repo}#${i + 1}` }))
+
+test('a plot with open issues gets one notice board; one without gets none', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a'), T('t2', 'b')], undefined, new Map(), new Map([['a', notes(3)], ['b', []], ['nowhere', notes(2)]]))
+  const snap = w.snapshot({ selected: 'board:a' })
+  assert.deepEqual(snap.boards.map((b) => b.id), ['board:a'], 'no board for an empty list, and none for a repo without a plot')
+  assert.equal(snap.boards[0].count, 3)
+  assert.equal(snap.boards[0].selected, true)
+  assert.equal(w.board('board:a').plot, 'a')
+  assert.equal(w.board('board:b'), null)
+})
+
+test('a board stands on the walkway, blocks its tile, and never moves as the plot grows', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', notes(1)]]))
+  const b = w.board('board:a')
+  assert.ok(w.nav.isBlocked(b.tx, b.ty), 'nobody walks through the board')
+  const ly = ((b.ty % 12) + 12) % 12
+  assert.notEqual(ly, 4, 'not on the row in front of the doors')
+  for (const bd of w.buildings.values()) {
+    assert.ok(!(b.tx >= bd.x && b.tx < bd.x + bd.w && b.ty >= bd.y && b.ty < bd.y + bd.h), 'not inside a building')
+  }
+  // Every fence gap still opens onto a walkable tile.
+  const [cx, cy] = w.plots.get('a').cells[0]
+  for (const [gx, gy, ix, iy] of [[1, 4, 2, 4], [1, 9, 2, 9], [10, 4, 9, 4], [10, 9, 9, 9], [4, 10, 4, 9], [7, 10, 7, 9]]) {
+    assert.ok(!w.nav.isBlocked(cx * 12 + ix, cy * 12 + iy), `the gap at ${gx},${gy} is not plugged`)
+  }
+  const at = `${b.tx},${b.ty}`
+  w.setRoster(Array.from({ length: 7 }, (_, i) => T(`t${i + 1}`, 'a')), undefined, new Map(), new Map([['a', notes(9)]]))
+  assert.ok(w.plots.get('a').cells.length > 1, 'the plot grew')
+  assert.equal(`${w.board('board:a').tx},${w.board('board:a').ty}`, at)
+  assert.equal(w.board('board:a').count, 9)
+})
+
+test('closing the last issue takes the board down and frees its tile', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', notes(2)]]))
+  const { tx, ty } = w.board('board:a')
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', []]]))
+  assert.equal(w.board('board:a'), null)
+  assert.ok(!w.nav.isBlocked(tx, ty))
+})
+
+test('a villager standing where a board goes up walks off it', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')])
+  run(w, 12)
+  const tile = w.plots.get('a').boardTile
+  const v = w.villager('t1')
+  v.x = tile.x + 0.5
+  v.y = tile.y + 0.5
+  v.goal = { x: v.x, y: v.y }
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', notes(1)]]))
+  run(w, 3)
+  assert.ok(w.nav.standable(v.x, v.y), `still inside the board at ${v.x.toFixed(2)},${v.y.toFixed(2)}`)
+})

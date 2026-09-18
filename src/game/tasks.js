@@ -83,3 +83,15 @@ export function customId(label, taken = []) {
 export const tasksFor = (custom = []) => [...TASKS, ...cleanTasks(custom)]
 
 export const taskById = (id, custom = []) => tasksFor(custom).find((t) => t.id === id) || null
+
+/**
+ * The job an open GitHub issue turns into, for a villager already on the repo or a new recruit.
+ * The title is flattened and clipped so the prompt always fits PROMPT_MAX.
+ */
+export function issueTask(issue) {
+  const n = Number(issue?.number) || 0
+  const title = String(issue?.title || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+  const url = typeof issue?.url === 'string' && issue.url ? ` (${issue.url})` : ''
+  const prompt = `Look at GitHub issue #${n} "${title}"${url}. Reproduce or understand it, then fix it and run the tests. Summarise what you changed. If the issue is unclear or bigger than it looks, stop and tell me instead of guessing.`
+  return { id: `issue-${n}`, label: `Issue #${n}`, prompt: prompt.slice(0, PROMPT_MAX) }
+}

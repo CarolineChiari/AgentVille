@@ -25,6 +25,12 @@ export const FLOWERS_PER_CELL = FLOWER_ROWS * FLOWER_COLS
 /** Pixel pitch of the flower grid, and the bed's top margin; in tiles these are /16. */
 export const FLOWER_PITCH = 8
 export const FLOWER_TOP = 4
+/**
+ * The notice board's tile in a plot's root cell, on the walkway below the garden. Not column 2 or
+ * 9: those sit right inside the fence gaps on row 9 and would plug them. Not 4 or 7, the gaps in
+ * the bottom fence.
+ */
+export const BOARD_LOCAL = [3, 9]
 export const BUILDING_W = 2
 export const BUILDING_H = 2
 

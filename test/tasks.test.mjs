@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CUSTOM_MAX, LABEL_MAX, TASKS, cleanTask, cleanTasks, customId, taskById, tasksFor } from '../src/game/tasks.js'
+import { CUSTOM_MAX, LABEL_MAX, PROMPT_MAX, TASKS, cleanTask, cleanTasks, customId, issueTask, taskById, tasksFor } from '../src/game/tasks.js'
 
 test('every task has a unique id, a label and a prompt', () => {
   assert.ok(TASKS.length >= 3)
@@ -46,4 +46,15 @@ test('a new task gets an id from its name, unique in its repo and never a built-
   assert.equal(customId('Deploy', ['c-deploy', 'c-deploy-2']), 'c-deploy-3')
   assert.equal(customId('✨✨'), 'c-task')
   assert.ok(cleanTask({ id: customId('x'.repeat(200)), label: 'L', prompt: 'p' }), 'a long name still makes a valid id')
+})
+
+test('an issue becomes a task that names it, links it and says where to stop', () => {
+  const t = issueTask({ number: 12, title: 'Crash\non   start', url: 'https://github.com/me/app/issues/12' })
+  assert.equal(t.label, 'Issue #12')
+  assert.ok(t.label.length <= LABEL_MAX)
+  assert.match(t.prompt, /#12 "Crash on start" \(https:\/\/github\.com\/me\/app\/issues\/12\)/)
+  assert.match(t.prompt, /stop and tell me/)
+  assert.ok(!issueTask({ number: 3, title: 'x', url: '' }).prompt.includes('()'), 'no empty link without a url')
+  assert.ok(issueTask({ number: 3, title: 'x'.repeat(300), url: 'https://github.com/a/b/issues/3' }).prompt.length <= PROMPT_MAX)
+  assert.equal(issueTask({ number: 3, title: 'y'.repeat(300) }).prompt.includes('y'.repeat(201)), false, 'long titles are clipped')
 })

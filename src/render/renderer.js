@@ -13,6 +13,8 @@ const CHUNK = CELL_TILES * T
 const TILE_NAME = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed' }
 const DECO_NAME = { [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers', [DECO.PEBBLES]: 'pebbles' }
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
+/** Notes a board has room for; the card lists the rest. */
+const BOARD_NOTES = 6
 
 function villagerFrame(v) {
   switch (v.anim) {
@@ -156,6 +158,15 @@ export class Canvas2dRenderer {
     } else if (st.sprite === 'arch') {
       this._blit(sprites.get('static.arch.0'), st.x * T - 32, st.y * T - 44)
     }
+  }
+
+  /** A notice board: one note pinned up per open issue, up to six. */
+  _drawBoard(b) {
+    const px = b.x * T
+    const py = b.y * T
+    this._blit(sprites.get('fx.shadow.16'), px - 8, py - 3)
+    if (b.selected || b.hovered) this._blit(sprites.get(`fx.ring.${b.selected ? BADGE.waiting : P.white}`), px - 8, py - 4, b.selected ? 1 : 0.6)
+    this._blit(sprites.get(`static.board.${Math.min(BOARD_NOTES, b.count)}`), px - 8, py - 22)
   }
 
   /** Growth stage from age: a sprout, then a bud, then the bloom. */
@@ -351,12 +362,14 @@ export class Canvas2dRenderer {
     for (const st of frame.statics) items.push([st.y, 0, st])
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
+    for (const b of frame.boards || []) items.push([b.y, 4, b])
     items.sort((a, b) => a[0] - b[0])
     for (const [, kind, it] of items) {
       if (kind === 0) this._drawStatic(it, night)
       else if (kind === 1) this._drawBuilding(it, night, frame.time)
       else if (kind === 2) this._drawVillager(it, night)
-      else this._drawFlower(it, frame.time)
+      else if (kind === 3) this._drawFlower(it, frame.time)
+      else this._drawBoard(it)
     }
     this._drawEffects(frame)
     this._drawNight(frame, night)
@@ -365,7 +378,7 @@ export class Canvas2dRenderer {
     this._drawLabels(frame, ui)
   }
 
-  /** What is under a CSS-pixel point: a villager (or the building it owns), else a plot. */
+  /** What is under a CSS-pixel point: a villager, a notice board, a flower, a building's villager, else a plot. */
   pick(cssX, cssY, frame) {
     const w = this.camera.toWorld(cssX, cssY)
     const byY = [...frame.villagers].sort((a, b) => b.y - a.y)
@@ -375,6 +388,12 @@ export class Canvas2dRenderer {
       const inBody = w.x >= px - 6 && w.x <= px + 6 && w.y >= py - VILLAGER_H + 2 && w.y <= py + 1
       const inBadge = v.badge && w.x >= px - BADGE_W / 2 && w.x <= px + BADGE_W / 2 && w.y >= py - VILLAGER_H - BADGE_H && w.y <= py - VILLAGER_H
       if (inBody || inBadge) return { villager: v.id }
+    }
+    // Before flowers: the board is drawn over the bottom row of the bed.
+    for (const b of frame.boards || []) {
+      const px = b.x * T
+      const py = b.y * T
+      if (w.x >= px - 8 && w.x < px + 8 && w.y >= py - 22 && w.y < py) return { board: b.id }
     }
     for (const f of frame.flowers) {
       const px = f.x * T

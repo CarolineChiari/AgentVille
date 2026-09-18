@@ -7,8 +7,8 @@ thread opens in the Claude desktop app.
 
 It reads Claude Code's own session files, on your own machine. Nothing is uploaded, there is
 no account, and it never writes to Claude Code's files. Everything it writes goes in `data/`.
-The one thing that touches the network is the PR gardens, which ask GitHub through your own
-`gh` login; turn them off in Settings and nothing leaves the machine.
+The one thing that touches the network is the PR gardens and issue boards, which ask GitHub
+through your own `gh` login; turn them off in Settings and nothing leaves the machine.
 
 ## Run it
 
@@ -71,6 +71,7 @@ Only files under your home directory, and only ever read.
 | Walking in from the gate | A session that just appeared |
 | Walking out through the gate | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
+| A notice board below the garden | The repo's open GitHub issues, one pinned note each |
 
 ### Transcripts and new sessions
 
@@ -109,7 +110,8 @@ performance, lilies for code review, dandelions for research, and so on. The col
 but fixed per thread. Click a flower to look back at the thread, open it again, or restore it.
 
 Villagers who need you wave and hop every few seconds, so they're easy to spot. A repo whose
-threads are all asleep rests: its villagers fold away, but its garden stays on the map.
+threads are all asleep rests: its villagers fold away, but its garden stays on the map. The bed
+is walkable, so villagers stroll among the flowers rather than queueing in front of their doors.
 
 ### Pull requests
 
@@ -129,6 +131,22 @@ Each repo's list is fetched with `gh pr list` at most every ten minutes, in the 
 cached in `data/prs.json` so reloads are instant and it works offline. Closed-unmerged PRs grow
 nothing.
 
+### Open issues
+
+The same way, a repo's open GitHub issues go up on a **notice board** on the walkway below its
+garden, one pinned note per issue. `I`, or the Issues count in the sidebar, flies to each board
+in turn. Click a board to list its issues, newest first:
+
+- **Open** shows the issue on GitHub.
+- **Send** hands it to a villager already on that repo, as a task that names the issue and links
+  it. With several free, pick which one in the card. A busy villager can't take one.
+- **Recruit** opens the new-session form on that repo with the issue already written in as the
+  first prompt, for you to check and start.
+
+Issues are fetched with `gh issue list` at most every ten minutes, one `gh` at a time alongside
+the PRs, and cached in `data/issues.json`. A board only goes up on a plot that is already on the
+map.
+
 ## Keys
 
 | Key | Does |
@@ -136,6 +154,7 @@ nothing.
 | `N` | Fly to the next villager who needs you |
 | `R` | Fly to the next finished thread to review |
 | `P` | Fly to the next open PR |
+| `I` | Fly to the next notice board with open issues |
 | `Enter` / `A` / `V` | Open / archive / mark reviewed the selected thread |
 | `C` | New session, with an optional first prompt |
 | `T` | Transcript of the selected thread |

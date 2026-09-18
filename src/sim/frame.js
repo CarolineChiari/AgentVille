@@ -15,11 +15,14 @@
  * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers
  *           Finished work; (x, y) is the base of the stem. `born` is sim time, null if always there.
  *           `white` marks an unlabeled PR; `open` a PR still waiting to merge (drawn as a glittering bud).
+ * @property {{ id: string, plot: string, tx: number, ty: number, x: number, y: number, count: number, notes: { id: string }[], selected: boolean, hovered: boolean }[]} boards
+ *           One notice board per plot with open issues, one note per issue. (tx, ty) is its tile;
+ *           (x, y) the bottom centre of that tile. A board shows at most a handful of notes; `count` is all of them.
  * @property {{ kind: 'spark'|'confetti'|'z', x: number, y: number, age: number, life: number, seed: number }[]} effects
  *
  * @typedef {object} Renderer
  * @property {(frame: Frame) => void} render
- * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, plot?: string } | null} pick
+ * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, flower?: string, board?: string, plot?: string } | null} pick
  * @property {() => void} resize
  */
 export {}

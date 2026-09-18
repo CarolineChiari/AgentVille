@@ -51,6 +51,7 @@ export class World {
     this.buildings = new Map()
     this.villagers = new Map()
     this.flowers = new Map() // thread id → { kind, color, x, y, plot, born }
+    this.boards = new Map() // 'board:<plot>' → { id, plot, tx, ty, x, y, count, notes }; read by _rebuild
     this.statics = []
     this.effects = []
     this.memory = new Map()
@@ -74,9 +75,11 @@ export class World {
    * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
    *        finished work per repo, oldest first; each becomes a flower in that plot's garden, and an
    *        `open` one (a PR not merged yet) waits as a bud
+   * @param {Map<string, { id: string }[]>} [boards] open issues per repo, newest first; a plot with any
+   *        gets a notice board. A repo with no plot gets no board: issues alone don't claim land.
    * @returns {Map<string, number[][]>} the layout memory to save
    */
-  setRoster(threads, memory, gardens = new Map()) {
+  setRoster(threads, memory, gardens = new Map(), boards = new Map()) {
     if (this.first && memory) this.memory = new Map(memory)
     const groups = new Map()
     for (const t of threads) {
@@ -124,6 +127,21 @@ export class World {
       })
     }
     this.flowers = flowers
+
+    // Notice boards.
+    const nextBoards = new Map()
+    for (const [name, notes] of boards) {
+      const plot = this.plots.get(name)
+      if (!plot || !notes.length) continue
+      const { x: tx, y: ty } = plot.boardTile
+      const id = `board:${name}`
+      // Anchored like a static: (x, y) is the bottom centre of its tile.
+      nextBoards.set(id, { id, plot: name, tx, ty, x: tx + 0.5, y: ty + 1, count: notes.length, notes: notes.map((n) => ({ id: n.id })) })
+    }
+    // A board going up or coming down changes what is walkable; a new note on one doesn't.
+    const where = (m) => [...m.values()].map((b) => `${b.id}@${b.tx},${b.ty}`).sort().join()
+    if (where(nextBoards) !== where(this.boards)) dirty = true
+    this.boards = nextBoards
 
     // Buildings.
     const live = new Set()
@@ -260,6 +278,10 @@ export class World {
     }
     for (const s of statics) if (s.blocks) for (const [bx, by] of s.blocks) nav.setBlocked(bx, by)
     for (const b of this.buildings.values()) if (!b.removing) nav.blockRect(b.x, b.y, b.w, b.h)
+    for (const b of this.boards.values()) nav.setBlocked(b.tx, b.ty)
+    // Anyone standing where something now stands has to walk out; a villager at rest never moves
+    // on its own, so give it somewhere to go.
+    for (const v of this.villagers.values()) if (!nav.standable(v.x, v.y)) v.goal = null
 
     this.map = map
     this.nav = nav
@@ -442,12 +464,17 @@ export class World {
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
         })),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
+      boards: [...this.boards.values()].map((b) => ({ ...b, selected: b.id === selected, hovered: b.id === hovered })),
       effects: this.effects,
     }
   }
 
   flower(id) {
     return this.flowers.get(id) || null
+  }
+
+  board(id) {
+    return this.boards.get(id) || null
   }
 
   plotAtTile(tx, ty) {

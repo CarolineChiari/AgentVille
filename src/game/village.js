@@ -4,8 +4,8 @@ import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
-import { demoThreads } from './demo.js'
-import { CUSTOM_MAX, cleanTask, customId, taskById, tasksFor } from './tasks.js'
+import { demoIssues, demoThreads } from './demo.js'
+import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 
 const SAVE_DELAY = 500
@@ -32,6 +32,10 @@ export class Village {
     this.gardens = new Map() // repo → flowers, oldest first
     this.prs = { repos: {}, available: true, warnings: [] }
     this._prIndex = -1
+    this.issues = { repos: {}, available: true, warnings: [] }
+    this.issueInfo = new Map() // 'issue:<slug>#<n>' → { issue, slug, project }
+    this.boards = new Map() // repo → its open issues' ids, newest first
+    this._boardIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.selected = null
     this.selectedPlot = null
@@ -61,13 +65,16 @@ export class Village {
       if (this.demo) {
         this.threads = demoThreads()
         this.warnings = []
+        this.issues = demoIssues()
       } else {
         const r = await api.fetchThreads()
         this.threads = r.threads
         this.warnings = r.warnings || []
       }
       this.byId = new Map(this.threads.map((t) => [t.id, t]))
-      if (!this.demo && this.settings.prGardens) await this.pollPrs(false)
+      if (!this.demo) {
+        await Promise.all([this.settings.prGardens && this.pollPrs(false), this.settings.issueBoards && this.pollIssues(false)])
+      }
       this.apply()
     } catch (err) {
       this.toast(`Couldn't read sessions: ${err.message}`, 'error')
@@ -89,6 +96,19 @@ export class Village {
     }
   }
 
+  /** Open issues, the same way: from the server's cache, looking again soon while it fetches. */
+  async pollIssues(apply = true) {
+    if (this.demo) return apply && this.apply()
+    try {
+      this.issues = await api.fetchIssues()
+      clearTimeout(this._issueTimer)
+      if (this.issues.updating) this._issueTimer = setTimeout(() => this.pollIssues(), 4000)
+      if (apply) this.apply()
+    } catch {
+      // Issues are a nudge, not the village; a failure here must never stop it.
+    }
+  }
+
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
@@ -105,14 +125,16 @@ export class Village {
       }
     }
     this._plantGardens()
-    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens)
+    this._pinBoards()
+    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards)
     const plots = Object.fromEntries(memory)
     if (JSON.stringify(plots) !== JSON.stringify(this.state.plots)) {
       this.state.plots = plots
       dirty = true
     }
     this.loaded = true
-    if (this.selected && !this.world.villager(this.selected) && !this.world.flower(this.selected)) this.selected = null
+    const sel = this.selected
+    if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
     if (dirty) this.queueSave()
     this.onChange()
   }
@@ -162,6 +184,101 @@ export class Village {
     }
     for (const list of gardens.values()) list.sort((a, b) => a.finishedAt - b.finishedAt || (a.id < b.id ? -1 : 1))
     this.gardens = gardens
+  }
+
+  /** Each repo's open issues, newest first, for its notice board. Hidden repos put theirs away too. */
+  _pinBoards() {
+    const off = new Set(this.state.hiddenProjects)
+    const boards = new Map()
+    this.issueInfo = new Map()
+    if (this.settings.issueBoards) {
+      for (const [project, { slug, issues }] of Object.entries(this.issues.repos || {})) {
+        if (off.has(project) || !Array.isArray(issues) || !issues.length) continue
+        const list = [...issues].sort((a, b) => b.createdAt - a.createdAt || b.number - a.number)
+        for (const issue of list) this.issueInfo.set(`issue:${slug}#${issue.number}`, { issue, slug, project })
+        boards.set(project, list.map((i) => ({ id: `issue:${slug}#${i.number}` })))
+      }
+    }
+    this.boards = boards
+  }
+
+  /** Repos whose notice board is on the map, the one with the newest issue first. */
+  boardsOnMap() {
+    const newest = (p) => this.issueInfo.get(this.boards.get(p)[0].id)?.issue.createdAt || 0
+    return [...this.boards.keys()].filter((p) => this.world.plots.has(p)).sort((a, b) => newest(b) - newest(a))
+  }
+
+  /** Every open issue pinned on a board you can see. */
+  openIssues() {
+    return this.boardsOnMap().flatMap((p) => this.boards.get(p).map((n) => n.id))
+  }
+
+  nextIssueBoard() {
+    const list = this.boardsOnMap()
+    if (!list.length) {
+      this.toast('No open issues. The notice boards are empty.')
+      return null
+    }
+    this._boardIndex = (this._boardIndex + 1) % list.length
+    const id = `board:${list[this._boardIndex]}`
+    this.select(id)
+    return id
+  }
+
+  /** A notice board, for the card: its repo, its issues, and who on that plot is free to take one. */
+  board(id) {
+    if (typeof id !== 'string' || !id.startsWith('board:')) return null
+    const project = id.slice('board:'.length)
+    const notes = this.boards.get(project)
+    if (!notes) return null
+    const issues = notes.map((n) => ({ id: n.id, ...this.issueInfo.get(n.id).issue }))
+    return { id, project, slug: this.issueInfo.get(notes[0].id).slug, issues, candidates: this.idleVillagers(project) }
+  }
+
+  /** Villagers on a repo who could take on a job now, most recently active first. */
+  idleVillagers(project) {
+    return this.view.live
+      .filter((t) => t.project === project && !t.running && !t.needsInput)
+      .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
+  }
+
+  async openIssue(id) {
+    const info = this.issueInfo.get(id)
+    if (!info?.issue.url) return
+    try {
+      await api.openUrl(info.issue.url)
+      this.toast(`Opening issue #${info.issue.number}`)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
+  /** The repo's whole issue list on GitHub, for when the board can't show them all. */
+  async openIssuesPage(project) {
+    const notes = this.boards.get(project)
+    const slug = notes && this.issueInfo.get(notes[0].id)?.slug
+    if (!slug || this.demo) return
+    try {
+      await api.openUrl(`https://github.com/${slug}/issues`)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
+  /** The prompt an issue becomes, for a new session. */
+  issuePrompt(id) {
+    const info = this.issueInfo.get(id)
+    return info ? issueTask(info.issue).prompt : ''
+  }
+
+  /** Hand an issue to a villager on its repo: the one named, else whoever was most recently active and is free. */
+  async sendIssue(id, threadId = '') {
+    const info = this.issueInfo.get(id)
+    if (!info) return
+    const to = threadId ? this.thread(threadId) : this.idleVillagers(info.project)[0]
+    if (!to) return this.toast(`Nobody is free on ${info.project}. Recruit a villager instead.`, 'error')
+    const task = issueTask(info.issue)
+    return this.sendPrompt(to.id, task.label, task.prompt)
   }
 
   /** Open PRs on the map, newest first. */
@@ -245,7 +362,7 @@ export class Village {
   repos() {
     const map = new Map()
     const ensure = (name) => {
-      if (!map.has(name)) map.set(name, { name, path: this.projectPath(name), threads: [], flowers: 0, openPrs: 0 })
+      if (!map.has(name)) map.set(name, { name, path: this.projectPath(name), threads: [], flowers: 0, openPrs: 0, openIssues: 0 })
       return map.get(name)
     }
     for (const t of this.view.live) ensure(t.project).threads.push(t)
@@ -254,6 +371,8 @@ export class Village {
       r.flowers = list.filter((f) => !f.open).length
       r.openPrs = list.filter((f) => f.open).length
     }
+    // Only repos already listed: issues alone don't put a repo on the map.
+    for (const [name, notes] of this.boards) if (map.has(name)) map.get(name).openIssues = notes.length
     const list = [...map.values()]
     for (const r of list) {
       r.threads.sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status] || b.lastActivityAt - a.lastActivityAt)
@@ -278,7 +397,7 @@ export class Village {
 
   select(id) {
     this.selected = id
-    if (id) this.selectedPlot = this.thread(id)?.project ?? this.flowerInfo.get(id)?.project ?? this.selectedPlot
+    if (id) this.selectedPlot = this.thread(id)?.project ?? this.flowerInfo.get(id)?.project ?? this.world.board(id)?.plot ?? this.selectedPlot
     this.onChange()
   }
 
@@ -320,6 +439,8 @@ export class Village {
 
   async open(id = this.selected) {
     if (this.flowerInfo.get(id)?.pr) return this.openPr(id)
+    const board = this.board(id)
+    if (board) return this.openIssuesPage(board.project)
     const t = this.thread(id)
     if (!t) return
     if (this.demo) return this.toast('Demo mode: nothing to open.')
@@ -411,6 +532,14 @@ export class Village {
     const t = this.thread(id)
     const task = t && taskById(taskId, this.customTasks(t.project))
     if (!t || !task) return
+    return this.sendPrompt(id, task.label, task.prompt)
+  }
+
+  /** Send a thread a prompt, as a task called `label`: into its conversation if it can be resumed, else a new session. */
+  async sendPrompt(id, label, prompt) {
+    const t = this.thread(id)
+    if (!t) return
+    const task = { label, prompt }
     if (this.demo) return this.toast('Demo mode: nothing to send.')
     // Two processes answering one conversation would talk over each other.
     if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')

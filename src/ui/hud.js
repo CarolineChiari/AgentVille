@@ -11,15 +11,20 @@ const COUNT_KEYS = [
   ['blocked', 'Stuck'],
   ['done', 'Done'],
   ['openPrs', 'PRs'],
+  ['openIssues', 'Issues'],
   ['idle', 'Idle'],
   ['sleeping', 'Asleep'],
 ]
+
+/** Tooltips for the counts that aren't a villager's status. */
+const COUNT_TITLE = { openPrs: 'Open pull requests', openIssues: 'Open issues on the notice boards' }
 
 const HELP = [
   ['N', 'Next villager who needs you (?)'],
   ['R', 'Next finished thread to review (✓)'],
   ['V', 'Mark it reviewed'],
   ['P', 'Next open PR'],
+  ['I', 'Next notice board with open issues'],
   ['Enter', 'Open the selected thread'],
   ['A', 'Archive it'],
   ['C', 'New session (optionally with a first prompt)'],
@@ -48,7 +53,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   const folderWord = () => (village.platform === 'win32' ? 'Explorer' : village.platform === 'darwin' ? 'Finder' : 'Folder')
 
   function render() {
-    const counts = { ...village.counts(), openPrs: village.openPrs().length }
+    const counts = { ...village.counts(), openPrs: village.openPrs().length, openIssues: village.openIssues().length }
     const repos = village.repos()
     const { folded, hidden, archived } = village.view
     const sel = village.selectedPlot
@@ -61,7 +66,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     side.innerHTML = `
       <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new session (C)">+ New session</button></div>
       <div class="brand-sub"><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
-      <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k])}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
+      <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k] || COUNT_TITLE[k] || l)}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
         ${repos.length ? '' : `<p style="color:var(--muted)">${village.loaded ? 'No sessions found yet. Start one and it will walk in.' : 'Reading your sessions…'}</p>`}
@@ -97,6 +102,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (r.counts.done) b.push(`<span class="done" title="Done, ready for review">${r.counts.done} ✓</span>`)
     if (r.counts.working) b.push(`<span class="working">${r.counts.working}</span>`)
     if (r.openPrs) b.push(`<span class="open-pr" title="Open PRs">✦ ${r.openPrs}</span>`)
+    if (r.openIssues) b.push(`<span class="open-issue" title="Open issues">⚑ ${r.openIssues}</span>`)
     return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
       <span class="dot" style="background:${ACCENTS[r.accent % ACCENTS.length]}"></span>
       <span class="name">${esc(r.name)}</span>
@@ -129,6 +135,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
+        <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day
@@ -172,6 +179,11 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         }
         if (status === 'openPrs') {
           const id = village.nextOpenPr()
+          if (id) onFly({ villager: id })
+          break
+        }
+        if (status === 'openIssues') {
+          const id = village.nextIssueBoard()
           if (id) onFly({ villager: id })
           break
         }

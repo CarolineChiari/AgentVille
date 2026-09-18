@@ -69,6 +69,8 @@ export const PALETTE = {
   pollen: '#f7d64a',
   petalWhite: '#f7f5ee',
   glitter: '#fff3b0',
+  paper: '#f6f0dc',
+  pin: '#d9443a',
   seed: '#6b4426',
   cactus: '#5f9a4c',
 

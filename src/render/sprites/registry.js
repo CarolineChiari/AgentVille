@@ -4,7 +4,7 @@
 // Names:  villager.<anim>.<facing>      (params: look)
 //         building.<kind>.<stage>       (params: accent, variant, lit)
 //         tile.<kind>.<variant>   deco.<kind>.<variant>
-//         static.<sprite>.<variant>     (params: lit)
+//         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>
 import { drawVillager } from './villagers.js'

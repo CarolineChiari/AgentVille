@@ -2,7 +2,7 @@
 
 Every Claude Code session on this machine is a villager in a pixel-art village. Each repo is a
 plot; each session is one villager and one building. The server reads Claude Code's own files
-read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`).
+read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`, `issues.json`).
 
 ## Layout
 

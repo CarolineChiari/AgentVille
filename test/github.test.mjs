@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createPrStore, githubRepoOf, normalizePr, parseGithubRemote } from '../server/github.mjs'
+import { createIssueStore, createPrStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote } from '../server/github.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 test('GitHub remotes in every common form', () => {
@@ -93,6 +93,91 @@ test('without gh installed the store says so and stops trying', async (t) => {
     throw Object.assign(new Error('gh is not installed'), { code: 'ENOENT' })
   }
   const store = createPrStore({ dataDir: home, gh, ttlMs: 0 })
+  await store.get([{ name: 'app', path: repo }])
+  await store.settle()
+  const r = await store.get([{ name: 'app', path: repo }])
+  await store.settle()
+  assert.equal(r.available, false)
+  assert.equal(calls, 1)
+})
+
+test('only open issues survive, typed', () => {
+  assert.equal(normalizeIssue({ number: 1, state: 'CLOSED' }), null)
+  assert.equal(normalizeIssue({ number: 0, state: 'OPEN' }), null)
+  assert.equal(normalizeIssue({ number: '4x', state: 'OPEN' }), null)
+  const i = normalizeIssue({
+    number: 12, state: 'open', title: 'Crash on start', labels: [{ name: 'bug' }, {}], createdAt: '2026-03-01T00:00:00Z',
+    updatedAt: '2026-03-02T00:00:00Z', author: { login: 'sam' }, url: 'javascript:alert(1)',
+    assignees: [{ login: 'me' }, { login: '' }], milestone: { title: 'v1' },
+  })
+  assert.equal(i.url, '', 'only github.com links survive')
+  assert.deepEqual(i.labels, ['bug'])
+  assert.deepEqual(i.assignees, ['me'])
+  assert.equal(i.milestone, 'v1')
+  assert.equal(i.comments, 0)
+  assert.equal(i.createdAt, Date.parse('2026-03-01T00:00:00Z'))
+  assert.equal(normalizeIssue({ number: 1, state: 'OPEN', comments: [{}, {}] }).comments, 2)
+  assert.equal(normalizeIssue({ number: 1, state: 'OPEN', comments: { totalCount: 5 } }).comments, 5)
+  assert.equal(normalizeIssue({ number: 1, state: 'OPEN', title: 'x'.repeat(900) }).title.length, 300)
+})
+
+test('the issue store asks gh for open issues and keeps its own file', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  const calls = []
+  const gh = async (args) => {
+    calls.push(args)
+    return JSON.stringify([{ number: 3, state: 'OPEN', title: 'a' }, { number: 4, state: 'CLOSED', title: 'b' }])
+  }
+  const store = createIssueStore({ dataDir: home, gh })
+  assert.ok(store.file.endsWith('issues.json'))
+  const first = await store.get([{ name: 'app', path: repo }])
+  assert.deepEqual(first.repos.app, { slug: 'me/app', issues: [] })
+  await store.settle()
+  assert.deepEqual(calls[0], ['issue', 'list', '--repo', 'me/app', '--state', 'open', '--limit', String(ISSUE_LIMIT), '--json', ISSUE_FIELDS])
+  assert.deepEqual((await store.get([{ name: 'app', path: repo }])).repos.app.issues.map((i) => i.number), [3])
+  const reopened = createIssueStore({ dataDir: home, gh: async () => { throw new Error('offline') } })
+  assert.equal((await reopened.get([{ name: 'app', path: repo }])).repos.app.issues.length, 1, 'cache survives a restart')
+  assert.ok(!fs.existsSync(path.join(home, 'prs.json')), 'issues never land in the PR cache')
+})
+
+test('PRs and issues take turns with gh rather than running it twice at once', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  let running = 0
+  let most = 0
+  const log = []
+  const gh = async (args) => {
+    running++
+    most = Math.max(most, running)
+    log.push(args[0])
+    await new Promise((r) => setTimeout(r, 10))
+    running--
+    return '[]'
+  }
+  const prs = createPrStore({ dataDir: home, gh })
+  const issues = createIssueStore({ dataDir: home, gh })
+  await Promise.all([prs.get([{ name: 'app', path: repo }]), issues.get([{ name: 'app', path: repo }])])
+  await issues.settle()
+  assert.deepEqual(log.sort(), ['issue', 'pr'])
+  assert.equal(most, 1)
+})
+
+test('without gh the issue store stops trying too', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  let calls = 0
+  const gh = async () => {
+    calls++
+    throw Object.assign(new Error('gh is not installed'), { code: 'ENOENT' })
+  }
+  const store = createIssueStore({ dataDir: home, gh, ttlMs: 0 })
   await store.get([{ name: 'app', path: repo }])
   await store.settle()
   const r = await store.get([{ name: 'app', path: repo }])

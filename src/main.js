@@ -37,6 +37,7 @@ const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSe
 const taskEditor = createTaskEditor(hudRoot, village)
 const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
+  onRecruit: (project, prompt) => newSession.open(project, { prompt }),
   onTranscript: (id) => {
     transcript.toggle(id)
     // Bring the villager (or flower) into the part of the map the panel leaves visible.
@@ -48,8 +49,9 @@ const hud = createHud(hudRoot, {
   settings,
   onSettings() {
     saveSettings(settings)
+    village.apply()
     if (settings.prGardens) village.pollPrs()
-    else village.apply()
+    if (settings.issueBoards) village.pollIssues()
   },
   onFly: fly,
   onNewSession: (repo) => newSession.open(repo),
@@ -72,7 +74,7 @@ function sidebarWidth() {
 
 function fly(target) {
   if (target.villager) {
-    const v = world.villager(target.villager) || world.flower(target.villager)
+    const v = world.villager(target.villager) || world.flower(target.villager) || world.board(target.villager)
     if (v) camera.flyTo(v.x * TILE_PX, v.y * TILE_PX - 12)
   } else if (target.plot) {
     const p = world.plots.get(target.plot)
@@ -112,8 +114,11 @@ canvas.addEventListener('pointermove', (e) => {
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
-  hovered = hit?.villager || hit?.flower || null
-  hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot : hit?.flower ? world.flower(hit.flower)?.plot : hit?.plot || null
+  hovered = hit?.villager || hit?.flower || hit?.board || null
+  hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot
+    : hit?.flower ? world.flower(hit.flower)?.plot
+    : hit?.board ? world.board(hit.board)?.plot
+    : hit?.plot || null
   canvas.classList.toggle('pointing', Boolean(hovered))
 })
 canvas.addEventListener('pointerup', (e) => {
@@ -124,6 +129,7 @@ canvas.addEventListener('pointerup', (e) => {
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
   if (hit?.villager) village.select(hit.villager)
   else if (hit?.flower) village.select(hit.flower)
+  else if (hit?.board) village.select(hit.board)
   else if (hit?.plot) village.selectPlot(hit.plot)
   else {
     village.select(null)
@@ -167,13 +173,15 @@ addEventListener('keydown', (e) => {
     case 'n': case 'N': { const id = village.nextWaiting(); if (id) fly({ villager: id }); break }
     case 'r': case 'R': { const id = village.nextDone(); if (id) fly({ villager: id }); break }
     case 'p': case 'P': { const id = village.nextOpenPr(); if (id) fly({ villager: id }); break }
+    case 'i': case 'I': { const id = village.nextIssueBoard(); if (id) fly({ villager: id }); break }
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break
     case 'a': case 'A': village.archive(); break
     case 'c': case 'C': newSession.open(); break
     case 't': case 'T': {
       const f = village.flower(village.selected)
-      const id = f?.pr ? f.threadId : village.selected
+      // A notice board has no transcript; a PR's is its thread's, if one opened it.
+      const id = f?.pr ? f.threadId : village.board(village.selected) ? null : village.selected
       if (id) {
         transcript.toggle(id)
         requestAnimationFrame(() => fly({ villager: village.selected }))
@@ -238,11 +246,16 @@ function loop(now) {
     selectedPlot: village.selectedPlot,
     allNames: !settings.quietNames,
   })
-  const v = village.selected && (world.villager(village.selected) || world.flower(village.selected))
+  const sel = village.selected
+  const board = sel && world.board(sel)
+  const v = sel && (world.villager(sel) || world.flower(sel) || board)
   const isFlower = Boolean(v && !v.look)
   const panelEdge = innerWidth > 720 ? transcript.rightEdge : 0
   camera.insetLeft = panelEdge * camera.dpr
-  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (isFlower ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, isFlower, panelEdge)
+  // Above a flower, so it never covers the garden it is about. Beside a board, like a villager:
+  // its card lists issues and is too tall to fit above.
+  const above = isFlower && !board
+  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (above ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, above, panelEdge)
   requestAnimationFrame(loop)
 }
 

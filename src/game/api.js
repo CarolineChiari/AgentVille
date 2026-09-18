@@ -49,6 +49,7 @@ export const newSession = (folder, { harness, target, prompt = '', model = '', e
   post('/api/new-session', { folder, harness, target, prompt, model, effort }).then((r) => r.body)
 export const fetchTranscript = (harness, ref, limit = 300) => post('/api/transcript', { harness, ref, limit }).then((r) => r.body)
 export const fetchPrs = async () => (await json(await fetch('/api/prs'))).body
+export const fetchIssues = async () => (await json(await fetch('/api/issues'))).body
 export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.body)
 export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.body)
 export const sendTask = (harness, ref, folder, prompt, target = '') => post('/api/task', { harness, ref, folder, prompt, target }).then((r) => r.body)

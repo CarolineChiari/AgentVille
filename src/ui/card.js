@@ -5,8 +5,10 @@ import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 
 const GAP = 18
+/** Issues listed on a board's card; the rest are a link away on GitHub. */
+const ISSUE_CARD_MAX = 8
 
-export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {} } = {}) {
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -14,6 +16,11 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let shownId = null
   let shownKey = ''
   let tasksOpen = false // the task list stays open across re-renders of the same thread
+  let handTo = '' // on a board's card: which free villager Send goes to, kept across re-renders
+
+  card.addEventListener('change', (e) => {
+    if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
+  })
 
   card.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-act]')
@@ -27,7 +34,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'close') village.select(null)
-    else if (act === 'tasks') {
+    else if (act === 'openIssue') village.openIssue(b.dataset.issue)
+    else if (act === 'sendIssue') village.sendIssue(b.dataset.issue, card.querySelector('select[data-f="to"]')?.value || '')
+    else if (act === 'recruit') {
+      const bd = village.board(village.selected)
+      if (bd) onRecruit(bd.project, village.issuePrompt(b.dataset.issue))
+    } else if (act === 'issuesPage') {
+      const bd = village.board(village.selected)
+      if (bd) village.openIssuesPage(bd.project)
+    } else if (act === 'tasks') {
       tasksOpen = !tasksOpen
       const t = village.thread(village.selected)
       if (t) {
@@ -158,6 +173,48 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     g.drawImage(sprites.get(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), 3, 8)
   }
 
+  /**
+   * A notice board: the repo's open issues, newest first, each one a job to hand out. Send gives it
+   * to a villager already on the repo; Recruit starts a new one with the issue as its first prompt.
+   */
+  function fillBoard(b) {
+    const n = b.issues.length
+    const free = b.candidates
+    if (!free.some((t) => t.id === handTo)) handTo = free[0]?.id || ''
+    const who = free.length > 1
+      ? `<label class="hand-to">Send to <select data-f="to">${free.map((t) => `<option value="${esc(t.id)}" ${t.id === handTo ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>`
+      : free.length === 1
+        ? `<p class="note">Send goes to “${esc(free[0].title)}”.</p>`
+        : `<p class="note">Nobody on ${esc(b.project)} is free right now. Recruit a villager to take one on.</p>`
+    const sendTitle = free.length ? 'Hand this issue to a villager already on this repo' : 'Nobody here is free'
+    const row = (i) => {
+      const sub = [i.author && `by ${i.author}`, `opened ${ago(i.createdAt)}`, i.labels.length && i.labels.join(', '), i.assignees.length && `→ ${i.assignees.join(', ')}`].filter(Boolean)
+      return `<li class="issue">
+        <div class="line"><span class="num">#${i.number}</span> <span class="title" title="${esc(i.title)}">${esc(i.title)}</span></div>
+        <div class="sub" title="${esc(sub.join(' · '))}">${esc(sub.join(' · '))}</div>
+        <div class="acts">
+          <button class="btn" data-act="openIssue" data-issue="${esc(i.id)}" ${i.url ? '' : 'disabled'}>Open</button>
+          <button class="btn" data-act="sendIssue" data-issue="${esc(i.id)}" title="${sendTitle}" ${free.length ? '' : 'disabled'}>Send</button>
+          <button class="btn" data-act="recruit" data-issue="${esc(i.id)}" title="Start a new session on this repo with the issue as its first prompt">Recruit</button>
+        </div>
+      </li>`
+    }
+    card.innerHTML = `
+      <div class="head">
+        <canvas class="avatar" width="16" height="24"></canvas>
+        <div style="min-width:0;flex:1">
+          <b title="${esc(b.slug)}">${esc(b.project)}</b>
+          <span class="status"><span style="color:${P.pin}">⚑</span> ${n} open issue${n === 1 ? '' : 's'}</span>
+        </div>
+        <button class="btn" data-act="close" title="Close (Esc)">✕</button>
+      </div>
+      ${who}
+      <ul class="issues">${b.issues.slice(0, ISSUE_CARD_MAX).map(row).join('')}</ul>
+      ${n > ISSUE_CARD_MAX ? `<button class="btn link" data-act="issuesPage">+${n - ISSUE_CARD_MAX} more on GitHub</button>` : ''}`
+    const g = card.querySelector('canvas.avatar').getContext('2d')
+    g.drawImage(sprites.get(`static.board.${Math.min(6, n)}`), 0, 1)
+  }
+
   function drawAvatar(v) {
     const c = card.querySelector('canvas.avatar')
     if (!c || !v) return
@@ -170,6 +227,17 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     /** Content: called when the selection or the scan changes. */
     update() {
       const id = village.selected
+      const bd = id && village.board(id)
+      if (bd) {
+        const key = `board|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
+        if (id !== shownId || key !== shownKey) {
+          fillBoard(bd)
+          shownId = id
+          shownKey = key
+        }
+        card.hidden = false
+        return
+      }
       const f = id && village.flower(id)
       if (f?.pr) {
         const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}`

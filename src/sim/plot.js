@@ -1,6 +1,6 @@
 // A plot: one repo's cells, the stable slot each of its threads builds on, and how its ground is
 // painted (yard, road ring, fence with gaps lined up with the walkways).
-import { BED, CELL_TILES, FLOWER_PITCH, FLOWER_ROWS, FLOWER_TOP, FLOWERS_PER_CELL, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
+import { BED, BOARD_LOCAL, CELL_TILES, FLOWER_PITCH, FLOWER_ROWS, FLOWER_TOP, FLOWERS_PER_CELL, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
 import { key } from './grid.js'
 import { signature } from './layout.js'
 
@@ -80,6 +80,12 @@ export class Plot {
       x: cx * CELL_TILES + BED.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / 16,
       y: cy * CELL_TILES + BED.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / 16,
     }
+  }
+
+  /** The notice board's tile. The root cell never moves as a plot grows, so neither does the board. */
+  get boardTile() {
+    const [cx, cy] = this.cells[0]
+    return { x: cx * CELL_TILES + BOARD_LOCAL[0], y: cy * CELL_TILES + BOARD_LOCAL[1] }
   }
 
   /** Where the name plate floats: above the root cell's top row. */

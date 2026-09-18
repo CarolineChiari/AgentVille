@@ -9,6 +9,7 @@
   --ok: #7cf29a;
   --info: #7bd7ff;
   --glitter: #fff3b0;
+  --pin: #d9443a; /* P.pin */
   --done: #4fcf6f;
   --sidebar: 300px;
   --radius: 10px;
@@ -71,7 +72,8 @@ body.hud-hidden #hud { display: none; }
 .side .brand-sub { margin-top: -6px; }
 .side .brand-sub .sub, .side .brand .sub { color: var(--muted); font-size: 12px; }
 
-.counts { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+/* Two rows of four: eight counts in one row squeezed every label to an ellipsis. */
+.counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
 .counts button {
   all: unset;
   cursor: pointer;
@@ -90,6 +92,8 @@ body.hud-hidden #hud { display: none; }
 .counts .done .n { color: var(--done); }
 .counts .openPrs .n { color: var(--glitter); text-shadow: 0 0 6px rgba(255, 243, 176, 0.7); }
 .repo .badges .open-pr { color: #1b1a2e; background: var(--glitter); }
+.counts .openIssues .n { color: var(--pin); }
+.repo .badges .open-issue { color: #fff; background: var(--pin); }
 
 .list { flex: 1; overflow: auto; margin: 0 -6px; padding: 0 6px; }
 .list h3 { margin: 12px 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
@@ -191,6 +195,18 @@ kbd { font: 10px var(--mono); opacity: 0.6; margin-left: 4px; }
 .card .tasks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
 .card .tasks .note { flex-basis: 100%; margin: 0; }
 p.tasks.note { display: block; margin: 8px 0 0; }
+.card > .note { display: block; margin: 8px 0 0; }
+.card .hand-to { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.card .hand-to select { flex: 1; min-width: 0; font: inherit; color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 4px; }
+.card .issues { margin: 8px 0 0; padding: 0; list-style: none; max-height: 320px; overflow-y: auto; }
+.card .issue { padding: 6px 0; border-top: 1px solid var(--panel-border); }
+.card .issue .line { display: flex; gap: 6px; font-size: 12px; min-width: 0; }
+.card .issue .num { color: var(--pin); font-family: var(--mono); flex: none; }
+.card .issue .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .issue .sub { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .issue .acts { display: flex; gap: 4px; margin-top: 4px; }
+.card .issue .acts .btn { padding: 2px 8px; font-size: 11px; }
+.card > .btn.link { margin-top: 6px; background: none; border-color: transparent; color: var(--muted); }
 .card .tasks .btn.custom { border-style: dashed; }
 .card .tasks .btn.link { background: none; border-color: transparent; color: var(--muted); }
 .card .bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); margin-top: 8px; overflow: hidden; }
@@ -220,6 +236,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   border-radius: var(--radius);
   padding: 14px;
   backdrop-filter: blur(10px);
+  /* Over the card: the card is added to the page later, so without this it covered a sheet it opened. */
+  z-index: 2;
 }
 .sheet[hidden] { display: none; }
 .sheet h2 { margin: 0 0 10px; font-size: 14px; }

@@ -62,3 +62,22 @@ export function demoThreads(now = Date.now()) {
   })
   return out
 }
+
+const ISSUES = [
+  ['Crash when the map is empty', ['bug']], ['Add keyboard shortcuts to the card', ['enhancement']],
+  ['Docs: explain the garden', ['docs']], ['Slow first load on big repos', ['performance']],
+  ['Villagers overlap at the door', ['bug', 'good first issue']], ['Support GitLab remotes', []],
+  ['Night mode is too dark', ['design']],
+]
+
+/** Open issues for a few demo repos, shaped like /api/issues. No urls: there is nothing to open. */
+export function demoIssues(now = Date.now()) {
+  const repo = (name, count, offset) => ({
+    slug: `demo/${name}`,
+    issues: ISSUES.slice(offset, offset + count).map(([title, labels], i) => ({
+      number: 40 + offset + i, title, labels, state: 'OPEN', createdAt: now - (i + 1) * 2 * 86_400_000,
+      updatedAt: now - (i + 1) * 3_600_000, author: 'demo', url: '', assignees: i === 0 ? ['you'] : [], comments: 0, milestone: '',
+    })),
+  })
+  return { repos: { orchard: repo('orchard', 5, 0), tidepool: repo('tidepool', 2, 5) }, updating: false, available: true, warnings: [] }
+}

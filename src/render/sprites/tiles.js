@@ -185,5 +185,27 @@ export function drawStatic(sprite, variant = 0, opts = {}) {
     for (let x = 21; x <= 42; x += 2) pc.vline(x, 14, (x * 7) % 3 ? 16 : 17, P.woodDark)
     return pc.outline(P.outline)
   }
+  if (sprite === 'board') {
+    // A notice board with `variant` notes pinned to it (0–6), filled left to right, top row first.
+    // One pixel of margin all round leaves room for the outline.
+    const pc = new PixelCanvas(16, 22)
+    pc.rect(3, 14, 2, 7, P.woodDark)
+    pc.rect(11, 14, 2, 7, P.woodDark)
+    pc.vline(3, 14, 20, P.wood)
+    pc.vline(11, 14, 20, P.wood)
+    pc.rect(1, 1, 14, 2, P.woodDark)
+    pc.hline(1, 14, 1, P.woodLight)
+    pc.rect(1, 3, 14, 11, P.woodDark)
+    pc.rect(2, 4, 12, 9, P.wood)
+    const shown = Math.max(0, Math.min(6, variant))
+    for (let i = 0; i < shown; i++) {
+      const x = 3 + (i % 3) * 4
+      const y = 5 + Math.floor(i / 3) * 4
+      pc.rect(x, y, 3, 3, i % 2 ? shade(P.paper, -0.06) : P.paper)
+      pc.hline(x, x + 2, y + 2, P.plasterShade)
+      pc.px(x + 1, y, P.pin)
+    }
+    return pc.outline(P.outline)
+  }
   return new PixelCanvas(1, 1)
 }

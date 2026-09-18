@@ -27,7 +27,8 @@ before(async () => {
   }
   const prStore = { get: async () => ({ repos: {}, updating: false, available: true, warnings: [] }) }
   const terminal = async (spec) => (terminals.push(spec), { ok: true, promptPassed: true })
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, terminal })
+  const issueStore = { get: async (list) => ({ repos: {}, updating: false, available: true, warnings: [], asked: list.length }) }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, terminal })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -130,9 +131,19 @@ test('prs endpoint answers from the store', async () => {
   assert.deepEqual(body, { repos: {}, updating: false, available: true, warnings: [] })
 })
 
+test('issues endpoint answers from the store', async () => {
+  const r = await fetch(`${base}/api/issues`)
+  assert.equal(r.status, 200)
+  const body = await r.json()
+  assert.deepEqual(body.repos, {})
+  assert.equal(body.available, true)
+  assert.equal(typeof body.asked, 'number', 'the store is handed the known projects')
+})
+
 test('open-url only opens https github.com links', async () => {
   assert.equal((await post('/api/open-url', { url: 'https://github.com/me/app/pull/1' })).status, 200)
   assert.equal(launched.at(-1), 'https://github.com/me/app/pull/1')
+  assert.equal((await post('/api/open-url', { url: 'https://github.com/me/app/issues/4' })).status, 200)
   assert.equal((await post('/api/open-url', { url: 'http://github.com/me' })).status, 400)
   assert.equal((await post('/api/open-url', { url: 'https://evil.example/github.com' })).status, 400)
   assert.equal((await post('/api/open-url', { url: 'file:///etc/passwd' })).status, 400)
