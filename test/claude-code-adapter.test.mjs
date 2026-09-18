@@ -208,3 +208,21 @@ test('the process status decides working and idle when it has one', async (t) =>
   assert.equal(byId['40'].running, true, 'busy is working, however old the transcript')
   assert.equal(byId['41'].running, false, 'idle is not working, whatever the transcript ends with')
 })
+
+test('continueThread resumes the CLI session in its own folder with the prompt', async () => {
+  const a = createClaudeCodeAdapter({ home: '/nowhere', env: {}, platform: 'darwin', claudePath: '/bin/claude' })
+  const id = uuid(1)
+  const r = await a.continueThread({ cliSessionId: id, cwd: '/work/app' }, { prompt: '  commit and push  ' })
+  assert.deepEqual(r.terminal, { exe: '/bin/claude', args: ['--resume', id], cwd: '/work/app', prompt: 'commit and push' })
+  assert.equal((await a.continueThread({ cliSessionId: '--help', cwd: '/work/app' }, { prompt: 'x' })).ok, false, 'an id that is not a uuid')
+  assert.equal((await a.continueThread({ cliSessionId: { toString: () => id }, cwd: '/work/app' }, { prompt: 'x' })).ok, false, 'an id that only stringifies to one')
+  assert.equal((await a.continueThread({ cliSessionId: id, cwd: 'relative' }, { prompt: 'x' })).ok, false, 'a relative folder')
+  assert.equal((await a.continueThread({ cliSessionId: id, cwd: '/work/app' }, { prompt: '  ' })).ok, false, 'no prompt')
+  assert.equal((await a.continueThread(null, { prompt: 'x' })).ok, false)
+})
+
+test('continueThread refuses when the CLI is not installed', async () => {
+  // Windows looks only under home and PATH, so no machine's /usr/local/bin can make this pass by accident.
+  const a = createClaudeCodeAdapter({ home: '/nowhere', env: {}, platform: 'win32' })
+  assert.equal((await a.continueThread({ cliSessionId: uuid(1), cwd: '/work/app' }, { prompt: 'x' })).ok, false)
+})

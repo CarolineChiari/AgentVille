@@ -1,5 +1,6 @@
 // The new-session form: pick a repo (or type any folder), optionally write the first prompt, go.
 import { agentName, esc } from './dom.js'
+import { TASKS, taskById } from '../game/tasks.js'
 
 const OTHER = '__other__'
 
@@ -49,6 +50,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <label class="stack" ${list.length > 1 ? '' : 'hidden'}>Agent
         <select data-f="harness">${options(list.map((x) => [x.id, x.name]), h.id)}</select></label>
       <div class="row3" data-f="row"></div>
+      <div class="chips" title="Fill in a ready-made task">${TASKS.map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}">${esc(x.label)}</button>`).join('')}</div>
       <label class="stack">First prompt <span class="hint-inline">optional</span>
         <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>
       <p class="note" data-f="note"></p>
@@ -124,7 +126,11 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
   })
   box.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act
-    if (act === 'start') start()
+    if (act === 'task') {
+      const p = box.querySelector('[data-f="prompt"]')
+      p.value = taskById(e.target.closest('[data-task]').dataset.task)?.prompt || p.value
+      p.focus()
+    } else if (act === 'start') start()
     else if (act === 'cancel') close()
   })
   box.addEventListener('keydown', (e) => {

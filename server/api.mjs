@@ -107,6 +107,20 @@ export function createApiMiddleware(opts = {}) {
       : opener.launch(result.urls?.[0] ?? result.url)
   }
 
+  /** Start `h` in `dir`, on the asked-for target only if this harness offers it on this machine right now. */
+  const startIn = async (h, dir, { target: asked, prompt = '', model = '', effort = '' }) => {
+    const offered = h.targets ? (await h.targets()).map((t) => t.id) : []
+    const target = typeof asked === 'string' && offered.includes(asked) ? asked : offered[0]
+    if (!target) return [400, { ok: false, error: `${h.name} has no way to start a session on this machine.` }]
+    const result = await h.newSession(dir, { target, prompt, model, effort })
+    if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
+    const launched = await launch(result)
+    if (!launched.ok) return [500, { ok: false, error: launched.error }]
+    // A terminal knows whether the prompt made it (Windows can't take one); otherwise the adapter says.
+    const promptPassed = result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed)
+    return [200, { ok: true, url: result.url, where: result.where || '', promptPassed }]
+  }
+
   const routes = {
     'GET /api/threads': async () => {
       const [{ threads, warnings }, state] = await Promise.all([scanAll({ harnesses }), store.read()])
@@ -150,20 +164,31 @@ export function createApiMiddleware(opts = {}) {
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const h = body?.harness ? harnessById(body.harness, harnesses) : await defaultHarness({ harnesses })
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
-      // Only a target this harness offers on this machine right now.
-      const offered = h.targets ? (await h.targets()).map((t) => t.id) : []
-      const target = typeof body?.target === 'string' && offered.includes(body.target) ? body.target : offered[0]
-      if (!target) return [400, { ok: false, error: `${h.name} has no way to start a session on this machine.` }]
-      const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
-      const model = typeof body?.model === 'string' ? body.model : ''
-      const effort = typeof body?.effort === 'string' ? body.effort : ''
-      const result = await h.newSession(dir, { target, prompt, model, effort })
-      if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
-      const launched = await launch(result)
-      if (!launched.ok) return [500, { ok: false, error: launched.error }]
-      // A terminal knows whether the prompt made it (Windows can't take one); otherwise the adapter says.
-      const promptPassed = result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed)
-      return [200, { ok: true, url: result.url, where: result.where || '', promptPassed }]
+      const str = (v) => (typeof v === 'string' ? v : '')
+      return startIn(h, dir, { target: body?.target, prompt: str(body?.prompt), model: str(body?.model), effort: str(body?.effort) })
+    },
+
+    /**
+     * A task for an existing thread: into the thread itself where its harness can resume it with a
+     * prompt, else as a new session in the thread's folder. `continued` says which happened.
+     */
+    'POST /api/task': async (body) => {
+      const h = harnessById(body?.harness, harnesses)
+      if (!h) return [400, { ok: false, error: 'Unknown harness.' }]
+      const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : ''
+      if (!prompt) return [400, { ok: false, error: 'Nothing to send.' }]
+      if (h.continueThread) {
+        const result = await h.continueThread(body?.ref, { prompt })
+        if (result?.ok) {
+          const launched = await launch(result)
+          if (!launched.ok) return [500, { ok: false, error: launched.error }]
+          return [200, { ok: true, continued: true, where: result.where || '', promptPassed: result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed) }]
+        }
+      }
+      const dir = await resolveFolder(body?.folder)
+      if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
+      const [status, out] = await startIn(h, dir, { target: body?.target, prompt })
+      return [status, { ...out, continued: false }]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

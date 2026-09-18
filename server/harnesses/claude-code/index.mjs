@@ -298,6 +298,26 @@ export function createClaudeCodeAdapter(opts = {}) {
   }
 
   /**
+   * Hand an existing thread one more prompt: the CLI resumes it by id, in its own folder, in a
+   * terminal. Only the CLI takes a prompt with a session id; the app and VS Code links take one or
+   * the other. So a thread the CLI can't resume (desktop-only, or no CLI installed) is refused,
+   * and the caller starts a fresh session with the prompt instead.
+   * @param {object} ref
+   * @param {{ prompt?: string }} [opts]
+   */
+  async function continueThread(ref, { prompt = '' } = {}) {
+    const r = ref && typeof ref === 'object' ? ref : {}
+    if (!isCliId(r.cliSessionId)) return { ok: false, error: 'This thread has no CLI session to resume.' }
+    // The CLI files a session under the folder it ran in, and resumes only from there.
+    if (typeof r.cwd !== 'string' || !path.isAbsolute(r.cwd)) return { ok: false, error: 'This thread has no folder to resume in.' }
+    const text = typeof prompt === 'string' ? prompt.trim().slice(0, 20000) : ''
+    if (!text) return { ok: false, error: 'Nothing to send.' }
+    const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
+    if (!exe) return { ok: false, error: "Couldn't find the claude command." }
+    return { ok: true, where: 'a terminal', terminal: { exe, args: ['--resume', r.cliSessionId], cwd: r.cwd, prompt: text } }
+  }
+
+  /**
    * Where a new session can start on this machine. The terminal needs the CLI and the app needs
    * the app, so each is offered only once it is found. VS Code is always offered: its extension
    * keeps nothing we could look for until it has run once.
@@ -324,7 +344,7 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, paths: { ...cli } }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, paths: { ...cli } }
 }
 
 /** `vscode://file/<path>/`: opens the folder in VS Code, or focuses the window that has it. */

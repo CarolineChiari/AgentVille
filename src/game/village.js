@@ -5,6 +5,7 @@ import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
 import { demoThreads } from './demo.js'
+import { taskById } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 
 const SAVE_DELAY = 500
@@ -398,6 +399,32 @@ export class Village {
     } catch (err) {
       this.toast(err.message, 'error')
       return false
+    }
+  }
+
+  /**
+   * Hand a thread one of the ready-made tasks. It goes into the thread's own conversation where
+   * the harness can resume one with a prompt, so the agent knows what it just did; otherwise it
+   * starts a new session in the same folder, wherever new sessions for that harness last went.
+   */
+  async runTask(id, taskId) {
+    const t = this.thread(id)
+    const task = taskById(taskId)
+    if (!t || !task) return
+    if (this.demo) return this.toast('Demo mode: nothing to send.')
+    // Two processes answering one conversation would talk over each other.
+    if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
+    const s = this.settings
+    const target = s.newTargets?.[t.harness] || (t.harness === 'claude-code' ? s.openIn : '')
+    try {
+      const r = await api.sendTask(t.harness, t.ref, t.cwd || t.projectPath, task.prompt, target)
+      const copied = !r.promptPassed && (await navigator.clipboard.writeText(task.prompt).then(() => true, () => false))
+      const where = r.where ? ` in ${r.where}` : ''
+      const clip = copied ? ' — the task is on the clipboard' : ''
+      this.toast(r.continued ? `“${task.label}” sent to “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
+      for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
+    } catch (err) {
+      this.toast(err.message, 'error')
     }
   }
 

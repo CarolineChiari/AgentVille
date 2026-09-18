@@ -45,6 +45,9 @@
  *
  * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
  *           Optional: the conversation, for the transcript panel.
+ * @property {(ref: object, opts: { prompt: string }) => Promise<OpenResult>} [continueThread]
+ *           Optional: send one more prompt into an existing thread. A harness without it, or one
+ *           that refuses, gets the prompt as a fresh session in the thread's folder instead.
  *
  * One way to start a session. `models` / `efforts`, when present, are `[value, label]` menus the
  * form offers for this target only; '' means the harness's own default.

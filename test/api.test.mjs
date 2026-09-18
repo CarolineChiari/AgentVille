@@ -173,3 +173,38 @@ test('new-session only uses a target the harness offers on this machine', async 
   fakeHarness.targets = saved
   assert.equal(r.status, 400)
 })
+
+test('a task goes into the thread when the harness can continue it', async () => {
+  let seen
+  fakeHarness.continueThread = async (ref, opts) => ((seen = { ref, opts }), { ok: true, where: 'a terminal', terminal: { exe: '/bin/x', args: ['--resume', '1'], cwd: '/w', prompt: opts.prompt } })
+  const before = terminals.length
+  const r = await post('/api/task', { harness: 'fake', ref: { sid: '1' }, folder: os.tmpdir(), prompt: '  commit it  ' })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 200)
+  assert.deepEqual(await r.json(), { ok: true, continued: true, where: 'a terminal', promptPassed: true })
+  assert.deepEqual(seen, { ref: { sid: '1' }, opts: { prompt: 'commit it' } })
+  assert.equal(terminals.length, before + 1)
+})
+
+test('a task falls back to a new session in the folder when the thread cannot take it', async () => {
+  let seen
+  fakeHarness.continueThread = async () => ({ ok: false, error: 'no CLI' })
+  fakeHarness.newSession = (dir, opts) => ((seen = { dir, opts }), { ok: true, url: 'fake://new' })
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'review', target: 'terminal' })
+  delete fakeHarness.continueThread
+  const body = await r.json()
+  assert.equal(r.status, 200)
+  assert.equal(body.continued, false)
+  assert.equal(seen.opts.prompt, 'review')
+  assert.equal(seen.opts.target, 'terminal')
+  // A harness with no continueThread at all takes the same path.
+  assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: 'x' })).status, 200)
+})
+
+test('a task needs a known harness, a prompt, and a real folder to fall back to', async () => {
+  assert.equal((await post('/api/task', { harness: 'nope', folder: os.tmpdir(), prompt: 'x' })).status, 400)
+  assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: '   ' })).status, 400)
+  assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: ['x'] })).status, 400)
+  assert.equal((await post('/api/task', { harness: 'fake', folder: '/not/here/xyz', prompt: 'x' })).status, 400)
+  assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: 'x' }, { 'Content-Type': 'application/json' })).status, 403)
+})

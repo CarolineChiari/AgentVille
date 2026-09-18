@@ -3,6 +3,7 @@ import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
+import { TASKS } from '../game/tasks.js'
 
 const GAP = 18
 
@@ -13,6 +14,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
   root.appendChild(card)
   let shownId = null
   let shownKey = ''
+  let tasksOpen = false // the task list stays open across re-renders of the same thread
 
   card.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-act]')
@@ -26,6 +28,18 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'close') village.select(null)
+    else if (act === 'tasks') {
+      tasksOpen = !tasksOpen
+      const t = village.thread(village.selected)
+      if (t) {
+        fill(t)
+        drawAvatar(village.world.villager(village.selected))
+      }
+    } else if (act === 'task') {
+      tasksOpen = false
+      village.runTask(village.selected, b.dataset.task)
+      shownKey = '' // redraw without the list on the next update
+    }
   })
 
   function fill(t) {
@@ -54,8 +68,23 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
+        <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
-      </div>`
+      </div>
+      ${tasksOpen ? taskList(t) : ''}`
+  }
+
+  /** The ready-made tasks, or why there are none right now. */
+  function taskList(t) {
+    if (t.running || t.needsInput) return '<p class="tasks note">Busy right now. Tasks can go once it stops.</p>'
+    // Only Claude Code's CLI resumes a thread with a prompt; the server falls back to a new session.
+    const how = t.harness === 'claude-code'
+      ? 'Continues this conversation in a terminal, or starts a new session here if it can’t.'
+      : `Starts a new ${esc(t.harnessName || 'agent')} session in this folder.`
+    return `<div class="tasks">
+      ${TASKS.map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}
+      <p class="note">${how}</p>
+    </div>`
   }
 
   /** Looking back at a finished thread: its flower, what kind of work it was, and when. */
@@ -158,6 +187,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       const flower = village.isFinished(id) ? village.flower(id) : null
       const key = `${flower ? 'f' : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
       if (id !== shownId || key !== shownKey) {
+        if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)
         else {
           fill(t)
