@@ -99,3 +99,16 @@ test('a question or plan approval with no answer is pending; an answered one is 
   assert.equal(pendingQuestion([assistantRecord([{ type: 'tool_use', name: 'ExitPlanMode', input: {} }])]), true)
   assert.equal(pendingQuestion([assistantRecord(toolUse())]), false)
 })
+
+test('task notifications and subagent hand-backs are not shown as the person speaking', () => {
+  const note = '<task-notification>\n<task-id>bmuq57mur</task-id>\n<status>stopped</status>\n</task-notification>'
+  const msgs = transcriptMessages([
+    userRecord('Please fix the login bug', { origin: { kind: 'human' } }),
+    userRecord(note, { origin: { kind: 'task-notification' } }),
+    userRecord('[Subagent hand-back] report', { origin: { kind: 'peer' } }),
+    // An older CLI writes no `origin`; the wrapper alone must still hide it.
+    userRecord(note),
+  ])
+  assert.deepEqual(msgs.map((m) => m.text), ['Please fix the login bug'])
+  assert.equal(readTranscriptMeta([userRecord('report', { origin: { kind: 'peer' } }), userRecord('real')]).firstPrompt, 'real')
+})

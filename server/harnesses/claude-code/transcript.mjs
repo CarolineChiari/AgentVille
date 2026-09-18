@@ -28,6 +28,13 @@ export function textOf(content) {
 const isMain = (r) => r && !r.isSidechain
 
 /**
+ * Did the person write this user record? The CLI also files what it feeds the model — a finished
+ * background task's `<task-notification>`, a subagent's hand-back — as `type: 'user'`, marked by
+ * `origin.kind`. Older CLIs write no `origin` at all, so a missing one counts as the person.
+ */
+const fromPerson = (r) => !r.origin || r.origin.kind === 'human'
+
+/**
  * Walk the head of a transcript once and collect everything the village shows: a title if the
  * user or the CLI set one, the opening prompt otherwise, and where the thread was working.
  */
@@ -65,7 +72,7 @@ export function readTranscriptMeta(records) {
       const t = Date.parse(r.timestamp)
       if (Number.isFinite(t)) meta.startedAt = t
     }
-    if (r.type === 'user' && !meta.firstPrompt) {
+    if (r.type === 'user' && !meta.firstPrompt && fromPerson(r)) {
       meta.firstPrompt = cleanPrompt(textOf(r.message?.content))
     } else if (r.type === 'assistant' && !meta.model && typeof r.message?.model === 'string') {
       meta.model = r.message.model
@@ -115,7 +122,7 @@ export function awaitingReply(records) {
 
 // ---------- the conversation, for the transcript panel ----------
 
-const HIDDEN_BLOCK_RE = /<(system-reminder|ide_selection|ide_opened_file|local-command-caveat|local-command-stdout|command-message|command-args)\b[^>]*>[\s\S]*?<\/\1>/g
+const HIDDEN_BLOCK_RE = /<(system-reminder|ide_selection|ide_opened_file|local-command-caveat|local-command-stdout|command-message|command-args|task-notification)\b[^>]*>[\s\S]*?<\/\1>/g
 const COMMAND_RE = /<command-name>\s*([^<]+?)\s*<\/command-name>/
 const TEXT_MAX = 8000
 
@@ -152,6 +159,7 @@ export function transcriptMessages(records) {
     if (!isMain(r) || r.isMeta) continue
     const at = Date.parse(r.timestamp) || 0
     if (r.type === 'user') {
+      if (!fromPerson(r)) continue
       const content = r.message?.content
       if (Array.isArray(content) && content.length && content.every((b) => b?.type === 'tool_result')) continue
       const text = readableUserText(textOf(content))
