@@ -18,18 +18,37 @@ export const ROOF_FAMILIES = [[0, 5, 3], [1, 6, 4], [2, 3, 5], [7, 1, 4]]
 const TALL = { windmill: 60, tower: 60 }
 /** How much of a house is upstairs: a second storey adds this many rows of wall. */
 const UPSTAIRS = 9
+/**
+ * Down the sides of a courtyard a building has one row of walkway above it, and the house above
+ * opens its door onto that row. A building there keeps everything it draws below this row of its
+ * 48 px sprite, so it stays clear of the feet of whoever stands at that door (row 8).
+ */
+export const DOORSTEP_CLEAR = 9
+/** What a windmill or a tower is built as down the sides, where there is no room for its height. */
+const STAND_INS = ['cottage', 'workshop', 'barn', 'greenhouse']
+
+/**
+ * What a building is drawn as. On the top row (`roomy`) it is itself. Down the sides it must stay
+ * clear of the doorstep above it: a windmill or a tower becomes a shorter kind, picked by its
+ * variant, and a house is `low`, one storey without a steep roof.
+ */
+export function fitted(kind, variant, roomy) {
+  if (roomy) return { kind, low: false }
+  if (TALL[kind]) return { kind: STAND_INS[variant % STAND_INS.length], low: true }
+  return { kind, low: true }
+}
 
 /**
  * A house's own random stream, apart from the one that scatters texture, so the shape of a house
  * never shifts when its brickwork is drawn differently.
  */
 const specRand = (variant) => mulberry32(variant * 2246822519 + 3266489917)
-const storeysOf = (variant) => (specRand(variant)() < 0.3 ? 2 : 1)
+const storeysOf = (variant, low) => (!low && specRand(variant)() < 0.3 ? 2 : 1)
 
 /** Sprite height: the windmill and the tower are tall, and so is a house with an upstairs. */
-export function heightOf(kind, variant = 0) {
+export function heightOf(kind, variant = 0, low = false) {
   if (TALL[kind]) return TALL[kind]
-  if (kind === 'house' && storeysOf(variant) === 2) return 48 + UPSTAIRS - 1
+  if (kind === 'house' && storeysOf(variant, low) === 2) return 48 + UPSTAIRS - 1
   return 48
 }
 
@@ -54,15 +73,17 @@ function roofY(roof, x) {
 
 /**
  * Everything about a house that is not texture. `wall` and `roofs` are its plot's style; most
- * houses on a plot are built of its wall, the rest of anything.
+ * houses on a plot are built of its wall, the rest of anything. A `low` house (see `fitted`) keeps
+ * everything else about its look, drawn from the same stream in the same order.
  */
-export function houseSpec(variant, wall = 0, roofs = 0) {
+export function houseSpec(variant, wall = 0, roofs = 0, low = false) {
   const r = specRand(variant)
-  const storeys = r() < 0.3 ? 2 : 1
+  const storeys = r() < 0.3 && !low ? 2 : 1
   const H = storeys === 2 ? 48 + UPSTAIRS - 1 : 48
   const base = H - 2
   const wallTop = base - 16 - (storeys - 1) * (UPSTAIRS - 1)
-  const shape = pick(r, ['gable', 'gable', 'hip', 'steep'])
+  const drawn = pick(r, ['gable', 'gable', 'hip', 'steep'])
+  const shape = low && drawn === 'steep' ? 'gable' : drawn
   const roof = {
     shape,
     yTop: wallTop - (shape === 'hip' ? 14 : shape === 'steep' ? 24 : 20),
@@ -80,7 +101,8 @@ export function houseSpec(variant, wall = 0, roofs = 0) {
   const dormer = shape !== 'hip' && r() < 0.35
   const woodDoor = r() < 0.35
   const side = r() < 0.5 ? 7 : 21
-  const chimney = r() < 0.85 ? { x: side, top: Math.max(1, roofY(roof, side + 2) - 5) } : null
+  // Its outline adds a row above its top, so a low chimney tops out one row below the doorstep.
+  const chimney = r() < 0.85 ? { x: side, top: Math.max(low ? DOORSTEP_CLEAR + 1 : 1, roofY(roof, side + 2) - 5) } : null
   const upstairs = pick(r, ['pair', 'trio'])
   return { storeys, H, base, wallTop, roof, material, roofColor, layout, upstairs, shutters, boxes, porch, dormer, woodDoor, chimney }
 }
@@ -89,13 +111,13 @@ export function houseSpec(variant, wall = 0, roofs = 0) {
  * Where smoke leaves a finished building: the top middle of its chimney, in sprite pixels, or
  * null if it has none.
  */
-export function chimneyOf(kind, variant = 0, wall = 0, roofs = 0) {
+export function chimneyOf(kind, variant = 0, wall = 0, roofs = 0, low = false) {
   if (kind === 'house') {
-    const c = houseSpec(variant, wall, roofs).chimney
+    const c = houseSpec(variant, wall, roofs, low).chimney
     return c && { x: c.x + 2, y: c.top }
   }
-  if (kind === 'cottage') return { x: 9, y: 8 }
-  if (kind === 'workshop') return { x: 5, y: 8 }
+  if (kind === 'cottage') return { x: 9, y: 10 }
+  if (kind === 'workshop') return { x: 5, y: 10 }
   return null
 }
 
@@ -236,7 +258,7 @@ function site(pc, rand, stage) {
 // ---------- kinds ----------
 
 function house(pc, o) {
-  const s = houseSpec(o.variant, o.wall, o.roofs)
+  const s = houseSpec(o.variant, o.wall, o.roofs, o.low)
   const { base, wallTop, roof } = s
   if (o.roof && s.chimney) chimney(pc, s.chimney.x, s.chimney.top, wallTop - 2)
   walls(pc, 3, 28, wallTop, base, s.material, o.rand)
@@ -304,7 +326,7 @@ const KINDS = {
     const r = rngFor(`cottage:${o.variant}`)
     const slate = r() < 0.4
     const round = r() < 0.5
-    if (o.roof) chimney(pc, 7, 8, 16)
+    if (o.roof) chimney(pc, 7, 10, 16)
     walls(pc, 4, 27, 31, 46, 'stone', o.rand)
     if (round) {
       pc.ellipse(10.5, 37.5, 3, 3, P.woodDark)
@@ -397,8 +419,9 @@ const KINDS = {
     pc.vline(10, 34, 46, P.white)
     pc.vline(21, 34, 46, P.white)
     if (!o.roof) return
-    for (let y = 8; y <= 16; y++) {
-      const half = 5 + (y - 8) * 1.1
+    // The gambrel's upper slope, steeper than it was so its ridge clears the doorstep above.
+    for (let y = 10; y <= 16; y++) {
+      const half = 5 + (y - 10) * 1.47
       pc.hline(Math.round(16 - half), Math.round(15 + half), y, P.metalDark)
     }
     for (let y = 17; y <= 26; y++) {
@@ -449,8 +472,8 @@ const KINDS = {
   },
   workshop(pc, o) {
     if (o.roof) {
-      pc.rect(4, 8, 3, 12, P.metalDark)
-      pc.hline(3, 7, 8, P.metal)
+      pc.rect(4, 10, 3, 10, P.metalDark)
+      pc.hline(3, 7, 10, P.metal)
     }
     const brick = o.wall === WALLS.indexOf('brick') || o.wall === WALLS.indexOf('stone')
     walls(pc, 2, 29, 30, 46, brick ? 'brick' : 'wood', o.rand)
@@ -597,11 +620,11 @@ const KINDS = {
 }
 
 /**
- * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number }} o
- *        `wall` and `roofs` are the plot's style.
+ * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean }} o
+ *        `wall` and `roofs` are the plot's style; `low` comes from `fitted`.
  */
 export function drawBuilding(o) {
-  const H = heightOf(o.kind, o.variant)
+  const H = heightOf(o.kind, o.variant, o.low)
   const pc = new PixelCanvas(BUILDING_W, H)
   const rand = mulberry32(o.variant * 7919 + 1)
   const wall = o.wall || 0
@@ -618,7 +641,7 @@ export function drawBuilding(o) {
     return pc.outline(P.outline)
   }
   const draw = KINDS[o.kind] || KINDS.house
-  draw(pc, { rand, accent: o.accent, roofColor: roofColorOf(o.variant, roofs), lit: o.lit, roof: o.stage >= 3, frame: o.frame || 0, variant: o.variant, wall, roofs })
+  draw(pc, { rand, accent: o.accent, roofColor: roofColorOf(o.variant, roofs), lit: o.lit, roof: o.stage >= 3, frame: o.frame || 0, variant: o.variant, wall, roofs, low: Boolean(o.low) })
   if (o.stage === 2 && !NO_SCAFFOLD.has(o.kind)) scaffold(pc, H)
   return pc.outline(P.outline)
 }

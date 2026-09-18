@@ -97,10 +97,13 @@ export class Plot {
     }
   }
 
-  /** Top-left tile of the house at a slot. */
+  /**
+   * Top-left tile of the house at a slot, and whether it has open ground above it: the top row
+   * does; down the sides, the house above opens its door onto the row just above.
+   */
   slotTile(slot) {
     const [x, y] = unkey(slot)
-    return { x, y }
+    return { x, y, roomy: y === this.shape.yard.y }
   }
 
   get flowerCapacity() {

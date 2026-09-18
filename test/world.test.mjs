@@ -325,3 +325,12 @@ test('a plot and every building on it carry the repo\'s style', () => {
   assert.deepEqual(alpha.style, plotStyle('alpha'))
   for (const b of snap.buildings) assert.deepEqual(b.style, plotStyle(b.plot))
 })
+
+test('a building on a courtyard\'s top row has room above it; one down the side does not', () => {
+  const w = new World()
+  w.setRoster(Array.from({ length: 5 }, (_, i) => T(`r${i}`, 'solo')))
+  const top = w.plots.get('solo').shape.yard.y
+  const snap = w.snapshot()
+  assert.ok(snap.buildings.some((b) => b.roomy) && snap.buildings.some((b) => !b.roomy))
+  for (const b of snap.buildings) assert.equal(b.roomy, b.y === top, `the building at ${b.x},${b.y}`)
+})

@@ -11,8 +11,9 @@
  * @property {{ name: string, accent: number, style: PlotStyle, cells: number[][], labelAt: {x:number,y:number}, urgent: boolean, active: boolean }[]} plots
  * @property {{ id: string, sprite: string, variant?: number, x: number, y: number, blocks?: number[][] }[]} statics
  *           Scenery; (x, y) is the bottom centre of its tile. `blocks` lists the tiles it stands on, if nobody can walk through it.
- * @property {{ id: string, kind: string, variant: number, stage: number, progress: number, x: number, y: number, w: number, h: number, alpha: number, lit: boolean, plot: string, accent: number, style: PlotStyle }[]} buildings
- *           `style` is its plot's.
+ * @property {{ id: string, kind: string, variant: number, stage: number, progress: number, x: number, y: number, w: number, h: number, alpha: number, lit: boolean, roomy: boolean, plot: string, accent: number, style: PlotStyle }[]} buildings
+ *           `style` is its plot's. `roomy` is true on a courtyard's top row, with open ground above it;
+ *           down the sides the house above opens its door onto the row just above, so nothing tall fits.
  * @property {{ id: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string }[]} villagers
  * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers
  *           Finished work; (x, y) is the base of the stem. `born` is sim time, null if always there.

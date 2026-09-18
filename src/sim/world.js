@@ -162,8 +162,9 @@ export class World {
           this.buildings.set(t.id, b)
           dirty = true
         }
-        const { x, y } = plot.slotTile(slot)
+        const { x, y, roomy } = plot.slotTile(slot)
         if (b.place(x, y, name)) dirty = true
+        b.roomy = roomy
         b.lit = t.status === 'working' || t.status === 'waiting'
       }
     }
@@ -433,7 +434,7 @@ export class World {
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
-        alpha: b.alpha, lit: b.lit, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
+        alpha: b.alpha, lit: b.lit, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
         style: this.plots.get(b.plot)?.style ?? PLAIN_STYLE,
       })),
       villagers: [...this.villagers.values()]

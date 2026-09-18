@@ -7,7 +7,7 @@ import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
 import { tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
-import { buildingFrames, chimneyOf, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
+import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
@@ -269,14 +269,15 @@ export class Canvas2dRenderer {
 
   _drawBuilding(b, night, time) {
     const lit = b.lit && night > 0.35
-    const frames = buildingFrames(b.kind, b.stage)
+    const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
+    const frames = buildingFrames(kind, b.stage)
     const frame = frames > 1 ? Math.floor(time * 1.6) % frames : 0
     const style = b.style || PLAIN_STYLE
-    const img = sprites.get(`building.${b.kind}.${b.stage}`, frame, {
-      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs,
+    const img = sprites.get(`building.${kind}.${b.stage}`, frame, {
+      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low,
     })
-    const H = heightOf(b.kind, b.variant)
-    const shadow = b.stage >= 2 ? shadowOf(b.kind) : 0
+    const H = heightOf(kind, b.variant, low)
+    const shadow = b.stage >= 2 ? shadowOf(kind) : 0
     if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
     this._blit(img, b.x * T + (b.w * T - BUILDING_W) / 2, (b.y + b.h) * T - H, b.alpha)
   }
@@ -422,12 +423,13 @@ export class Canvas2dRenderer {
     for (const b of frame.buildings) {
       if (b.stage < 3 || !b.lit || b.alpha < 1) continue
       const style = b.style || PLAIN_STYLE
-      const key = `${b.kind}:${b.variant}:${style.wall}:${style.roofs}`
-      if (!this.chimneys.has(key)) this.chimneys.set(key, chimneyOf(b.kind, b.variant, style.wall, style.roofs))
+      const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
+      const key = `${kind}:${b.variant}:${style.wall}:${style.roofs}:${low}`
+      if (!this.chimneys.has(key)) this.chimneys.set(key, chimneyOf(kind, b.variant, style.wall, style.roofs, low))
       const c = this.chimneys.get(key)
       if (!c) continue
       const x = b.x * T + (b.w * T - BUILDING_W) / 2 + c.x
-      const y = (b.y + b.h) * T - heightOf(b.kind, b.variant) + c.y
+      const y = (b.y + b.h) * T - heightOf(kind, b.variant, low) + c.y
       if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 30 || y > view.y1 + 10) continue
       for (const p of smokePuffs(x, y, this._hash(b.id), frame.time)) {
         ctx.globalAlpha = p.alpha
@@ -646,7 +648,8 @@ export class Canvas2dRenderer {
       if (b.alpha < 1) continue
       const x0 = b.x * T
       const y1 = (b.y + b.h) * T
-      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - heightOf(b.kind, b.variant) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
+      const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
+      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
     }
     const tx = Math.floor(w.x / T)
     const ty = Math.floor(w.y / T)
