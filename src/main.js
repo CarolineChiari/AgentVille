@@ -1,5 +1,6 @@
 // Boot: settings → sprites → renderer → world → village → UI → poll loop.
 import { World } from './sim/world.js'
+import { CELL_TILES } from './sim/constants.js'
 import { Camera } from './render/camera.js'
 import { Canvas2dRenderer } from './render/renderer.js'
 import { sprites } from './render/sprites/registry.js'
@@ -81,8 +82,8 @@ function fly(target) {
     if (!p) return
     const xs = p.cells.map((c) => c[0])
     const ys = p.cells.map((c) => c[1])
-    const cx = ((Math.min(...xs) + Math.max(...xs) + 1) / 2) * 12 * TILE_PX
-    const cy = ((Math.min(...ys) + Math.max(...ys) + 1) / 2) * 12 * TILE_PX
+    const cx = ((Math.min(...xs) + Math.max(...xs) + 1) / 2) * CELL_TILES * TILE_PX
+    const cy = ((Math.min(...ys) + Math.max(...ys) + 1) / 2) * CELL_TILES * TILE_PX
     camera.flyTo(cx, cy)
   }
 }

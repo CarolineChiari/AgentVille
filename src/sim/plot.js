@@ -1,16 +1,12 @@
-// A plot: one repo's cells, the stable slot each of its threads builds on, and how its ground is
-// painted (yard, road ring, fence with gaps lined up with the walkways).
-import { BED, BOARD_LOCAL, CELL_TILES, FLOWER_PITCH, FLOWER_ROWS, FLOWER_TOP, FLOWERS_PER_CELL, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
-import { key } from './grid.js'
+// A plot: one repo's rectangle of cells, the house each of its threads builds, and how its ground
+// is painted. Where anything goes inside it comes from shape.js.
+import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
+import { flowerAt, isFenceGap, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
 
 export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4 }
 export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, CROPS: 6 }
-
-/** Fence gaps line up with the yard's walkways: columns 4 and 7, rows 4 and 9. */
-const GAP_X = new Set([4, 7])
-const GAP_Y = new Set([4, 9])
 
 export class Plot {
   constructor(name, accent) {
@@ -18,7 +14,10 @@ export class Plot {
     this.accent = accent
     this.cells = []
     this.sig = ''
-    this.slotOf = new Map() // thread id → slot index
+    this.shape = null
+    this.slotKeys = [] // every house position, "x,y" of its top-left tile, preferred first
+    this.slotOf = new Map() // thread id → slot key
+    this.tilled = 0 // tile rows of the field ploughed so far
   }
 
   setCells(cells) {
@@ -26,17 +25,30 @@ export class Plot {
     const changed = sig !== this.sig
     this.cells = cells
     this.sig = sig
+    if (changed) {
+      this.shape = shapeOf(rectOf(cells))
+      this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
+    }
+    return changed
+  }
+
+  /** Plough enough of the field for `n` flowers. True if that changes the ground. */
+  setPlanted(n) {
+    const rows = tilledRows(this.shape, Math.min(n, this.flowerCapacity))
+    const changed = rows !== this.tilled
+    this.tilled = rows
     return changed
   }
 
   get capacity() {
-    return this.cells.length * SLOTS_PER_CELL
+    return this.slotKeys.length
   }
 
   /**
-   * A thread keeps its slot once it has one: archiving one thread must not shuffle its siblings.
-   * Newcomers take the lowest free slot, most urgent first, then oldest; a slot beyond a shrunken
-   * plot's capacity is reassigned.
+   * A thread keeps its house once it has one: archiving one thread must not shuffle its siblings.
+   * Slots are positions, not indices, so a plot that grows keeps every house that still fits where
+   * it stood; only a house on the side that moved is rebuilt. Newcomers take the free slot nearest
+   * the middle, most urgent first, then oldest.
    *
    * A plot boxed in by its neighbours can have more threads than slots. Then a thread that wants
    * something (stuck, waiting on you, done, working) takes the slot of one strictly quieter,
@@ -45,12 +57,14 @@ export class Plot {
    */
   assignSlots(threads) {
     const ids = new Set(threads.map((t) => t.id))
+    const exists = new Set(this.slotKeys)
     for (const id of [...this.slotOf.keys()]) if (!ids.has(id)) this.slotOf.delete(id)
     const used = new Set()
     for (const [id, s] of this.slotOf) {
-      if (s < this.capacity && !used.has(s)) used.add(s)
+      if (exists.has(s) && !used.has(s)) used.add(s)
       else this.slotOf.delete(id)
     }
+    const free = this.slotKeys.filter((s) => !used.has(s))
     const byId = new Map(threads.map((t) => [t.id, t]))
     const rank = (t) => STATUS_RANK[t.status] ?? STATUS_RANK.idle
     const older = (a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1)
@@ -58,10 +72,8 @@ export class Plot {
     let next = 0
     for (const t of sorted) {
       if (this.slotOf.has(t.id)) continue
-      while (used.has(next)) next++
-      if (next < this.capacity) {
-        this.slotOf.set(t.id, next)
-        used.add(next)
+      if (next < free.length) {
+        this.slotOf.set(t.id, free[next++])
         continue
       }
       // Full. The quietest holder, and of those the oldest, gives way if it is quieter than `t`.
@@ -78,82 +90,61 @@ export class Plot {
     }
   }
 
-  /** Top-left tile of the building footprint for a slot. */
+  /** Top-left tile of the house at a slot. */
   slotTile(slot) {
-    const [cx, cy] = this.cells[Math.floor(slot / SLOTS_PER_CELL)]
-    const [lx, ly] = SLOT_LOCAL[slot % SLOTS_PER_CELL]
-    return { x: cx * CELL_TILES + lx, y: cy * CELL_TILES + ly }
+    const [x, y] = unkey(slot)
+    return { x, y }
   }
 
   get flowerCapacity() {
-    return this.cells.length * FLOWERS_PER_CELL
+    return this.shape.flowers.cols * this.shape.flowers.rows
+  }
+
+  /** Where flower `i` stands (its base, in tiles): the field fills a row at a time, left to right. */
+  flowerSpot(i) {
+    return flowerAt(this.shape, i)
   }
 
   /**
-   * Where flower `i` stands (its base, in tiles). Like a contribution graph: each column fills top
-   * to bottom, columns run left to right, and a full bed carries on in the plot's next cell.
+   * The notice board's tile, on the bottom walkway near the left corner. It moves only when the
+   * plot grows down or left, and then the fence it stands inside has moved too.
    */
-  flowerSpot(i) {
-    const [cx, cy] = this.cells[Math.floor(i / FLOWERS_PER_CELL)]
-    const j = i % FLOWERS_PER_CELL
-    const col = Math.floor(j / FLOWER_ROWS)
-    const row = j % FLOWER_ROWS
-    return {
-      x: cx * CELL_TILES + BED.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / 16,
-      y: cy * CELL_TILES + BED.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / 16,
-    }
-  }
-
-  /** The notice board's tile. The root cell never moves as a plot grows, so neither does the board. */
   get boardTile() {
-    const [cx, cy] = this.cells[0]
-    return { x: cx * CELL_TILES + BOARD_LOCAL[0], y: cy * CELL_TILES + BOARD_LOCAL[1] }
+    return { ...this.shape.board }
   }
 
-  /** Where the name plate floats: above the root cell's top row. */
+  /** Where the name plate floats: over the middle of the top road. */
   get labelAt() {
-    const [cx, cy] = this.cells[0]
-    return { x: cx * CELL_TILES + CELL_TILES / 2, y: cy * CELL_TILES + 1 }
+    return { ...this.shape.label }
   }
 
-  /** Yard tiles, for pottering about. */
+  /** Yard tiles, for pottering about: everything inside the fence, field included. */
   yardTiles() {
+    const { yard } = this.shape
     const out = []
-    for (const [cx, cy] of this.cells) {
-      for (let ly = 2; ly <= 9; ly++) for (let lx = 2; lx <= 9; lx++) out.push({ x: cx * CELL_TILES + lx, y: cy * CELL_TILES + ly })
-    }
+    for (let y = yard.y; y < yard.y + yard.h; y++) for (let x = yard.x; x < yard.x + yard.w; x++) out.push({ x, y })
     return out
   }
 
-  /** Paint this plot's cells into the map arrays. */
-  paint(map, owner) {
-    const mine = (cx, cy) => owner.get(key(cx, cy)) === this.name
-    for (const [cx, cy] of this.cells) {
-      const n = mine(cx, cy - 1)
-      const s = mine(cx, cy + 1)
-      const w = mine(cx - 1, cy)
-      const e = mine(cx + 1, cy)
-      for (let ly = 0; ly < CELL_TILES; ly++) {
-        for (let lx = 0; lx < CELL_TILES; lx++) {
-          const tx = cx * CELL_TILES + lx
-          const ty = cy * CELL_TILES + ly
-          const edgeRoad = (ly === 0 && !n) || (ly === CELL_TILES - 1 && !s) || (lx === 0 && !w) || (lx === CELL_TILES - 1 && !e)
-          const bed = lx >= BED.x && lx < BED.x + BED.w && ly >= BED.y && ly < BED.y + BED.h
-          map.setTile(tx, ty, edgeRoad ? TILE.ROAD : bed ? TILE.BED : TILE.YARD)
-          if (edgeRoad) continue
-          const lo = w ? 0 : 1
-          const hi = e ? CELL_TILES - 1 : CELL_TILES - 2
-          const top = n ? 0 : 1
-          const bottom = s ? CELL_TILES - 1 : CELL_TILES - 2
-          let deco = DECO.NONE
-          if ((ly === 1 && !n) || (ly === CELL_TILES - 2 && !s)) {
-            if (lx >= lo && lx <= hi && !GAP_X.has(lx)) deco = DECO.FENCE_H
-          }
-          if ((lx === 1 && !w) || (lx === CELL_TILES - 2 && !e)) {
-            if (ly >= top && ly <= bottom && !GAP_Y.has(ly)) deco = deco === DECO.FENCE_H ? DECO.POST : DECO.FENCE_V
-          }
-          if (deco) map.setDeco(tx, ty, deco)
+  /** Paint this plot into the map arrays: road ring, fence ring with its gaps, yard, ploughed field. */
+  paint(map) {
+    const s = this.shape
+    const { x0, y0, w: W, h: H, bed } = s
+    for (let ly = 0; ly < H; ly++) {
+      for (let lx = 0; lx < W; lx++) {
+        const tx = x0 + lx
+        const ty = y0 + ly
+        const ring = Math.min(lx, ly, W - 1 - lx, H - 1 - ly)
+        if (ring === 0) {
+          map.setTile(tx, ty, TILE.ROAD)
+          continue
         }
+        const tilled = tx >= bed.x && tx < bed.x + bed.w && ty >= bed.y && ty < bed.y + this.tilled
+        map.setTile(tx, ty, tilled ? TILE.BED : TILE.YARD)
+        if (ring !== 1 || isFenceGap(s, lx, ly)) continue
+        const across = ly === 1 || ly === H - 2
+        const down = lx === 1 || lx === W - 2
+        map.setDeco(tx, ty, across && down ? DECO.POST : across ? DECO.FENCE_H : DECO.FENCE_V)
       }
     }
   }

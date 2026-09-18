@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { World } from '../src/sim/world.js'
+import { TILE } from '../src/sim/plot.js'
 
 const T = (id, project, status = 'idle', extra = {}) => ({ id, project, createdAt: Number(id.replace(/\D/g, '')) || 0, status, known: true, ...extra })
 
@@ -104,14 +105,38 @@ test('a waiting villager waves and hops every few seconds', () => {
 
 const F = (id, kind = 0) => ({ id, kind, color: 1 })
 
-test('flowers fill each garden column top to bottom, then move right', () => {
+test('flowers fill the field a row at a time, on ploughed ground', () => {
   const w = new World()
   const flowers = Array.from({ length: 9 }, (_, i) => F(`f${i}`))
   w.setRoster([T('t1', 'a')], undefined, new Map([['a', flowers]]))
   const p = (id) => w.flower(id)
-  assert.ok(p('f1').y > p('f0').y && p('f1').x === p('f0').x, 'second flower is below the first')
-  assert.ok(p('f7').x > p('f0').x && p('f7').y === p('f0').y, 'eighth flower starts the next column')
-  for (const f of flowers) assert.ok(!w.nav.isBlocked(Math.floor(p(f.id).x), Math.floor(p(f.id).y - 0.2)), 'the garden is walkable')
+  assert.ok(p('f1').x > p('f0').x && p('f1').y === p('f0').y, 'second flower is right of the first')
+  assert.ok(p('f8').x === p('f0').x && p('f8').y > p('f0').y, 'ninth flower starts the next row')
+  for (const f of flowers) {
+    const tx = Math.floor(p(f.id).x)
+    const ty = Math.floor(p(f.id).y - 0.2)
+    assert.ok(!w.nav.isBlocked(tx, ty), 'the field is walkable')
+    assert.equal(w.map.tileAt(tx, ty), TILE.BED, `${f.id} stands on soil`)
+  }
+})
+
+test('the field is ploughed deeper as flowers arrive', () => {
+  const w = new World()
+  const soil = () => w.map.tiles.filter((t) => t === TILE.BED).length
+  w.setRoster([T('t1', 'a')], undefined, new Map([['a', []]]))
+  const bare = soil()
+  assert.ok(bare > 0, 'an empty field still has a strip of soil')
+  w.setRoster([T('t1', 'a')], undefined, new Map([['a', Array.from({ length: 30 }, (_, i) => F(`f${i}`))]]))
+  assert.ok(soil() > bare, 'more flowers, more soil')
+})
+
+test('the first few houses stand round the field, not in a row', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a'), T('t2', 'a'), T('t3', 'a')])
+  const ys = new Set([...w.buildings.values()].map((b) => b.y))
+  const xs = new Set([...w.buildings.values()].map((b) => b.x))
+  assert.equal(xs.size, 3, 'three columns')
+  assert.equal(ys.size, 2, 'on two sides of the field')
 })
 
 test('a repo with only finished threads keeps its plot and garden', () => {

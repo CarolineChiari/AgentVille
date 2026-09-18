@@ -9,7 +9,7 @@ import path from 'node:path'
 
 /** How long a repo's list is trusted before it is fetched again. PRs merge a few times a day at most. */
 export const PR_TTL_MS = 10 * 60 * 1000
-/** Enough to fill a garden (MAX_CELLS × 112 is more than any repo here needs), few enough to be quick. */
+/** Enough to fill a big field (a 2×2 plot's holds nearly a thousand flowers), few enough to be quick. */
 export const PR_LIMIT = 500
 const GH_TIMEOUT_MS = 30_000
 const FIELDS = 'number,title,labels,state,isDraft,createdAt,mergedAt,author,url,additions,deletions,headRefName'

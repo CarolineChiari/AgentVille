@@ -65,8 +65,8 @@ export class Canvas2dRenderer {
         const y = y0 + ly
         const kind = tileAt(x, y)
         const name = TILE_NAME[kind]
-        // A bed tile's variant is which of the bed's rows it is, so the flower dimples line up.
-        const variant = kind === TILE.BED ? (((y % CELL_TILES) + CELL_TILES) % CELL_TILES) - 5 : hashString(`${x},${y}`) % TILE_VARIANTS[name]
+        // Soil under more soil carries the flower grid on; a field's top row starts it.
+        const variant = kind === TILE.BED ? (tileAt(x, y - 1) === TILE.BED ? 1 : 0) : hashString(`${x},${y}`) % TILE_VARIANTS[name]
         g.drawImage(sprites.get(`tile.${name}.${variant}`), lx * T, ly * T)
         // Cheap autotiling: a darker lip where paving meets grass.
         if (PAVED.has(kind)) {

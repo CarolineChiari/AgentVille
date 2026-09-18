@@ -1,28 +1,60 @@
 // Sticky plot layout. The map is only useful if you can learn it, so the previous arrangement
 // is an input to the next one:
-//   - a repo that needs as many cells as it had keeps exactly those cells;
-//   - one that grew keeps them and claims neighbours;
-//   - one that shrank gives back the cells it claimed most recently (so grow-then-shrink returns
-//     it to precisely its old shape), and only once it has shrunk well past the line;
+//   - every plot is a rectangle of cells, so it can be laid out as one courtyard (shape.js);
+//   - a repo that still fits the rectangle it had keeps exactly those cells;
+//   - one that grew keeps them and claims a whole row or column alongside;
+//   - one that shrank gives back the rows and columns it claimed most recently (so grow-then-shrink
+//     returns it to precisely its old shape), and only once it has shrunk well past the line;
 //   - only a repo with no memory is placed at all, on the innermost free cell.
 // Cells remembered by repos that are absent right now (hidden, folded, archived away) are avoided
 // while anything else is free, so a repo that comes back usually finds its own ground waiting.
-import { FLOWERS_PER_CELL, GATE_CELL, MAX_CELLS, MAX_RING, SLOTS_PER_CELL } from './constants.js'
-import { N4, chebyshev, key, ringOf, spiralCells } from './grid.js'
+import { GATE_CELL, MAX_CELLS, MAX_RING } from './constants.js'
+import { key, ringOf, spiralCells } from './grid.js'
+import { capacityOf, isRect, rectOf } from './shape.js'
 
 export const MEMORY_LIMIT = 80
 
-/** Enough cells for every live thread's building and every finished thread's flower. */
-export const cellsNeeded = (threads, flowers = 0) =>
-  Math.max(1, Math.min(MAX_CELLS, Math.max(Math.ceil(threads / SLOTS_PER_CELL), Math.ceil(flowers / FLOWERS_PER_CELL))))
+/** Does a plot of w×h cells hold this many live threads' houses and finished threads' flowers? */
+export function fits(w, h, threads, flowers = 0) {
+  const c = capacityOf(w, h)
+  return c.slots >= threads && c.flowers >= flowers
+}
 
 /** Shrinking waits until the repo has lost this many threads past the line, so one archive doesn't flicker a cell. */
 export const SHRINK_SLACK = 2
 
-function wantedCells(p, had) {
-  const need = cellsNeeded(p.size, p.garden)
-  if (had > need) return Math.max(need, Math.min(had, cellsNeeded(p.size + SHRINK_SLACK, p.garden)))
-  return need
+/**
+ * What to keep of a remembered plot. Its cells are listed in the order they were claimed, and it
+ * grew a row or column at a time, so every shape it has had is a rectangular prefix of the list.
+ * Keep the smallest of those that would still fit SHRINK_SLACK more threads, or else the largest.
+ * A plot remembered from before plots were rectangles keeps its largest rectangular prefix.
+ */
+function held(before, isFree, p) {
+  const shapes = []
+  for (let n = 1; n <= before.length; n++) {
+    if (!isFree(...before[n - 1])) break
+    if (isRect(before.slice(0, n))) shapes.push(n)
+  }
+  const roomy = shapes.find((n) => {
+    const { w, h } = rectOf(before.slice(0, n))
+    return fits(w, h, p.size + SHRINK_SLACK, p.garden)
+  })
+  return before.slice(0, roomy ?? shapes[shapes.length - 1] ?? 0)
+}
+
+/**
+ * The rows and columns a rectangle could grow by, each listed in the order its cells are claimed.
+ * Right and down come first: growing that way moves no house already standing.
+ */
+function sidesOf({ cx, cy, w, h }) {
+  const col = (x) => Array.from({ length: h }, (_, i) => [x, cy + i])
+  const row = (y) => Array.from({ length: w }, (_, i) => [cx + i, y])
+  return [
+    { cells: col(cx + w), w: w + 1, h },
+    { cells: row(cy + h), w, h: h + 1 },
+    { cells: col(cx - 1), w: w + 1, h },
+    { cells: row(cy - 1), w, h: h + 1 },
+  ]
 }
 
 /**
@@ -45,7 +77,7 @@ export function allocatePlots(projects, previous = new Map()) {
     result.get(name).push([x, y])
   }
 
-  // Hold: keep remembered cells, oldest first, up to what is wanted now.
+  // Hold: keep the remembered rectangle, or as much of it as is still free and still wanted.
   const fresh = []
   for (const p of order) {
     const before = previous.get(p.name)
@@ -54,11 +86,7 @@ export function allocatePlots(projects, previous = new Map()) {
       fresh.push(p)
       continue
     }
-    const want = wantedCells(p, before.length)
-    for (const c of before) {
-      if (result.get(p.name).length >= want) break
-      if (isFree(...c)) claim(p.name, ...c)
-    }
+    for (const c of held(before, isFree, p)) claim(p.name, ...c)
   }
 
   // Seed: new repos take the innermost free cell, preferring ground nobody remembers.
@@ -68,29 +96,30 @@ export function allocatePlots(projects, previous = new Map()) {
     if (cell) claim(p.name, ...cell)
   }
 
-  // Grow: existing repos first (they're first in `order` too), each out from its own root.
+  // Grow: a whole row or column at a time, so the plot stays a rectangle. Off ground an absent
+  // repo remembers first, then squarest (a courtyard, not a corridor), then nearest the square.
   for (const p of order) {
     const cells = result.get(p.name)
     if (!cells.length) continue
-    const want = wantedCells(p, previous.get(p.name)?.length ?? 0)
-    const [rx, ry] = cells[0]
-    while (cells.length < want) {
+    for (;;) {
+      const r = rectOf(cells)
+      if (fits(r.w, r.h, p.size, p.garden)) break
       let best = null
       let bestScore = Infinity
-      for (const [cx, cy] of cells) {
-        for (const [dx, dy] of N4) {
-          const nx = cx + dx
-          const ny = cy + dy
-          if (!isFree(nx, ny)) continue
-          const score = chebyshev(nx, ny, rx, ry) * 100 + ringOf(nx, ny) * 10 + (soft.has(key(nx, ny)) ? 1000 : 0)
-          if (score < bestScore) {
-            bestScore = score
-            best = [nx, ny]
-          }
+      sidesOf(r).forEach((side, dir) => {
+        if (side.w * side.h > MAX_CELLS || !side.cells.every(([x, y]) => isFree(x, y))) return
+        const score =
+          Math.abs(side.w - side.h) * 1000 +
+          side.cells.filter(([x, y]) => soft.has(key(x, y))).length * 10000 +
+          side.cells.reduce((sum, [x, y]) => sum + ringOf(x, y), 0) * 10 +
+          dir
+        if (score < bestScore) {
+          bestScore = score
+          best = side.cells
         }
-      }
-      if (!best) break // hemmed in: stay smaller rather than split the plot
-      claim(p.name, ...best)
+      })
+      if (!best) break // hemmed in, or as big as a plot gets: stay smaller rather than split the plot
+      for (const c of best) claim(p.name, ...c)
     }
   }
 

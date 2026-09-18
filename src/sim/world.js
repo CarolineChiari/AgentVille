@@ -109,6 +109,8 @@ export class World {
       }
       if (plot.setCells(c)) dirty = true
       plot.assignSlots(groups.get(name) || [])
+      // The field is ploughed a row ahead of its flowers, so a new row of soil is new ground.
+      if (plot.setPlanted(gardens.get(name)?.length ?? 0)) dirty = true
     }
 
     // Flowers. Positions only depend on each plot's cells, so nothing needs rebuilding for them.
@@ -265,7 +267,7 @@ export class World {
         else if (!this.owner.has(k)) this._paintWild(map, cx, cy, statics)
       }
     }
-    for (const p of this.plots.values()) p.paint(map, this.owner)
+    for (const p of this.plots.values()) p.paint(map)
 
     const nav = new Nav({ ox, oy: ox, w: size, h: size })
     nav.version = this.nav.version + 1
