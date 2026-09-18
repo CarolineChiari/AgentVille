@@ -38,6 +38,9 @@
  * @property {(ref: object, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} openThread
  * @property {(dir: string, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} newSession
  *
+ * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
+ *           Optional: the conversation, for the transcript panel.
+ *
  * `urls`, when present, are opened in order with a short pause between them.
  * @typedef {{ ok: true, url: string, urls?: string[], note?: string } | { ok: false, error: string }} OpenResult
  */

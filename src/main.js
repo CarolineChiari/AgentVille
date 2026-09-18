@@ -10,6 +10,8 @@ import { loadSettings, saveSettings } from './ui/settings.js'
 import { createHud } from './ui/hud.js'
 import { createCard } from './ui/card.js'
 import { createToasts } from './ui/toast.js'
+import { createTranscript } from './ui/transcript.js'
+import { createNewSession } from './ui/newsession.js'
 
 const POLL_MS = 15_000
 const DRAG_THRESHOLD = 5 // CSS px before a press becomes a drag rather than a click
@@ -28,7 +30,15 @@ let hovered = null
 let hoverPlot = null
 
 const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed() })
-const card = createCard(hudRoot, village)
+const transcript = createTranscript(hudRoot, village)
+const newSession = createNewSession(hudRoot, village)
+const card = createCard(hudRoot, village, {
+  onTranscript: (id) => {
+    transcript.toggle(id)
+    // Bring the villager (or flower) into the part of the map the panel leaves visible.
+    requestAnimationFrame(() => fly({ villager: village.selected }))
+  },
+})
 const hud = createHud(hudRoot, {
   village,
   settings,
@@ -38,11 +48,13 @@ const hud = createHud(hudRoot, {
     else village.apply()
   },
   onFly: fly,
+  onNewSession: (repo) => newSession.open(repo),
 })
 const ui = {
   changed() {
     hud.render()
     card.update()
+    transcript.refresh()
   },
 }
 
@@ -144,7 +156,7 @@ addEventListener('keydown', (e) => {
   }
   if (e.metaKey || e.ctrlKey || e.altKey) return
   const pan = 48 / camera.scale
-  const centerX = (camera.width - camera.insetRight) / 2 / camera.dpr
+  const centerX = (camera.width + camera.insetLeft - camera.insetRight) / 2 / camera.dpr
   const centerY = camera.height / 2 / camera.dpr
   switch (e.key) {
     case 'n': case 'N': { const id = village.nextWaiting(); if (id) fly({ villager: id }); break }
@@ -152,7 +164,17 @@ addEventListener('keydown', (e) => {
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break
     case 'a': case 'A': village.archive(); break
-    case 'c': case 'C': village.newSession(); break
+    case 'c': case 'C': newSession.open(); break
+    case 't': case 'T': {
+      const f = village.flower(village.selected)
+      const id = f?.pr ? f.threadId : village.selected
+      if (id) {
+        transcript.toggle(id)
+        requestAnimationFrame(() => fly({ villager: village.selected }))
+      }
+      else if (transcript.openId) transcript.close()
+      break
+    }
     case 'h': case 'H':
       settings.uiVisible = !settings.uiVisible
       saveSettings(settings)
@@ -162,6 +184,7 @@ addEventListener('keydown', (e) => {
     case '?': hud.showSheet('help'); break
     case 'Escape':
       if (hud.sheetOpen) hud.closeSheet()
+      else if (transcript.openId) transcript.close()
       else if (village.selected) village.select(null)
       else village.selectPlot(null)
       break
@@ -211,7 +234,9 @@ function loop(now) {
   })
   const v = village.selected && (world.villager(village.selected) || world.flower(village.selected))
   const isFlower = Boolean(v && !v.look)
-  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (isFlower ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, isFlower)
+  const panelEdge = innerWidth > 720 ? transcript.rightEdge : 0
+  camera.insetLeft = panelEdge * camera.dpr
+  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (isFlower ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, isFlower, panelEdge)
   requestAnimationFrame(loop)
 }
 

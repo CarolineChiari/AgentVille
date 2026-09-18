@@ -130,3 +130,27 @@ test('vscodeFolderUrl forward-slashes Windows paths', async () => {
   const { vscodeFolderUrl } = await import('../server/harnesses/claude-code/index.mjs')
   assert.equal(vscodeFolderUrl('C:\\code\\my app'), 'vscode://file/C:/code/my%20app/')
 })
+
+test('readTranscript finds a thread by its CLI id and returns the newest messages', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const records = []
+  for (let i = 0; i < 5; i++) records.push(userRecord(`q${i}`), assistantRecord(text(`a${i}`)))
+  writeTranscript(home, { id: uuid(20), records, mtime: NOW - 1000 })
+  const a = adapterFor(home)
+  const r = await a.readTranscript({ cliSessionId: uuid(20) }, { limit: 3 })
+  assert.equal(r.ok, true)
+  assert.equal(r.total, 10)
+  assert.deepEqual(r.messages.map((m) => m.text), ['a3', 'q4', 'a4'])
+  assert.equal((await a.readTranscript({ cliSessionId: [uuid(20)] })).ok, false, 'ids are type-checked')
+  assert.equal((await a.readTranscript({ cliSessionId: uuid(21) })).ok, false)
+})
+
+test('VS Code new session prefills a prompt, capped in length', () => {
+  const a = adapterFor('/nowhere')
+  const r = a.newSession('/work/app', { target: 'vscode', prompt: 'Fix the bug & add tests' })
+  assert.equal(r.urls[1], 'vscode://anthropic.claude-code/open?prompt=Fix+the+bug+%26+add+tests')
+  const long = a.newSession('/work/app', { target: 'vscode', prompt: 'x'.repeat(5000) })
+  assert.ok(long.urls[1].length < 2000)
+  assert.equal(a.newSession('/work/app', { target: 'app', prompt: 'hi' }).url, 'claude://code/new?folder=%2Fwork%2Fapp')
+})

@@ -15,6 +15,7 @@ export class Camera {
     this.height = 1
     this.dpr = 1
     this.insetRight = 0 // device pixels hidden under the sidebar
+    this.insetLeft = 0 // …and under the transcript panel
     this.target = null // eased fly-to
   }
 
@@ -30,7 +31,7 @@ export class Camera {
 
   /** Screen-space origin of world (0,0), rounded once so every sprite lands on whole device pixels. */
   get offX() {
-    return Math.round((this.width - this.insetRight) / 2 - this.x * this.scale)
+    return Math.round((this.width + this.insetLeft - this.insetRight) / 2 - this.x * this.scale)
   }
   get offY() {
     return Math.round(this.height / 2 - this.y * this.scale)
@@ -51,7 +52,7 @@ export class Camera {
 
   /** Keep world point `w` under CSS point (cssX, cssY). */
   pin(w, cssX, cssY) {
-    this.x = w.x - (cssX * this.dpr - (this.width - this.insetRight) / 2) / this.scale
+    this.x = w.x - (cssX * this.dpr - (this.width + this.insetLeft - this.insetRight) / 2) / this.scale
     this.y = w.y - (cssY * this.dpr - this.height / 2) / this.scale
     this.target = null
   }

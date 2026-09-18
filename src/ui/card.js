@@ -6,7 +6,7 @@ import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 
 const GAP = 18
 
-export function createCard(root, village) {
+export function createCard(root, village, { onTranscript = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -24,6 +24,7 @@ export function createCard(root, village) {
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
     else if (act === 'openThread') village.open(b.dataset.id)
+    else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'close') village.select(null)
   })
 
@@ -50,6 +51,7 @@ export function createCard(root, village) {
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
+        <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${t.status === 'waiting' ? '<button class="btn" data-act="viewed">Viewed<kbd>V</kbd></button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
       </div>`
@@ -82,6 +84,7 @@ export function createCard(root, village) {
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
+        <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : '<span class="note">Archived in Claude</span>'}
       </div>`
     const c = card.querySelector('canvas.avatar')
@@ -116,7 +119,7 @@ export function createCard(root, village) {
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       <div class="actions">
         <button class="btn primary" data-act="openPr" ${pr.url ? '' : 'disabled'}>Open PR<kbd>↵</kbd></button>
-        ${f.threadId ? `<button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
+        ${f.threadId ? `<button class="btn" data-act="transcript" data-id="${esc(f.threadId)}">Transcript</button><button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
       </div>`
     const g = card.querySelector('canvas.avatar').getContext('2d')
     g.drawImage(sprites.get(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), 3, 8)
@@ -169,7 +172,7 @@ export function createCard(root, village) {
      * Position: called every frame. Right of a villager, flipping left rather than under the
      * sidebar; above a flower, so the card never covers the garden it is about.
      */
-    place(screen, sidebarLeft, mobile, above = false) {
+    place(screen, sidebarLeft, mobile, above = false, leftBound = 0) {
       if (card.hidden || !screen) return
       const w = card.offsetWidth
       const h = card.offsetHeight
@@ -178,7 +181,7 @@ export function createCard(root, village) {
         return
       }
       if (above) {
-        const x = Math.max(12, Math.min(screen.x - w / 2, sidebarLeft - w - 12))
+        const x = Math.max(leftBound + 12, Math.min(screen.x - w / 2, sidebarLeft - w - 12))
         let y = screen.y - h - GAP * 2
         if (y < 12) y = screen.y + GAP // no room above: go below instead
         card.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
@@ -186,7 +189,8 @@ export function createCard(root, village) {
       }
       let x = screen.x + GAP
       if (x + w > sidebarLeft - 12) x = screen.x - GAP - w
-      x = Math.max(12, Math.min(x, sidebarLeft - w - 12))
+      if (x < leftBound + 12) x = screen.x + GAP // don't slide under the transcript panel
+      x = Math.max(leftBound + 12, Math.min(x, sidebarLeft - w - 12))
       const y = Math.max(12, Math.min(screen.y - h / 2, window.innerHeight - h - 12))
       card.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
     },

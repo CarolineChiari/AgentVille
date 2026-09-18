@@ -21,7 +21,8 @@ const HELP = [
   ['Enter', 'Open the selected thread'],
   ['V', 'Mark it viewed'],
   ['A', 'Archive it'],
-  ['C', 'New session in the open repo'],
+  ['C', 'New session (optionally with a first prompt)'],
+  ['T', 'Transcript of the selected thread'],
   ['H', 'Hide the panels'],
   ['S', 'Settings'],
   ['Esc', 'Deselect'],
@@ -31,7 +32,7 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
-export function createHud(root, { village, settings, onSettings, onFly }) {
+export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {} }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -57,7 +58,8 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
     const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
 
     side.innerHTML = `
-      <div class="brand"><h1>AgentVille</h1><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
+      <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new Claude Code session (C)">+ New session</button></div>
+      <div class="brand-sub"><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
       <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k])}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
@@ -143,7 +145,8 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
       case 'repo': village.selectPlot(name === village.selectedPlot ? null : name); onFly({ plot: name }); break
       case 'closeRepo': village.selectPlot(null); break
       case 'thread': village.select(id); onFly({ villager: id }); break
-      case 'new': village.newSession(); break
+      case 'new': onNewSession(village.selectedPlot); break
+      case 'newAny': onNewSession(village.selectedPlot); break
       case 'reveal': village.reveal(); break
       case 'copy': village.copyPath(); break
       case 'hide': village.hide(); break

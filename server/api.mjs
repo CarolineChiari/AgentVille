@@ -146,11 +146,20 @@ export function createApiMiddleware(opts = {}) {
       const h = body?.harness ? harnessById(body.harness, harnesses) : await defaultHarness({ harnesses })
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
       const target = body?.target === 'vscode' ? 'vscode' : 'app'
-      const result = await h.newSession(dir, { target })
+      const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
+      const result = await h.newSession(dir, { target, prompt })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
       const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
       return [200, { ok: true, url: result.url }]
+    },
+
+    /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */
+    'POST /api/transcript': async (body) => {
+      const h = harnessById(body?.harness, harnesses)
+      if (!h?.readTranscript) return [400, { ok: false, error: 'This harness has no transcripts to show.' }]
+      const r = await h.readTranscript(body?.ref, { limit: body?.limit })
+      return [r.ok ? 200 : 404, r]
     },
 
     'GET /api/prs': async () => {

@@ -92,3 +92,64 @@ export function awaitingReply(records) {
   }
   return false
 }
+
+// ---------- the conversation, for the transcript panel ----------
+
+const HIDDEN_BLOCK_RE = /<(system-reminder|ide_selection|ide_opened_file|local-command-caveat|local-command-stdout|command-message|command-args)\b[^>]*>[\s\S]*?<\/\1>/g
+const COMMAND_RE = /<command-name>\s*([^<]+?)\s*<\/command-name>/
+const TEXT_MAX = 8000
+
+/** A user message as the person typed it: harness wrappers removed, a slash command shown as itself. */
+export function readableUserText(text) {
+  const s = String(text ?? '')
+  const cmd = COMMAND_RE.exec(s)
+  const rest = s.replace(HIDDEN_BLOCK_RE, '').replace(/<command-name>[\s\S]*?<\/command-name>/g, '').trim()
+  return [cmd ? cmd[1] : '', rest].filter(Boolean).join(' ').trim()
+}
+
+const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+
+/** One line saying what a tool call did: the command it ran, the file it touched, what it searched. */
+export function summarizeTool(block) {
+  const i = block?.input && typeof block.input === 'object' ? block.input : {}
+  const detail = i.command ?? i.file_path ?? i.notebook_path ?? i.pattern ?? i.url ?? i.query ?? i.description ?? i.skill ?? i.prompt ?? i.action ?? i.text ?? ''
+  // `mcp__Claude_Browser__computer` reads better as `Claude Browser · computer`.
+  const raw = String(block?.name || 'tool')
+  const mcp = /^mcp__(.+?)__(.+)$/.exec(raw)
+  const name = mcp ? `${mcp[1].replace(/_/g, ' ')} · ${mcp[2]}` : raw
+  return { name, detail: clip(String(detail).replace(/\s+/g, ' ').trim(), 240) }
+}
+
+/**
+ * The main conversation as a list of messages: what the person said, what Claude said, and a
+ * line for each tool call. Subagent (sidechain) turns and tool results are left out; they are the
+ * machinery, not the conversation.
+ * @returns {{ role: 'user'|'assistant'|'tool', text?: string, name?: string, detail?: string, at: number }[]}
+ */
+export function transcriptMessages(records) {
+  const out = []
+  for (const r of records) {
+    if (!isMain(r) || r.isMeta) continue
+    const at = Date.parse(r.timestamp) || 0
+    if (r.type === 'user') {
+      const content = r.message?.content
+      if (Array.isArray(content) && content.length && content.every((b) => b?.type === 'tool_result')) continue
+      const text = readableUserText(textOf(content))
+      if (text) out.push({ role: 'user', text: clip(text, TEXT_MAX), at })
+    } else if (r.type === 'assistant') {
+      const content = Array.isArray(r.message?.content) ? r.message.content : []
+      for (const b of content) {
+        if (b?.type === 'text' && b.text?.trim()) {
+          const prev = out.at(-1)
+          // The CLI writes one record per content block; stitch a reply's text back together.
+          if (prev?.role === 'assistant' && prev.msgId && prev.msgId === r.message?.id) prev.text = clip(`${prev.text}\n\n${b.text.trim()}`, TEXT_MAX)
+          else out.push({ role: 'assistant', text: clip(b.text.trim(), TEXT_MAX), at, msgId: r.message?.id })
+        } else if (b?.type === 'tool_use') {
+          out.push({ role: 'tool', ...summarizeTool(b), at })
+        }
+      }
+    }
+  }
+  for (const m of out) delete m.msgId
+  return out
+}

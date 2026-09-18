@@ -362,15 +362,48 @@ export class Village {
     this.queueSave()
   }
 
-  async newSession(name = this.selectedPlot) {
-    const path = this.projectPath(name)
-    if (!path) return
-    if (this.demo) return this.toast('Demo mode: nothing to start.')
+  /**
+   * Start a session in a folder, optionally with a first prompt (prefilled in VS Code, copied to
+   * the clipboard for the Claude app, whose link can't carry one). The new villager walks in from
+   * the gate once the session writes its transcript, so look again a few times soon after.
+   */
+  async startSession(folder, prompt = '') {
+    if (!folder) return false
+    if (this.demo) {
+      this.toast('Demo mode: nothing to start.')
+      return false
+    }
+    const target = this.settings.openIn
     try {
-      await api.newSession(path, this.settings.openIn)
-      this.toast(`Starting a new session in ${name}${this.settings.openIn === 'vscode' ? ' in VS Code' : ''}`)
+      if (prompt && target !== 'vscode') await navigator.clipboard.writeText(prompt).catch(() => {})
+      await api.newSession(folder, target, prompt)
+      const where = target === 'vscode' ? 'VS Code' : 'the Claude app'
+      this.toast(prompt && target !== 'vscode' ? `Opening ${where} — your prompt is on the clipboard` : `Starting a new session in ${where}`)
+      for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
+      return true
     } catch (err) {
       this.toast(err.message, 'error')
+      return false
+    }
+  }
+
+  /** Every folder the village knows, for the new-session picker: repos with plots first. */
+  knownFolders() {
+    const seen = new Map()
+    for (const t of [...this.view.live, ...this.threads]) {
+      if (t.project && t.projectPath && !seen.has(t.projectPath)) seen.set(t.projectPath, t.project)
+    }
+    return [...seen].map(([path, name]) => ({ path, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  async transcript(id, limit) {
+    const t = this.thread(id)
+    if (!t) return { ok: false, error: 'Unknown thread.' }
+    if (this.demo) return { ok: true, messages: [{ role: 'user', text: t.title, at: t.createdAt }, { role: 'assistant', text: 'Demo mode has no transcripts.', at: t.lastActivityAt }], total: 2 }
+    try {
+      return await api.fetchTranscript(t.harness, t.ref, limit)
+    } catch (err) {
+      return { ok: false, error: err.message }
     }
   }
 

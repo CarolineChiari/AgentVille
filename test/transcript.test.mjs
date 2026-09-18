@@ -62,3 +62,30 @@ test('a half-written last line does not throw', () => {
   assert.doesNotThrow(() => readTranscriptMeta(records))
   assert.equal(awaitingReply(records), false)
 })
+
+import { readableUserText, summarizeTool, transcriptMessages } from '../server/harnesses/claude-code/transcript.mjs'
+
+test('the conversation keeps prompts, replies and one line per tool call', () => {
+  const msgs = transcriptMessages([
+    userRecord('<system-reminder>noise</system-reminder>Please fix the login bug'),
+    { ...assistantRecord([{ type: 'text', text: 'Looking now.' }]), message: { id: 'm1', role: 'assistant', content: [{ type: 'text', text: 'Looking now.' }] } },
+    { ...assistantRecord([]), message: { id: 'm1', role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', input: { command: 'npm   test' } }] } },
+    userRecord([{ type: 'tool_result', content: 'ok' }]),
+    userRecord('from a subagent', { isSidechain: true }),
+    { ...assistantRecord([]), message: { id: 'm2', role: 'assistant', content: [{ type: 'text', text: 'Fixed.' }, { type: 'text', text: 'Tests pass.' }] } },
+  ])
+  assert.deepEqual(msgs.map((m) => m.role), ['user', 'assistant', 'tool', 'assistant'])
+  assert.equal(msgs[0].text, 'Please fix the login bug')
+  assert.deepEqual([msgs[2].name, msgs[2].detail], ['Bash', 'npm test'])
+  assert.equal(msgs[3].text, 'Fixed.\n\nTests pass.')
+})
+
+test('slash commands show as themselves; wrapper-only messages vanish', () => {
+  assert.equal(readableUserText('<command-name>/mcp</command-name><command-message>mcp</command-message>'), '/mcp')
+  assert.equal(readableUserText('<local-command-caveat>x</local-command-caveat>'), '')
+})
+
+test('tool lines name MCP tools readably', () => {
+  assert.deepEqual(summarizeTool({ name: 'mcp__Claude_Browser__computer', input: { action: 'click' } }), { name: 'Claude Browser · computer', detail: 'click' })
+  assert.equal(summarizeTool({ name: 'Edit', input: { file_path: '/a/b.js' } }).detail, '/a/b.js')
+})

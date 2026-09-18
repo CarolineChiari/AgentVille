@@ -135,3 +135,19 @@ test('open-url only opens https github.com links', async () => {
   assert.equal((await post('/api/open-url', { url: 'file:///etc/passwd' })).status, 400)
   assert.equal((await post('/api/open-url', { url: 'not a url' })).status, 400)
 })
+
+test('transcript endpoint needs the page origin and a harness that can read one', async () => {
+  fakeHarness.readTranscript = async (ref) => (ref?.sid === '1' ? { ok: true, messages: [{ role: 'user', text: 'hi' }], total: 1 } : { ok: false, error: 'nope' })
+  const r = await post('/api/transcript', { harness: 'fake', ref: { sid: '1' } })
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).messages[0].text, 'hi')
+  assert.equal((await post('/api/transcript', { harness: 'fake', ref: { sid: '2' } })).status, 404)
+  assert.equal((await post('/api/transcript', { harness: 'fake', ref: { sid: '1' } }, { 'Content-Type': 'application/json' })).status, 403)
+})
+
+test('new-session passes the prompt through', async () => {
+  let seen
+  fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, url: 'fake://new' })
+  await post('/api/new-session', { folder: os.tmpdir(), target: 'vscode', prompt: 'hello' })
+  assert.deepEqual(seen, { target: 'vscode', prompt: 'hello' })
+})

@@ -9,7 +9,7 @@ import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readT
 import { HARNESS_ID, isCliId, isDesktopId, threadId } from './ids.mjs'
 import { cliDirs, desktopDataDir, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
-import { awaitingReply, readTranscriptMeta } from './transcript.mjs'
+import { awaitingReply, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
 
 const NAME = 'Claude Code'
@@ -20,6 +20,8 @@ const TAIL_BYTES = 64 * 1024
 // A live pid alone means little: the desktop app keeps idle sessions warm. "Running" also
 // needs the transcript to have moved recently.
 const ACTIVE_WINDOW_MS = 30 * 60 * 1000
+// A prompt travels inside a URL handed to the OS; Windows' ShellExecute caps those near 2k chars.
+export const PROMPT_MAX = 1800
 
 /**
  * @param {{ home?: string, env?: object, platform?: string, now?: () => number }} [opts]
@@ -33,6 +35,8 @@ export function createClaudeCodeAdapter(opts = {}) {
   const cli = cliDirs(home)
   let desktopDir // resolved lazily, once
   const metaCache = new Map() // file → { key, meta }
+  let lastTranscripts = new Map() // uuid → { file, size, mtime } from the latest scan
+  const convoCache = new Map() // file → { key, messages }; a few at most, they can be large
 
   async function desktopRoot() {
     if (desktopDir === undefined) desktopDir = await desktopDataDir({ home, env, platform })
@@ -133,6 +137,7 @@ export function createClaudeCodeAdapter(opts = {}) {
 
   async function scanThreads() {
     const [desktop, transcripts, live] = await Promise.all([scanDesktop(), scanTranscripts(), scanLive()])
+    lastTranscripts = transcripts
     const t = now()
     const byId = new Map()
     const add = (e) => byId.set(e.id, byId.has(e.id) ? mergeThread(byId.get(e.id), e) : e)
@@ -202,16 +207,53 @@ export function createClaudeCodeAdapter(opts = {}) {
     return { ok: false, error: 'This thread has no id Claude can open.' }
   }
 
-  function newSession(dir, { target = 'app' } = {}) {
+  /**
+   * The conversation of one thread, newest `limit` messages. Found by its CLI session id among the
+   * transcripts the scan already listed — the page never names a file.
+   */
+  async function readTranscript(ref, { limit = 300 } = {}) {
+    const id = ref && typeof ref === 'object' ? ref.cliSessionId : null
+    if (!isCliId(id)) return { ok: false, error: 'This thread has no transcript on this machine.' }
+    let t = lastTranscripts.get(id)
+    if (!t) {
+      lastTranscripts = await scanTranscripts()
+      t = lastTranscripts.get(id)
+    }
+    if (!t) return { ok: false, error: 'Transcript not found.' }
+    let st
+    try {
+      st = await fsp.stat(t.file)
+    } catch {
+      return { ok: false, error: 'Transcript not found.' }
+    }
+    const key = `${st.mtimeMs}:${st.size}`
+    let hit = convoCache.get(t.file)
+    if (!hit || hit.key !== key) {
+      hit = { key, messages: transcriptMessages(jsonLines(await fsp.readFile(t.file, 'utf8'))) }
+      convoCache.delete(t.file)
+      convoCache.set(t.file, hit)
+      while (convoCache.size > 6) convoCache.delete(convoCache.keys().next().value)
+    }
+    const n = Math.max(1, Math.min(2000, Number(limit) || 300))
+    return { ok: true, messages: hit.messages.slice(-n), total: hit.messages.length, updatedAt: st.mtimeMs, sizeBytes: st.size }
+  }
+
+  /**
+   * @param {string} dir
+   * @param {{ target?: 'app'|'vscode', prompt?: string }} [opts] `prompt` is prefilled, never sent:
+   *        the person still presses enter in VS Code. The Claude app's link takes no prompt.
+   */
+  function newSession(dir, { target = 'app', prompt = '' } = {}) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'Not an absolute folder.' }
     if (target === 'vscode') {
-      const open = 'vscode://anthropic.claude-code/open'
+      const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''
+      const open = `vscode://anthropic.claude-code/open${text ? `?${new URLSearchParams({ prompt: text })}` : ''}`
       return { ok: true, url: open, urls: [vscodeFolderUrl(dir), open] }
     }
     return { ok: true, url: `claude://code/new?${new URLSearchParams({ folder: dir })}` }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, paths: { ...cli } }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, readTranscript, paths: { ...cli } }
 }
 
 /**

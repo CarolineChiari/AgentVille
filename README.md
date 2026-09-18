@@ -54,6 +54,18 @@ Only files under your home directory, and only ever read.
 | Walking out through the gate | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
 
+### Transcripts and new sessions
+
+**Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:
+your prompts, Claude's replies, and one line for each tool call. It refreshes every few seconds
+while the thread is working or waiting, and stays at the newest message if that's where you are.
+It's read straight from the transcript file; nothing is sent anywhere.
+
+**+ New session** (or `C`) picks a repo, or any folder, and an optional first prompt. It opens in
+VS Code with the prompt already typed in, so you just press Enter there; the new villager walks
+in from the gate a few seconds later. With Settings → Open threads in → Claude app, the prompt
+is copied to the clipboard instead, since the app's link can't carry one.
+
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill like a contribution graph:
@@ -92,7 +104,8 @@ nothing.
 | `N` | Fly to the next villager waiting on you |
 | `P` | Fly to the next open PR |
 | `Enter` / `A` / `V` | Open / archive / mark viewed the selected thread |
-| `C` | New session in the open repo's folder |
+| `C` | New session, with an optional first prompt |
+| `T` | Transcript of the selected thread |
 | `H` | Hide the panels |
 | `Esc` | Deselect |
 | Arrows, `+` / `-`, `0` | Pan, zoom, reset the view |
