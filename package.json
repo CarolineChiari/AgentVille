@@ -1,0 +1,21 @@
+{
+  "name": "agentville",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Every Claude Code session on your machine, as a villager in a pixel-art village.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite build && node server/serve.mjs",
+    "serve": "node server/serve.mjs",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
