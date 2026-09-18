@@ -232,7 +232,7 @@ function loop(now) {
     night: 1 - dayFactor(hour),
     hoverPlot,
     selectedPlot: village.selectedPlot,
-    allNames: settings.allNames,
+    allNames: !settings.quietNames,
   })
   const v = village.selected && (world.villager(village.selected) || world.flower(village.selected))
   const isFlower = Boolean(v && !v.look)

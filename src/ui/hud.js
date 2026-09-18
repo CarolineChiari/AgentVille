@@ -129,7 +129,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
-        <label>Show every plot's name <input type="checkbox" data-set="allNames" ${s.allNames ? 'checked' : ''}></label>
+        <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day
           <select data-set="timeMode"><option value="live" ${s.timeMode === 'live' ? 'selected' : ''}>Follow my clock</option><option value="manual" ${s.timeMode === 'manual' ? 'selected' : ''}>Set by hand</option></select></label>
         ${s.timeMode === 'manual' ? `<label>${formatHour(s.hour)} <input type="range" min="0" max="23.75" step="0.25" value="${s.hour}" data-set="hour"></label>` : ''}

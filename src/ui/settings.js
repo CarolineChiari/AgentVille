@@ -11,7 +11,9 @@ export const DEFAULTS = {
   newEffort: '', // last effort chosen there ('' = your default)
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,
-  allNames: false,
+  // Every plot is named. A new key rather than flipping the old `allNames`, which browsers have
+  // already saved as false.
+  quietNames: false, // true: only name plots where something is happening
   uiVisible: true,
   seenHelp: false,
 }
