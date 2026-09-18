@@ -1,6 +1,7 @@
-// Pure: what the desktop wrapper needs to decide before it starts the server. Imports nothing
-// from Electron, so it runs under `node --test`.
+// Pure: what the desktop wrapper decides, from where it listens to what its dock badge says.
+// Imports nothing from Electron, so it runs under `node --test`.
 import path from 'node:path'
+import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
 /**
  * The port the app tries first. Not 5274: that is `npm run dev`'s, and the two should be able to
@@ -40,4 +41,68 @@ export function isAppUrl(target, appUrl) {
   } catch {
     return false
   }
+}
+
+/**
+ * How many villagers need you, read back out of the page's title, `(3) AgentVille`. The title is
+ * the channel because the page has no preload and no IPC to say it any other way. It is the
+ * page's to set, so anything that isn't that shape is 0, and at most four digits, so a runaway
+ * title can't hand the dock an absurd number.
+ * @param {unknown} title
+ */
+export function badgeCount(title) {
+  if (typeof title !== 'string') return 0
+  const m = /^\((\d{1,4})\) /.exec(title)
+  return m ? Number(m[1]) : 0
+}
+
+/** Digits in a 3×5 pixel font, one string per row, `#` for ink. */
+const DIGITS = [
+  '### #.# #.# #.# ###', '.#. ##. .#. .#. ###', '### ..# ### #.. ###', '### ..# ### ..# ###', '#.# #.# ### ..# ..#',
+  '### #.. ### ..# ###', '### #.. ### #.# ###', '### ..# ..# .#. .#.', '### #.# ### #.# ###', '### #.# ### ..# ###',
+].map((g) => g.split(' '))
+const PLUS = ['.#.', '###', '.#.']
+
+/** Windows draws a taskbar overlay icon at 16×16 at 100% scaling; bigger is scaled down and blurs. */
+export const BADGE_PX = 16
+
+/**
+ * The Windows taskbar's stand-in for a dock badge, which Windows doesn't have: a yellow disc with
+ * the count in it, drawn pixel by pixel because the main process has no canvas. Two digits don't
+ * fit a 16-pixel disc at a readable size, so ten or more is `9+`. `scale` is for high-DPI
+ * representations, pixel-doubled like the village. The pixels are BGRA, the order `nativeImage`
+ * reads a raw bitmap in (Skia's native order, the same on Windows and macOS); in RGBA the yellow
+ * comes out sky blue. Each is opaque or fully clear, so premultiplied alpha makes no difference.
+ * @param {number} n
+ * @param {number} [scale]
+ * @returns {{ width: number, height: number, data: Buffer } | null} null for no badge
+ */
+export function badgeBitmap(n, scale = 1) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(scale) || scale < 1) return null
+  const size = BADGE_PX * scale
+  const data = Buffer.alloc(size * size * 4)
+  const put = (x, y, hex) => {
+    const { r, g, b } = hexToRgb(hex)
+    for (let j = 0; j < scale; j++) {
+      for (let i = 0; i < scale; i++) data.set([b, g, r, 255], ((y * scale + j) * size + x * scale + i) * 4)
+    }
+  }
+  const c = BADGE_PX / 2
+  const inDisc = (x, y) => Math.hypot(x + 0.5 - c, y + 0.5 - c) <= c
+  // A one-pixel dark rim, so the badge keeps an edge on a light taskbar, where yellow all but vanishes.
+  const rim = (x, y) => !inDisc(x - 1, y) || !inDisc(x + 1, y) || !inDisc(x, y - 1) || !inDisc(x, y + 1)
+  for (let y = 0; y < BADGE_PX; y++) {
+    for (let x = 0; x < BADGE_PX; x++) if (inDisc(x, y)) put(x, y, rim(x, y) ? APP_BG : BADGE.waiting)
+  }
+  const stamp = (rows, x0, y0, k) => rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch !== '#') return
+    for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) put(x0 + x * k + i, y0 + y * k + j, APP_BG)
+  }))
+  // Doubled glyphs, centred: 6×10 pixels. `9+` puts a small plus up by the 9's shoulder.
+  if (n < 10) stamp(DIGITS[n], 5, 3, 2)
+  else {
+    stamp(DIGITS[9], 3, 3, 2)
+    stamp(PLUS, 10, 3, 1)
+  }
+  return { width: size, height: size, data }
 }

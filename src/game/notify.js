@@ -59,3 +59,16 @@ export function noticeFor(fresh) {
   if (more) listed.push(`and ${more} more`)
   return { id: fresh[0].id, title: `${fresh.length} villagers need you`, body: listed.join('\n') }
 }
+
+export const APP_TITLE = 'AgentVille'
+
+/**
+ * The page's title, with how many villagers need you in front, `(2) AgentVille`, so the tab strip
+ * says so without opening the village. The desktop app reads the same number back out of it for
+ * the dock badge (`badgeCount` in electron/env.mjs), so the format is shared by the two.
+ * @param {{ waiting?: number, blocked?: number }} counts
+ */
+export function pageTitle(counts) {
+  const n = (counts?.waiting || 0) + (counts?.blocked || 0)
+  return n ? `(${n}) ${APP_TITLE}` : APP_TITLE
+}

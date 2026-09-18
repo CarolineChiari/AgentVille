@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { LISTED_MAX, TITLE_MAX, newlyAsking, noticeFor } from '../src/game/notify.js'
+import { APP_TITLE, LISTED_MAX, TITLE_MAX, newlyAsking, noticeFor, pageTitle } from '../src/game/notify.js'
 import { Village } from '../src/game/village.js'
 import { World } from '../src/sim/world.js'
 
@@ -95,6 +95,14 @@ test('nothing new, nothing to say', () => {
   assert.equal(noticeFor(undefined), null)
 })
 
+test('the page title counts everyone who needs you, questions and errors alike', () => {
+  assert.equal(pageTitle({ waiting: 2, blocked: 0, working: 5 }), `(2) ${APP_TITLE}`)
+  assert.equal(pageTitle({ waiting: 1, blocked: 2 }), `(3) ${APP_TITLE}`)
+  assert.equal(pageTitle({ waiting: 0, blocked: 0, done: 4 }), APP_TITLE)
+  assert.equal(pageTitle({}), APP_TITLE)
+  assert.equal(pageTitle(undefined), APP_TITLE)
+})
+
 // ---------- in the village ----------
 
 function village() {
@@ -131,4 +139,19 @@ test('a repo you hid does not call you', () => {
   scan([{ id: 'a', running: true, project: 'quiet' }])
   scan([{ id: 'a', needsInput: 'question', project: 'quiet' }])
   assert.deepEqual(heard, [])
+})
+
+test('the title count follows the village: two asking, then both answered', () => {
+  const { v, scan } = village()
+  scan([{ id: 'a', needsInput: 'question' }, { id: 'b', running: true, needsInput: 'permission prompt' }, { id: 'c', running: true }])
+  assert.equal(pageTitle(v.counts()), `(2) ${APP_TITLE}`)
+  scan([{ id: 'a', running: true }, { id: 'b', running: true }, { id: 'c', running: true }])
+  assert.equal(pageTitle(v.counts()), APP_TITLE)
+})
+
+test('a repo you hid is not counted in the title', () => {
+  const { v, scan } = village()
+  v.state.hiddenProjects = ['quiet']
+  scan([{ id: 'a', needsInput: 'question', project: 'quiet' }, { id: 'b', needsInput: 'question' }])
+  assert.equal(pageTitle(v.counts()), `(1) ${APP_TITLE}`)
 })

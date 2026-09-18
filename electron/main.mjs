@@ -1,9 +1,9 @@
 // The desktop app: the same server `npm start` runs, started inside Electron's main process, and
 // one window pointed at it. The page is the ordinary web build; it gets no Node and no preload.
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeImage } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
-import { APP_PORT, augmentedPath, isAppUrl } from './env.mjs'
+import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { APP_BG } from '../src/render/sprites/palette.js'
 
@@ -32,6 +32,21 @@ async function startServer() {
   }
 }
 
+/**
+ * How many villagers need you, on the dock icon (macOS, and Linux's Unity launcher) or, since
+ * Windows has no badge count, as an overlay on the taskbar button.
+ */
+function showCount(n) {
+  if (process.platform !== 'win32') return app.setBadgeCount(n)
+  if (!n) return win?.setOverlayIcon(null, '')
+  const img = nativeImage.createEmpty()
+  for (const scale of [1, 2]) {
+    const { width, height, data } = badgeBitmap(n, scale)
+    img.addRepresentation({ scaleFactor: scale, width, height, buffer: data })
+  }
+  win?.setOverlayIcon(img, n === 1 ? '1 villager needs you' : `${n} villagers need you`)
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1400,
@@ -48,6 +63,8 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, target) => {
     if (!isAppUrl(target, appUrl)) e.preventDefault()
   })
+  // The page puts the count in its title, `(2) AgentVille`; it has no other way to reach us.
+  win.on('page-title-updated', (e, title) => showCount(badgeCount(title)))
   win.on('closed', () => (win = null))
   win.loadURL(appUrl)
 }

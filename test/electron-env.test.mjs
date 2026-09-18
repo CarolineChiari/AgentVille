@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, augmentedPath, isAppUrl } from '../electron/env.mjs'
+import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from '../electron/env.mjs'
+import { APP_TITLE, pageTitle } from '../src/game/notify.js'
+import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
 test('a Finder-launched Mac app still finds Homebrew and ~/.local/bin', () => {
   const p = augmentedPath({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' }, { home: '/Users/me', platform: 'darwin' })
@@ -39,4 +41,72 @@ test('only the app origin may be navigated to', () => {
   assert.ok(!isAppUrl('not a url', app))
   assert.ok(!isAppUrl(undefined, app))
   assert.ok(!isAppUrl(`${app}/`, null))
+})
+
+test('the dock badge reads the count out of the page title', () => {
+  assert.equal(badgeCount('AgentVille'), 0)
+  assert.equal(badgeCount('(3) AgentVille'), 3)
+  assert.equal(badgeCount('(12) AgentVille'), 12)
+})
+
+test('a title that is not a count is no badge', () => {
+  for (const junk of ['', '()', '(x) AgentVille', '(-2) AgentVille', '(2.5) AgentVille', '(3)AgentVille', 'AgentVille (3)', ' (3) AgentVille', '(12345) AgentVille', null, undefined, 3, {}]) {
+    assert.equal(badgeCount(junk), 0, String(junk))
+  }
+})
+
+test('the page writes the title the desktop app reads', () => {
+  assert.equal(badgeCount(pageTitle({ waiting: 2, blocked: 1 })), 3)
+  assert.equal(badgeCount(pageTitle({ waiting: 0, blocked: 0 })), 0)
+  assert.equal(pageTitle({}), APP_TITLE)
+})
+
+/** The pixel at (x, y) as a palette hex, or null where it's transparent. Bitmaps are BGRA. */
+function pixel({ width, data }, x, y) {
+  const o = (y * width + x) * 4
+  if (data[o + 3] === 0) return null
+  const hex = (v) => v.toString(16).padStart(2, '0')
+  return `#${hex(data[o + 2])}${hex(data[o + 1])}${hex(data[o])}`
+}
+
+test('no one waiting, no taskbar overlay', () => {
+  assert.equal(badgeBitmap(0), null)
+  assert.equal(badgeBitmap(-1), null)
+  assert.equal(badgeBitmap(1.5), null)
+  assert.equal(badgeBitmap(NaN), null)
+})
+
+test('the taskbar overlay is a rimmed yellow disc with the count in it', () => {
+  const b = badgeBitmap(2)
+  assert.equal(b.width, BADGE_PX)
+  assert.equal(b.height, BADGE_PX)
+  assert.equal(b.data.length, BADGE_PX * BADGE_PX * 4)
+  assert.equal(pixel(b, 0, 0), null, 'the corners are see-through')
+  assert.equal(pixel(b, 0, 8), APP_BG, 'a dark rim')
+  assert.equal(pixel(b, 2, 8), BADGE.waiting)
+  assert.equal(pixel(b, 5, 3), APP_BG, 'the top of the 2')
+  // Every pixel is fully opaque or fully clear, so premultiplied alpha can't tint it.
+  for (let i = 3; i < b.data.length; i += 4) assert.ok(b.data[i] === 0 || b.data[i] === 255)
+  // Stored blue first, the order nativeImage reads raw bitmaps in.
+  const { r, g, b: blue } = hexToRgb(BADGE.waiting)
+  const o = (8 * BADGE_PX + 2) * 4
+  assert.deepEqual([...b.data.subarray(o, o + 4)], [blue, g, r, 255])
+})
+
+test('each count draws differently, and ten or more is 9+', () => {
+  const same = (a, b) => a.data.equals(b.data)
+  assert.ok(!same(badgeBitmap(1), badgeBitmap(7)))
+  assert.ok(!same(badgeBitmap(9), badgeBitmap(10)))
+  assert.ok(same(badgeBitmap(10), badgeBitmap(99)))
+  assert.ok(same(badgeBitmap(10), badgeBitmap(9999)))
+})
+
+test('the high-DPI overlay is the same picture, pixel-doubled', () => {
+  const one = badgeBitmap(4)
+  const two = badgeBitmap(4, 2)
+  assert.equal(two.width, BADGE_PX * 2)
+  for (let y = 0; y < two.height; y++) {
+    for (let x = 0; x < two.width; x++) assert.equal(pixel(two, x, y), pixel(one, x >> 1, y >> 1))
+  }
+  assert.equal(badgeBitmap(4, 0), null)
 })

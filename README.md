@@ -112,6 +112,10 @@ It's off until you turn it on, and that's when the browser asks for permission. 
 come as one notification, a villager that stays waiting doesn't ring again, and clicking it
 brings the village forward on that villager. Your own OS shows it; nothing is sent anywhere.
 
+However many villagers need you is also in the tab's title, `(2) AgentVille`, whatever the
+settings. In the desktop app it's on the Dock icon on macOS, and on the taskbar button as a small
+yellow badge on Windows; answering them clears it.
+
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill like a contribution graph:

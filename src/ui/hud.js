@@ -4,6 +4,7 @@ import { esc, ago } from './dom.js'
 import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
+import { pageTitle } from '../game/notify.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -62,6 +63,9 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const hiddenNames = [...new Set(hidden.map((t) => t.project))]
     const total = village.view.live.length
     const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
+    // Only when it changes: the desktop app turns every title update into a dock badge call.
+    const title = pageTitle(counts)
+    if (document.title !== title) document.title = title
 
     side.innerHTML = `
       <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new session (C)">+ New session</button></div>
