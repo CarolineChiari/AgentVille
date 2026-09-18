@@ -9,6 +9,8 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 - `server/` — Node, `.mjs`, no runtime dependencies. `harnesses/<id>/` is the only place that
   knows what a particular harness's files look like. Everything else is written against the
   `Thread` shape in `server/harnesses/types.mjs`.
+- `electron/` — the desktop wrapper: starts `server/` in Electron's main process and opens one
+  sandboxed window on it. Pure decisions go in `electron/env.mjs`, which imports nothing from Electron.
 - `src/sim/` — renderer-agnostic simulation in tile units. **No DOM, no canvas**, so it runs
   under `node --test`. It produces a `Frame` (`src/sim/frame.js`); a renderer draws it.
 - `src/render/` — the Canvas 2D renderer and the procedural sprite generators.
@@ -18,8 +20,8 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 ## Rules
 
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
-- No runtime dependencies without discussion. Vite is the only dev dependency.
-- Never write outside `data/`. Never write to a harness's files. The only network access is
+- No runtime dependencies without discussion. Dev dependencies are Vite, Electron and electron-builder.
+- Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. The only network access is
   `server/github.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
 - Every colour comes from `src/render/sprites/palette.js`. No hex strings elsewhere.

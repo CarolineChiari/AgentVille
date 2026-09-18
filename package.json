@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "description": "Every Claude Code session on your machine, as a villager in a pixel-art village.",
+  "author": "Caroline Chiari",
+  "main": "electron/main.mjs",
   "license": "MIT",
   "engines": {
     "node": ">=22"
@@ -13,9 +15,53 @@
     "build": "vite build",
     "start": "vite build && node server/serve.mjs",
     "serve": "node server/serve.mjs",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "app": "vite build && electron .",
+    "dist": "vite build && electron-builder --publish never"
   },
   "devDependencies": {
+    "electron": "^44.4.2",
+    "electron-builder": "^26.15.3",
     "vite": "^7.1.0"
+  },
+  "build": {
+    "appId": "dev.agentville.app",
+    "productName": "AgentVille",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "package.json",
+      "electron/**",
+      "server/**",
+      "dist/**",
+      "src/render/sprites/palette.js"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": "-",
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
   }
 }

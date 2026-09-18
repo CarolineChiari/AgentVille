@@ -103,6 +103,9 @@ export const PETALS = [
 export const CONFETTI = ['#ef4f4f', '#ffc93c', '#6fdb8a', '#5cc4f2', '#b27cf0', '#ff8fc8']
 
 /** Night is a multiply towards this colour; lights are then added back on top. */
+// The desktop window's backdrop before the page paints; the same as `--bg` in styles.css.
+export const APP_BG = '#12111a'
+
 export const NIGHT = { r: 52, g: 60, b: 128 }
 
 export function hexToRgb(hex) {

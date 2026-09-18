@@ -21,6 +21,23 @@ Then open the URL Vite prints (default `http://127.0.0.1:5274`). Add `?demo=1` f
 `npm test` runs the suite. `npm start` builds and serves the built app; `PORT=5300 npm start`
 binds elsewhere.
 
+### Desktop app
+
+`npm run app` builds and opens AgentVille in its own window. `npm run dist` packages it for the
+machine you're on into `release/`. Every push to `main` builds the Mac (`.dmg`, Apple silicon
+and Intel) and Windows (installer and portable `.exe`) apps in GitHub Actions; they're on the
+run's page under **Artifacts**. Pushing a `v*` tag (`git tag v0.2.0 && git push --tags`)
+publishes them as a release, with the version taken from the tag.
+
+The app is the same server and page as `npm start`, on port 5275 so it can run alongside
+`npm run dev`. Its `data/` lives in `~/Library/Application Support/AgentVille/` (macOS) or
+`%APPDATA%\AgentVille\` (Windows) instead of the repo.
+
+The builds aren't signed with a developer certificate yet, so the first launch needs a nudge.
+On macOS, right-click the app and choose **Open** (or run
+`xattr -dr com.apple.quarantine /Applications/AgentVille.app`). On Windows, choose **More info →
+Run anyway** in the SmartScreen prompt.
+
 macOS and Windows are both supported. Opening a thread, starting a new session and revealing
 a folder go through a deep link handed to the OS opener.
 
