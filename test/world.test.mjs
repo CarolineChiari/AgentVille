@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { World } from '../src/sim/world.js'
 import { TILE } from '../src/sim/plot.js'
+import { plotStyle } from '../src/sim/style.js'
 
 const T = (id, project, status = 'idle', extra = {}) => ({ id, project, createdAt: Number(id.replace(/\D/g, '')) || 0, status, known: true, ...extra })
 
@@ -314,4 +315,13 @@ test('nobody can walk on water', () => {
     }
   }
   assert.ok(water > 0, 'a village this size should have a pond somewhere')
+})
+
+test('a plot and every building on it carry the repo\'s style', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'alpha'), T('t2', 'alpha'), T('t3', 'beta')])
+  const snap = w.snapshot()
+  const alpha = snap.plots.find((p) => p.name === 'alpha')
+  assert.deepEqual(alpha.style, plotStyle('alpha'))
+  for (const b of snap.buildings) assert.deepEqual(b.style, plotStyle(b.plot))
 })

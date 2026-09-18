@@ -3,6 +3,13 @@
 
 export const TILE_PX = 16
 
+/** A plot's lawn: fresh (the default), deep and golden. A repo's style picks one. */
+const YARD_TONES = [
+  ['#86c264', '#7dba5c', '#90ca6d'],
+  ['#7cbe6c', '#73b564', '#88c878'],
+  ['#9cc463', '#93bb5b', '#a7cc6e'],
+]
+
 export const PALETTE = {
   outline: '#2a2233',
   eye: '#221c2b',
@@ -44,7 +51,8 @@ export const PALETTE = {
   // The same four greens in a sunny patch and a lush one; see src/render/ground.js.
   grassSunny: ['#88c05a', '#7eb752', '#95ca68', '#70a94a'],
   grassLush: ['#68aa52', '#5ea04a', '#73b65d', '#529442'],
-  yard: ['#86c264', '#7dba5c', '#90ca6d'],
+  yard: YARD_TONES[0],
+  yardTones: YARD_TONES,
   path: '#d4b483',
   pathDark: '#b4925f',
   pathLight: '#e2c697',

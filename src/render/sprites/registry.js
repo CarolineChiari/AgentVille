@@ -3,14 +3,15 @@
 //
 // Names:  villager.<anim>.<facing>      (params: look)
 //         building.<kind>.<stage>       (params: accent, variant, lit)
-//         tile.<kind>.<variant>         (params: tone)
-//         deco.<kind>.<variant>         (params: ground, for a path's grass fringe)
+//         tile.<kind>.<variant>         (params: tone, a lawn's green; links, a footpath's joins)
+//         deco.<kind>.<variant>         (params: ground and tone, for a path's grass fringe)
+//         fence.<style>.<mask>          (style into FENCES; mask: 1 N, 2 E, 4 S, 8 W carry on)
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
-import { drawDeco, drawStatic, drawTile } from './tiles.js'
+import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 
@@ -29,6 +30,8 @@ export function generate(name, frame, p) {
       return drawTile(a, Number(b), p)
     case 'deco':
       return drawDeco(a, Number(b || 0), p)
+    case 'fence':
+      return drawFence(Number(a), Number(b))
     case 'flower':
       return drawFlower(Number(a), Number(b), p.color)
     case 'static':

@@ -4,6 +4,7 @@ import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
 import { flowerAt, isFenceGap, isTrail, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
+import { plotStyle } from './style.js'
 
 /** Ground kinds. None is saved anywhere, so the numbers are free to change. */
 export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4, TRAIL: 5, WATER: 6 }
@@ -17,6 +18,7 @@ export class Plot {
   constructor(name, accent) {
     this.name = name
     this.accent = accent
+    this.style = plotStyle(name)
     this.cells = []
     this.sig = ''
     this.shape = null

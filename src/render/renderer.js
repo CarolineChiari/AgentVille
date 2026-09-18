@@ -6,6 +6,7 @@ import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, rg
 import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
 import { tintMeadow } from './ground.js'
+import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
@@ -15,9 +16,9 @@ const TILE_NAME = {
   [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
   [TILE.TRAIL]: 'trail', [TILE.WATER]: 'water',
 }
+const FENCE = new Set([DECO.FENCE_H, DECO.FENCE_V, DECO.POST])
 const DECO_NAME = {
-  [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers',
-  [DECO.PEBBLES]: 'pebbles', [DECO.TALLGRASS]: 'tallgrass', [DECO.CLOVER]: 'clover', [DECO.MUSHROOMS]: 'mushrooms',
+  [DECO.FLOWERS]: 'flowers', [DECO.PEBBLES]: 'pebbles', [DECO.TALLGRASS]: 'tallgrass', [DECO.CLOVER]: 'clover', [DECO.MUSHROOMS]: 'mushrooms',
   [DECO.REEDS]: 'reeds', [DECO.LILYPAD]: 'lilypad',
 }
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
@@ -58,6 +59,8 @@ export class Canvas2dRenderer {
     this.camera = camera
     this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
+    this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
+    this.styleVersion = -1
   }
 
   resize() {
@@ -85,6 +88,8 @@ export class Canvas2dRenderer {
     g.imageSmoothingEnabled = false
     const x0 = cx * CELL_TILES
     const y0 = cy * CELL_TILES
+    const style = this.cellStyle.get(k) || PLAIN_STYLE
+    const tone = style.yard
     const tileAt = (x, y) => map.tileAt(x, y)
     const decoAt = (x, y) => map.decoAt(x, y)
     for (let ly = 0; ly < CELL_TILES; ly++) {
@@ -100,8 +105,8 @@ export class Canvas2dRenderer {
         if (kind === TILE.TRAIL) {
           let links = 0
           SIDES.forEach(([dx, dy], side) => PATHS.has(tileAt(x + dx, y + dy)) && (links |= SIDE_LINK[side]))
-          params = { links }
-        }
+          params = { links, tone }
+        } else if (kind === TILE.YARD) params = { tone }
         g.drawImage(sprites.get(`tile.${name}.${variant}`, 0, params), lx * T, ly * T)
         if (kind === TILE.WATER) {
           let land = 0
@@ -126,7 +131,8 @@ export class Canvas2dRenderer {
             const ground = FRINGE_FROM[next]
             if (!ground) return
             const k = hashString(`e${x},${y},${side}`) & 1
-            g.drawImage(sprites.get(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, { ground }), lx * T, ly * T)
+            const fringe = ground === 'yard' ? { ground, tone } : { ground }
+            g.drawImage(sprites.get(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
           })
         }
         // A plank edging round each garden bed.
@@ -143,6 +149,13 @@ export class Canvas2dRenderer {
       for (let lx = 0; lx < CELL_TILES; lx++) {
         const d = decoAt(x0 + lx, y0 + ly)
         if (!d) continue
+        if (FENCE.has(d)) {
+          // A fence joins up with the fence on either side of it, in the plot's own style.
+          let mask = 0
+          SIDES.forEach(([dx, dy], side) => FENCE.has(decoAt(x0 + lx + dx, y0 + ly + dy)) && (mask |= SIDE_LINK[side]))
+          g.drawImage(sprites.get(`fence.${style.fence}.${mask}`), lx * T, ly * T)
+          continue
+        }
         const name = DECO_NAME[d]
         const variant = hashString(`f${x0 + lx},${y0 + ly}`) % DECO_VARIANTS[name]
         g.drawImage(sprites.get(`deco.${name}.${variant}`), lx * T, ly * T)
@@ -430,6 +443,12 @@ export class Canvas2dRenderer {
     ctx.imageSmoothingEnabled = false
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
+    // Which plot's style each cell is drawn in. Only a rebuild moves plots, and a rebuild always
+    // makes a new map version, so the chunks baked with the old lookup are thrown away with it.
+    if (this.styleVersion !== frame.map.version) {
+      this.cellStyle = cellStyles(frame.plots)
+      this.styleVersion = frame.map.version
+    }
     this._drawGround(frame)
     this._drawWater(frame)
 

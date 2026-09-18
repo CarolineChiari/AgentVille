@@ -10,6 +10,7 @@ import { Villager } from './villager.js'
 import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
 import { paintWild } from './wild.js'
+import { PLAIN_STYLE } from './style.js'
 
 export const ACCENT_COUNT = 10
 /** A villager sprite is one tile wide; at 0.6 two bodies at rest still overlapped by 6 px. */
@@ -427,12 +428,13 @@ export class World {
       map: this.map,
       gate: this.gate,
       plots: [...this.plots.values()].map((p) => ({
-        name: p.name, accent: p.accent, cells: p.cells, labelAt: p.labelAt, urgent: urgent.has(p.name), active: active.has(p.name),
+        name: p.name, accent: p.accent, style: p.style, cells: p.cells, labelAt: p.labelAt, urgent: urgent.has(p.name), active: active.has(p.name),
       })),
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
         alpha: b.alpha, lit: b.lit, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
+        style: this.plots.get(b.plot)?.style ?? PLAIN_STYLE,
       })),
       villagers: [...this.villagers.values()]
         .filter((v) => v.loco !== 'queued' && v.loco !== 'gone')

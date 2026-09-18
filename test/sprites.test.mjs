@@ -12,6 +12,7 @@ import { ACCENTS, BADGE, PETALS } from '../src/render/sprites/palette.js'
 import { KINDS } from '../src/sim/building.js'
 import { FLOWER_KINDS } from '../src/sim/flowers.js'
 import { lookFor } from '../src/sim/villager.js'
+import { FENCES } from '../src/sim/style.js'
 
 const SRC = fileURLToPath(new URL('../src/', import.meta.url))
 
@@ -53,6 +54,21 @@ test('every decoration draws something inside its tile', () => {
       assert.ok(opaque(pc) > 0, `deco.${kind}.${v} is empty`)
     }
   }
+})
+
+test('every style of fence draws every join, and a straight run meets the next tile\'s edge to edge', () => {
+  for (let style = 0; style < FENCES.length; style++) {
+    for (let mask = 0; mask < 16; mask++) assert.ok(opaque(generate(`fence.${style}.${mask}`, 0, {})) > 10, `fence.${style}.${mask}`)
+    const across = generate(`fence.${style}.10`, 0, {})
+    const down = generate(`fence.${style}.5`, 0, {})
+    for (let y = 0; y < 16; y++) assert.equal(across.opaque(0, y), across.opaque(15, y), `${FENCES[style]} runs across unevenly`)
+    for (let x = 0; x < 16; x++) assert.equal(down.opaque(x, 0), down.opaque(x, 15), `${FENCES[style]} runs down unevenly`)
+  }
+})
+
+test('every lawn tone is its own green', () => {
+  const tones = [0, 1, 2].map((tone) => generate('tile.yard.0', 0, { tone }))
+  assert.ok(!same(tones[0], tones[1]) && !same(tones[1], tones[2]) && !same(tones[0], tones[2]))
 })
 
 test('a pond\'s bank draws for every combination of dry sides', () => {

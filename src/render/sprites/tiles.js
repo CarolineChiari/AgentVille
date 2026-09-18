@@ -2,6 +2,7 @@
 import { PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
 import { mulberry32 } from '../../sim/rng.js'
+import { FENCES } from '../../sim/style.js'
 
 const T = 16
 
@@ -38,7 +39,7 @@ export function tileVariant(kind, hash) {
 
 /** How many looks each decoration has; the renderer picks one by a hash of the tile. */
 export const DECO_VARIANTS = {
-  fenceh: 1, fencev: 1, post: 1, flowers: 6, pebbles: 3, fringe: 16,
+  flowers: 6, pebbles: 3, fringe: 16,
   tallgrass: 3, clover: 2, mushrooms: 2, reeds: 2, lilypad: 2,
 }
 /**
@@ -46,6 +47,9 @@ export const DECO_VARIANTS = {
  * 5 willow. A board's variant is how many notes it shows.
  */
 export const STATIC_VARIANTS = { tree: 6, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, board: 7 }
+
+/** A plot's lawn greens, by the tone in its style. */
+const lawn = (tone) => P.yardTones[(tone || 0) % P.yardTones.length]
 
 /** Seeds per kind. Not the name's length: 'plaza', 'trail' and 'water' would share one. */
 const KIND_SEED = { wild: 1, yard: 2, road: 3, plaza: 4, bed: 5, trail: 6, water: 7 }
@@ -98,10 +102,10 @@ export const LINK = { N: 1, E: 2, S: 4, W: 8 }
  * linked side, its edges nibbled so it looks trodden rather than laid. Nothing is nibbled on the
  * tile's own border, where an arm has to meet the next tile's.
  */
-function footpath(pc, rand, variant, links) {
-  const lawn = P.yard
-  pc.rect(0, 0, T, T, lawn[0])
-  speckle(pc, rand, [lawn[1], lawn[2]], 10)
+function footpath(pc, rand, variant, links, tone) {
+  const grass = lawn(tone)
+  pc.rect(0, 0, T, T, grass[0])
+  speckle(pc, rand, [grass[1], grass[2]], 10)
   const earth = new Uint8Array(T * T)
   const dig = (x0, y0, w, h) => {
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) earth[y * T + x] = 1
@@ -142,7 +146,7 @@ function footpath(pc, rand, variant, links) {
       pc.vline(x + 1, y, y + 1, P.trailDark)
     }
   }
-  if (variant === 3) tuft(pc, mid + 1, mid + 3, lawn[1], lawn[2])
+  if (variant === 3) tuft(pc, mid + 1, mid + 3, grass[1], grass[2])
 }
 
 export function drawTile(kind, variant, opts = {}) {
@@ -178,7 +182,7 @@ export function drawTile(kind, variant, opts = {}) {
       pc.px(10, 11, g[3])
     }
   } else if (kind === 'yard') {
-    const y = P.yard
+    const y = lawn(opts.tone)
     pc.rect(0, 0, T, T, y[0])
     speckle(pc, rand, [y[1], y[2]], 12)
     if (variant === 3) clovers(pc, rand, 2, shade(y[2], 0.1), y[1])
@@ -207,7 +211,7 @@ export function drawTile(kind, variant, opts = {}) {
     }
     if (variant === 5) tuft(pc, 5 + Math.floor(rand() * 6), 6 + Math.floor(rand() * 6), P.grass[3], P.grass[0])
   } else if (kind === 'trail') {
-    footpath(pc, rand, variant, opts.links || 0)
+    footpath(pc, rand, variant, opts.links || 0, opts.tone)
   } else if (kind === 'water') {
     // Open water; its banks are drawn over it by the renderer (see `shoreline`).
     pc.rect(0, 0, T, T, P.water)
@@ -313,12 +317,12 @@ function shoreline(pc, mask) {
  * 2 bottom, 3 left of the path tile; k picks one of two scatters; add 8 to leave a footpath's
  * mouth open. `ground` is the grass they belong to, so a lawn's edge is lawn-coloured.
  */
-function fringe(pc, variant, ground) {
+function fringe(pc, variant, ground, tone) {
   // Variants 8–15 leave the middle open, where a footpath joins the road.
   const mouth = variant >= 8
   const side = (variant & 7) >> 1
   const rand = mulberry32(variant * 613 + 29)
-  const g = ground === 'yard' ? P.yard : P.grass
+  const g = ground === 'yard' ? lawn(tone) : P.grass
   const set = (i, d, c) => {
     if (side === 0) pc.px(i, d, c)
     else if (side === 1) pc.px(T - 1 - d, i, c)
@@ -334,11 +338,149 @@ function fringe(pc, variant, ground) {
   }
 }
 
+// ---------- fences ----------
+
+/**
+ * Each style draws a run across the tile (x from a to b, at the fence's height), a run down it
+ * (y from a to b), and the post that stands at a corner or the end of a run.
+ */
+const FENCE_DRAW = {
+  rail: {
+    across(pc, a, b) {
+      pc.hline(a, b, 6, P.fence)
+      pc.hline(a, b, 7, P.fenceDark)
+      pc.hline(a, b, 10, P.fence)
+      pc.hline(a, b, 11, P.fenceDark)
+      for (const x of [1, 12]) if (x >= a && x + 2 <= b) railPost(pc, x, 3, 13)
+    },
+    down(pc, a, b) {
+      pc.rect(7, a, 2, b - a + 1, P.fence)
+      pc.vline(8, a, b, P.fenceDark)
+      for (const [y0, y1] of [[1, 6], [9, 14]]) if (y0 >= a && y1 <= b) railPost(pc, 6, y0, y1)
+    },
+    post(pc) {
+      railPost(pc, 6, 3, 13)
+    },
+  },
+  picket: {
+    across(pc, a, b) {
+      pc.hline(a, b, 7, P.plasterShade)
+      pc.hline(a, b, 11, P.plasterShade)
+      for (const x of [1, 4, 7, 10, 13]) {
+        if (x < a || x + 1 > b) continue
+        pc.rect(x, 5, 2, 9, P.white)
+        pc.vline(x + 1, 5, 13, P.plasterShade)
+        pc.px(x, 4, P.white)
+      }
+    },
+    down(pc, a, b) {
+      pc.rect(7, a, 3, b - a + 1, P.white)
+      pc.vline(9, a, b, P.plasterShade)
+      for (let y = a; y <= b; y++) if (y % 3 === 2) pc.hline(7, 9, y, P.plasterShade)
+    },
+    post(pc) {
+      pc.rect(6, 3, 4, 11, P.white)
+      pc.hline(6, 9, 2, P.white)
+      pc.hline(7, 8, 1, P.white)
+      pc.vline(9, 2, 13, P.plasterShade)
+    },
+  },
+  stone: {
+    across(pc, a, b) {
+      pc.rect(a, 4, b - a + 1, 9, P.stone)
+      pc.hline(a, b, 4, P.stoneLight)
+      pc.hline(a, b, 8, P.stoneDark)
+      pc.hline(a, b, 12, P.stoneDark)
+      for (let x = a; x <= b; x++) {
+        // Joints every 8 px, offset course to course; 8 divides 16, so runs meet seamlessly.
+        if (x % 8 === 3) pc.vline(x, 5, 7, P.stoneDark)
+        if (x % 8 === 7) pc.vline(x, 9, 11, P.stoneDark)
+        if (x % 8 === 5) pc.px(x, 5, P.stoneLight)
+      }
+    },
+    down(pc, a, b) {
+      pc.rect(4, a, 8, b - a + 1, P.stone)
+      pc.vline(4, a, b, P.stoneLight)
+      pc.vline(11, a, b, P.stoneDark)
+      for (let y = a; y <= b; y++) {
+        if (y % 4 === 3) pc.hline(4, 11, y, P.stoneDark)
+        else pc.px(y % 8 < 4 ? 7 : 9, y, P.stoneDark)
+      }
+    },
+    post(pc) {
+      pc.rect(4, 2, 8, 12, P.stone)
+      pc.rect(3, 1, 10, 2, P.stoneLight)
+      pc.hline(4, 11, 8, P.stoneDark)
+      pc.vline(11, 3, 13, P.stoneDark)
+      pc.hline(4, 11, 13, P.stoneDark)
+      pc.px(6, 5, P.stoneLight)
+    },
+  },
+  hedge: {
+    across(pc, a, b) {
+      pc.rect(a, 4, b - a + 1, 9, P.leafDark)
+      pc.rect(a, 5, b - a + 1, 6, P.leaf)
+      for (let x = a; x <= b; x++) {
+        // A bumpy top, every 4 px so it tiles.
+        if (x % 4 === 1 || x % 4 === 2) {
+          pc.px(x, 3, P.leafDark)
+          pc.px(x, 4, P.leaf)
+        }
+        if (x % 4 === 2) pc.px(x, 5, P.leafLight)
+        if (x % 8 === 5) pc.px(x, 9, P.leafDark)
+      }
+      pc.hline(a, b, 12, shade(P.leafDark, -0.2))
+    },
+    down(pc, a, b) {
+      pc.rect(3, a, 10, b - a + 1, P.leafDark)
+      pc.rect(4, a, 8, b - a + 1, P.leaf)
+      for (let y = a; y <= b; y++) {
+        if (y % 4 === 1) {
+          pc.px(2, y, P.leafDark)
+          pc.px(13, y, P.leafDark)
+        }
+        if (y % 4 === 2) pc.px(5, y, P.leafLight)
+        if (y % 8 === 5) pc.px(9, y, P.leafDark)
+      }
+    },
+    post(pc) {
+      pc.ellipse(8, 8, 6, 5.5, P.leafDark)
+      pc.ellipse(7.5, 7.5, 5, 4.5, P.leaf)
+      pc.px(5, 5, P.leafLight)
+      pc.px(6, 5, P.leafLight)
+      pc.px(9, 10, P.leafDark)
+    },
+  },
+}
+
+function railPost(pc, x, y0, y1) {
+  pc.rect(x, y0, 3, y1 - y0 + 1, P.fence)
+  pc.vline(x + 2, y0 + 1, y1, P.fenceDark)
+  pc.hline(x, x + 2, y0, shade(P.fence, 0.2))
+}
+
+/**
+ * A plot's fence, one tile of it. `style` indexes FENCES; `mask` says which neighbours carry the
+ * fence on (1 N, 2 E, 4 S, 8 W). A run reaches the edge of the tile on a linked side and stops in
+ * the middle otherwise, so it ends in a post at a gap and turns a proper corner.
+ */
+export function drawFence(style, mask) {
+  const pc = new PixelCanvas(T, T)
+  const f = FENCE_DRAW[FENCES[style]] || FENCE_DRAW.rail
+  const across = mask & (2 | 8)
+  const down = mask & (1 | 4)
+  if (across) f.across(pc, mask & 8 ? 0 : 7, mask & 2 ? T - 1 : 8)
+  if (down) f.down(pc, mask & 1 ? 0 : 7, mask & 4 ? T - 1 : 8)
+  const straight = mask === (2 | 8) || mask === (1 | 4)
+  if (!straight) f.post(pc)
+  return pc
+}
+
 export function drawDeco(kind, variant = 0, opts = {}) {
   const pc = new PixelCanvas(T, T)
   const rand = mulberry32(variant * 977 + 3)
   if (kind === 'fringe') {
-    fringe(pc, variant, opts.ground)
+    fringe(pc, variant, opts.ground, opts.tone)
     return pc
   }
   if (kind === 'shore') {
@@ -360,25 +502,6 @@ export function drawDeco(kind, variant = 0, opts = {}) {
       pc.px(10, 9, P.petalWhite)
     }
     return pc
-  }
-  const post = (x, y0, y1) => {
-    pc.rect(x, y0, 3, y1 - y0 + 1, P.fence)
-    pc.vline(x + 2, y0 + 1, y1, P.fenceDark)
-    pc.hline(x, x + 2, y0, shade(P.fence, 0.2))
-  }
-  if (kind === 'fenceh' || kind === 'post') {
-    pc.hline(0, T - 1, 6, P.fence)
-    pc.hline(0, T - 1, 7, P.fenceDark)
-    pc.hline(0, T - 1, 10, P.fence)
-    pc.hline(0, T - 1, 11, P.fenceDark)
-    post(1, 3, 13)
-    post(12, 3, 13)
-  }
-  if (kind === 'fencev' || kind === 'post') {
-    pc.rect(7, 0, 2, T, P.fence)
-    pc.vline(8, 0, T - 1, P.fenceDark)
-    post(6, 1, 6)
-    post(6, 9, 14)
   }
   if (kind === 'flowers') {
     const n = 3 + Math.floor(rand() * 3)
