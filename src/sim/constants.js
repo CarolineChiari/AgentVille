@@ -1,0 +1,30 @@
+// Sim units are ground tiles. A tile's centre is (x + 0.5, y + 0.5).
+
+/**
+ * One plot cell is 12×12 tiles: a 1-tile road ring, a 1-tile fence ring, and an 8×8 yard that
+ * holds six 2×2 buildings in two rows of three with 1-tile walkways between them.
+ */
+export const CELL_TILES = 12
+export const SLOTS_PER_CELL = 6
+export const MAX_CELLS = 9
+export const MAX_RING = 12
+
+/** The village square: where villagers arrive and leave. Never allocated to a plot. */
+export const GATE_CELL = [0, 0]
+export const GATE_TILE = { x: 6, y: 6.5 } // the arch's walk-through point inside the square
+
+/** Building top-left corners inside a cell, most central first so a small plot looks full. */
+export const SLOT_LOCAL = [
+  [5, 2], [2, 2], [8, 2],
+  [5, 6], [2, 6], [8, 6],
+]
+export const BUILDING_W = 2
+export const BUILDING_H = 2
+
+export const STALE_MS = 3 * 24 * 60 * 60 * 1000
+
+export const WALK_SPEED = 2.4 // tiles/s
+export const STROLL_SPEED = 1.5
+export const ARRIVE = 0.12
+export const BUILD_SECONDS = 6 // a brand-new building goes foundation → roof in this long
+export const MAX_ENTERING = 6
