@@ -6,8 +6,9 @@ session is waiting on you the villager stops and holds a `?` over its head. Clic
 thread opens in the Claude desktop app.
 
 It reads Claude Code's own session files, on your own machine. Nothing is uploaded, there is
-no account, and it never writes to Claude Code's files. `data/village.json`, where the map
-and your archive list live, is the only file it writes.
+no account, and it never writes to Claude Code's files. Everything it writes goes in `data/`.
+The one thing that touches the network is the PR gardens, which ask GitHub through your own
+`gh` login; turn them off in Settings and nothing leaves the machine.
 
 ## Run it
 
@@ -66,11 +67,30 @@ but fixed per thread. Click a flower to look back at the thread, open it again, 
 
 Villagers waiting on you wave and hop every few seconds, so they're easy to spot.
 
+### Pull requests
+
+If a repo's `origin` is on GitHub and the [`gh` CLI](https://cli.github.com) is installed and
+signed in, its pull requests grow in the garden too:
+
+- **Merged PRs** bloom in the order they merged. A finished thread that opened a PR shares that
+  PR's flower rather than growing a second one.
+- **Labels choose the flower.** `type:` labels are read before `area:` ones, `size:` labels pick
+  a small, medium or large bloom, and a PR with no labels is always **white**. White never comes
+  up as a random colour, so it only ever means "unlabeled".
+- **Open PRs** wait at the growing edge of the bed as buds that **glitter** and glow, day and
+  night. `P`, or the PRs count in the sidebar, flies to each in turn; the card opens the PR on
+  GitHub. When it merges, the bud blooms.
+
+Each repo's list is fetched with `gh pr list` at most every ten minutes, in the background, and
+cached in `data/prs.json` so reloads are instant and it works offline. Closed-unmerged PRs grow
+nothing.
+
 ## Keys
 
 | Key | Does |
 | --- | --- |
 | `N` | Fly to the next villager waiting on you |
+| `P` | Fly to the next open PR |
 | `Enter` / `A` / `V` | Open / archive / mark viewed the selected thread |
 | `C` | New session in the open repo's folder |
 | `H` | Hide the panels |

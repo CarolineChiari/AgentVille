@@ -70,8 +70,9 @@ export class World {
   /**
    * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean }[]} threads
    * @param {Map<string, number[][]>} [memory] saved layout; only read on the first call
-   * @param {Map<string, { id: string, kind: number, color: number }[]>} [gardens] finished threads per
-   *        repo, oldest first; each becomes a flower in that plot's garden
+   * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
+   *        finished work per repo, oldest first; each becomes a flower in that plot's garden, and an
+   *        `open` one (a PR not merged yet) waits as a bud
    * @returns {Map<string, number[][]>} the layout memory to save
    */
   setRoster(threads, memory, gardens = new Map()) {
@@ -114,9 +115,11 @@ export class World {
       list.forEach((f, i) => {
         if (i >= plot.flowerCapacity) return
         const prev = this.flowers.get(f.id)
-        // Flowers present on the first roster are already in bloom; anything newer grows in.
-        const born = prev ? prev.born : this.first ? null : this.time
-        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, plot: name, born, ...plot.flowerSpot(i) })
+        // Flowers present on the first roster are already in bloom; anything newer grows in, and
+        // so does an open PR's bud the moment it merges.
+        const justMerged = prev && prev.open && !f.open
+        const born = prev && !justMerged ? prev.born : this.first ? null : this.time
+        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, white: Boolean(f.white), open: Boolean(f.open), plot: name, born, ...plot.flowerSpot(i) })
       })
     }
     this.flowers = flowers

@@ -8,6 +8,7 @@
   --danger: #ff5a5a;
   --ok: #7cf29a;
   --info: #7bd7ff;
+  --glitter: #fff3b0;
   --sidebar: 300px;
   --radius: 10px;
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -66,7 +67,7 @@ body.hud-hidden #hud { display: none; }
 .side .brand h1 { margin: 0; font-size: 17px; letter-spacing: 0.02em; }
 .side .brand .sub { color: var(--muted); font-size: 12px; }
 
-.counts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.counts { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
 .counts button {
   all: unset;
   cursor: pointer;
@@ -77,11 +78,13 @@ body.hud-hidden #hud { display: none; }
 }
 .counts button:hover { background: rgba(255, 255, 255, 0.08); }
 .counts .n { display: block; font-size: 16px; font-weight: 600; }
-.counts .l { display: block; font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.counts .l { display: block; font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .counts .working .n { color: var(--info); }
 .counts .waiting .n { color: var(--accent); }
 .counts .blocked .n { color: var(--danger); }
 .counts .celebrating .n { color: var(--ok); }
+.counts .openPrs .n { color: var(--glitter); text-shadow: 0 0 6px rgba(255, 243, 176, 0.7); }
+.repo .badges .open-pr { color: #1b1a2e; background: var(--glitter); }
 
 .list { flex: 1; overflow: auto; margin: 0 -6px; padding: 0 6px; }
 .list h3 { margin: 12px 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }

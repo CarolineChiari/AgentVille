@@ -10,12 +10,14 @@ const COUNT_KEYS = [
   ['waiting', 'Waiting'],
   ['blocked', 'Stuck'],
   ['celebrating', 'Merged'],
+  ['openPrs', 'PRs'],
   ['idle', 'Idle'],
   ['sleeping', 'Asleep'],
 ]
 
 const HELP = [
   ['N', 'Next villager waiting on you'],
+  ['P', 'Next open PR'],
   ['Enter', 'Open the selected thread'],
   ['V', 'Mark it viewed'],
   ['A', 'Archive it'],
@@ -44,7 +46,7 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
   const folderWord = () => (village.platform === 'win32' ? 'Explorer' : village.platform === 'darwin' ? 'Finder' : 'Folder')
 
   function render() {
-    const counts = village.counts()
+    const counts = { ...village.counts(), openPrs: village.openPrs().length }
     const repos = village.repos()
     const { folded, hidden, archived } = village.view
     const sel = village.selectedPlot
@@ -86,6 +88,7 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
     if (r.counts.blocked) b.push(`<span class="blocked">${r.counts.blocked} !</span>`)
     if (r.counts.waiting) b.push(`<span class="waiting">${r.counts.waiting} ?</span>`)
     if (r.counts.working) b.push(`<span class="working">${r.counts.working}</span>`)
+    if (r.openPrs) b.push(`<span class="open-pr" title="Open PRs">✦ ${r.openPrs}</span>`)
     return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
       <span class="dot" style="background:${ACCENTS[r.accent % ACCENTS.length]}"></span>
       <span class="name">${esc(r.name)}</span>
@@ -116,6 +119,7 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Open threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
+        <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label>Show every plot's name <input type="checkbox" data-set="allNames" ${s.allNames ? 'checked' : ''}></label>
         <label>Time of day
@@ -150,6 +154,11 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
       case 'settings': showSheet('settings'); break
       case 'help': showSheet('help'); break
       case 'status': {
+        if (status === 'openPrs') {
+          const id = village.nextOpenPr()
+          if (id) onFly({ villager: id })
+          break
+        }
         if (status === 'waiting' || status === 'blocked') {
           const v = village.nextWaiting()
           if (v) onFly({ villager: v })

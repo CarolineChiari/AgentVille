@@ -46,4 +46,6 @@ export async function saveState(local, base) {
 
 export const openThread = (harness, ref, target) => post('/api/open', { harness, ref, target }).then((r) => r.body)
 export const newSession = (folder, target) => post('/api/new-session', { folder, target }).then((r) => r.body)
+export const fetchPrs = async () => (await json(await fetch('/api/prs'))).body
+export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.body)
 export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.body)

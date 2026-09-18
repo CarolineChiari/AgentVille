@@ -67,6 +67,8 @@ export const PALETTE = {
   bedHole: '#5e412c',
   bedEdge: '#a57a4e',
   pollen: '#f7d64a',
+  petalWhite: '#f7f5ee',
+  glitter: '#fff3b0',
   seed: '#6b4426',
   cactus: '#5f9a4c',
 
@@ -88,9 +90,12 @@ export const BADGE = {
   done: '#6fdb8a',
 }
 
-/** Petal colours. A flower's colour is a hash of its thread id into this list. */
+/**
+ * Petal colours. A flower's colour is a hash of its id into this list. White is deliberately
+ * missing: a white flower always means a PR nobody labelled.
+ */
 export const PETALS = [
-  '#f06a92', '#f5d94e', '#fbf8ef', '#9a7cf0', '#ef5a4a', '#ff9f43', '#5cc4f2',
+  '#f06a92', '#f5d94e', '#9a7cf0', '#ef5a4a', '#ff9f43', '#5cc4f2',
   '#e87fd4', '#c93f6b', '#ffd1dc', '#7ad0b0', '#b8e05a', '#6f7cf0', '#ffb3a0',
 ]
 

@@ -35,3 +35,29 @@ test('a thread always gets the same flower and colour, drawn from its work famil
   const colours = new Set(Array.from({ length: 40 }, (_, i) => flowerFor({ id: `x${i}`, title: 'fix' }).color % 14))
   assert.ok(colours.size > 5, 'colours vary from thread to thread')
 })
+
+import { flowerForPr, sizeFromLabels, workFromLabels } from '../src/sim/flowers.js'
+
+test('an unlabeled PR is white; a labeled one is not', () => {
+  assert.equal(flowerForPr({ title: 'Fix it', labels: [] }, 'pr:a#1').white, true)
+  assert.equal(flowerForPr({ title: 'Fix it', labels: ['bug'] }, 'pr:a#1').white, false)
+})
+
+test('labels choose the work, type labels before area labels; size labels choose the bloom', () => {
+  assert.equal(workFromLabels(['area: frontend', 'type: chore']), 'refactor')
+  assert.equal(workFromLabels(['area: frontend', 'size: M']), 'ui')
+  assert.equal(workFromLabels(['ci/cd']), 'infra')
+  assert.equal(workFromLabels(['documentation']), 'docs')
+  assert.equal(workFromLabels(['size: S', 'priority:medium']), null)
+  assert.equal(sizeFromLabels(['size: XL']), 'l')
+  assert.equal(sizeFromLabels(['size/S']), 's')
+  const f = flowerForPr({ title: 'Anything', labels: ['area: frontend', 'size: XS'] }, 'pr:a#9')
+  assert.equal(FLOWER_KINDS[f.kind].work, 'ui')
+  assert.equal(FLOWER_KINDS[f.kind].size, 's')
+})
+
+test('a PR without useful labels falls back to its title', () => {
+  const f = flowerForPr({ title: 'Fix the crash on save', labels: ['size: M'] }, 'pr:a#3')
+  assert.equal(f.work, 'fix')
+  assert.equal(f.white, false, 'it is labeled, just not with a kind of work')
+})

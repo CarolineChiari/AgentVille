@@ -28,6 +28,8 @@ export function emptyEntry(id) {
     lastFocusedAt: 0,
     hasError: false,
     prState: '',
+    prNumber: 0,
+    prUrl: '',
     archived: false,
     sizeBytes: 0,
     hasTranscript: false,
@@ -61,6 +63,8 @@ export function mergeThread(a, b) {
   out.lastFocusedAt = Math.max(keep.lastFocusedAt, other.lastFocusedAt)
   out.hasError = keep.hasError || other.hasError
   out.prState = keep.prState || other.prState
+  out.prNumber = keep.prNumber || other.prNumber
+  out.prUrl = keep.prUrl || other.prUrl
   out.archived = keep.archived && other.archived
   out.sizeBytes = Math.max(keep.sizeBytes, other.sizeBytes)
   out.hasTranscript = keep.hasTranscript || other.hasTranscript
@@ -102,6 +106,8 @@ export function toThread(entry, harnessName) {
     unread: Boolean(entry.unread),
     hasError: entry.hasError,
     prState: entry.prState,
+    prNumber: entry.prNumber,
+    prUrl: entry.prUrl,
     archived: entry.archived,
     sizeBytes: entry.sizeBytes,
     source: entry.source,

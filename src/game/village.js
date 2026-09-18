@@ -5,7 +5,7 @@ import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
 import { demoThreads } from './demo.js'
-import { flowerFor, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
+import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 
 const SAVE_DELAY = 500
 
@@ -29,6 +29,8 @@ export class Village {
     this.byId = new Map()
     this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
     this.gardens = new Map() // repo → flowers, oldest first
+    this.prs = { repos: {}, available: true, warnings: [] }
+    this._prIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.selected = null
     this.selectedPlot = null
@@ -64,9 +66,25 @@ export class Village {
         this.warnings = r.warnings || []
       }
       this.byId = new Map(this.threads.map((t) => [t.id, t]))
+      if (!this.demo && this.settings.prGardens) await this.pollPrs(false)
       this.apply()
     } catch (err) {
       this.toast(`Couldn't read sessions: ${err.message}`, 'error')
+    }
+  }
+
+  /**
+   * PRs come from the server's cache, which refreshes itself in the background. When it says it
+   * is still fetching, look again shortly rather than waiting for the next poll.
+   */
+  async pollPrs(apply = true) {
+    try {
+      this.prs = await api.fetchPrs()
+      clearTimeout(this._prTimer)
+      if (this.prs.updating) this._prTimer = setTimeout(() => this.pollPrs(), 4000)
+      if (apply) this.apply()
+    } catch {
+      // PRs are decoration; a failure here must never stop the village.
     }
   }
 
@@ -105,17 +123,62 @@ export class Village {
   _plantGardens() {
     const off = new Set([...this.state.hiddenProjects, ...this.view.dormant])
     const gardens = new Map()
+    const add = (project, f) => {
+      if (!gardens.has(project)) gardens.set(project, [])
+      gardens.get(project).push(f)
+    }
     this.flowerInfo = new Map()
+
+    // Pull requests first, so a finished thread whose PR is here shares that PR's flower.
+    const prKeys = new Set()
+    const threadForPr = new Map()
+    for (const t of this.threads) if (t.prNumber) threadForPr.set(`${t.project}#${t.prNumber}`, t.id)
+    if (this.settings.prGardens && !this.demo) {
+      for (const [project, { slug, prs }] of Object.entries(this.prs.repos || {})) {
+        if (off.has(project)) continue
+        for (const pr of prs) {
+          const id = `pr:${slug}#${pr.number}`
+          const open = pr.state === 'OPEN'
+          const f = flowerForPr(pr, id)
+          // Open PRs go at the growing edge of the bed, after everything that has landed.
+          const finishedAt = open ? Number.MAX_SAFE_INTEGER - (Date.now() - pr.createdAt) : pr.mergedAt
+          const info = { ...f, finishedAt, open, pr, slug, project, threadId: threadForPr.get(`${project}#${pr.number}`) || null }
+          this.flowerInfo.set(id, info)
+          prKeys.add(`${project}#${pr.number}`)
+          add(project, { id, kind: f.kind, color: f.color, white: f.white, open, finishedAt })
+        }
+      }
+    }
+
     for (const t of this.view.archived) {
       if (!t.project || off.has(t.project)) continue
+      if (t.prNumber && prKeys.has(`${t.project}#${t.prNumber}`)) continue
       const f = flowerFor(t)
       const finishedAt = this.state.archivedAt[t.id] || t.lastActivityAt || 0
-      this.flowerInfo.set(t.id, { ...f, finishedAt })
-      if (!gardens.has(t.project)) gardens.set(t.project, [])
-      gardens.get(t.project).push({ id: t.id, kind: f.kind, color: f.color, finishedAt })
+      this.flowerInfo.set(t.id, { ...f, finishedAt, project: t.project })
+      add(t.project, { id: t.id, kind: f.kind, color: f.color, white: false, open: false, finishedAt })
     }
     for (const list of gardens.values()) list.sort((a, b) => a.finishedAt - b.finishedAt || (a.id < b.id ? -1 : 1))
     this.gardens = gardens
+  }
+
+  /** Open PRs on the map, newest first. */
+  openPrs() {
+    return [...this.flowerInfo.entries()]
+      .filter(([, f]) => f.open)
+      .sort((a, b) => b[1].pr.createdAt - a[1].pr.createdAt)
+      .map(([id]) => id)
+  }
+
+  nextOpenPr() {
+    const list = this.openPrs()
+    if (!list.length) {
+      this.toast('No open PRs. Everything has landed.')
+      return null
+    }
+    this._prIndex = (this._prIndex + 1) % list.length
+    this.select(list[this._prIndex])
+    return list[this._prIndex]
   }
 
   /** What a flower is, for the card: its name, the work it stands for, and when it bloomed. */
@@ -123,6 +186,17 @@ export class Village {
     const f = this.flowerInfo.get(id)
     if (!f) return null
     return { ...f, name: FLOWER_KINDS[f.kind].name, workLabel: WORK_LABEL[f.work] }
+  }
+
+  async openPr(id = this.selected) {
+    const f = this.flowerInfo.get(id)
+    if (!f?.pr?.url) return
+    try {
+      await api.openUrl(f.pr.url)
+      this.toast(`Opening PR #${f.pr.number}`)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
   }
 
   isFinished(id) {
@@ -169,11 +243,15 @@ export class Village {
   repos() {
     const map = new Map()
     const ensure = (name) => {
-      if (!map.has(name)) map.set(name, { name, path: this.projectPath(name), threads: [], flowers: 0 })
+      if (!map.has(name)) map.set(name, { name, path: this.projectPath(name), threads: [], flowers: 0, openPrs: 0 })
       return map.get(name)
     }
     for (const t of this.view.live) ensure(t.project).threads.push(t)
-    for (const [name, list] of this.gardens) ensure(name).flowers = list.length
+    for (const [name, list] of this.gardens) {
+      const r = ensure(name)
+      r.flowers = list.filter((f) => !f.open).length
+      r.openPrs = list.filter((f) => f.open).length
+    }
     const list = [...map.values()]
     for (const r of list) {
       r.threads.sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status] || b.lastActivityAt - a.lastActivityAt)
@@ -181,7 +259,7 @@ export class Village {
       r.last = Math.max(0, ...r.threads.map((t) => t.lastActivityAt || 0), ...(this.gardens.get(r.name) || []).map((f) => f.finishedAt))
       r.accent = this.world.plots.get(r.name)?.accent ?? 0
     }
-    const urgency = (r) => (r.counts.blocked || r.counts.waiting ? 0 : r.counts.working ? 1 : 2)
+    const urgency = (r) => (r.counts.blocked || r.counts.waiting ? 0 : r.counts.working || r.openPrs ? 1 : 2)
     return list.sort((a, b) => urgency(a) - urgency(b) || b.last - a.last)
   }
 
@@ -198,7 +276,7 @@ export class Village {
 
   select(id) {
     this.selected = id
-    if (id) this.selectedPlot = this.thread(id)?.project ?? this.selectedPlot
+    if (id) this.selectedPlot = this.thread(id)?.project ?? this.flowerInfo.get(id)?.project ?? this.selectedPlot
     this.onChange()
   }
 
@@ -227,6 +305,7 @@ export class Village {
   // ---------- actions ----------
 
   async open(id = this.selected) {
+    if (this.flowerInfo.get(id)?.pr) return this.openPr(id)
     const t = this.thread(id)
     if (!t) return
     if (this.demo) return this.toast('Demo mode: nothing to open.')

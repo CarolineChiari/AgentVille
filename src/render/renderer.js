@@ -180,10 +180,66 @@ export class Canvas2dRenderer {
         ctx.fillStyle = f.selected ? 'rgba(255, 216, 115, 0.55)' : 'rgba(255, 255, 255, 0.28)'
         ctx.fillRect(cam.offX + Math.round(px - 4) * s, cam.offY + Math.round(py - 7) * s, 8 * s, 8 * s)
       }
-      const img = sprites.get(`flower.${f.kind}.${this._flowerStage(f, frame.time)}`, 0, { color: PETALS[f.color % PETALS.length] })
+      const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
+      const stage = f.open ? 1 : this._flowerStage(f, frame.time)
+      const img = sprites.get(`flower.${f.kind}.${stage}`, 0, { color })
       // The stem's base pixel (4, 11) sits on the flower's spot.
       this._blit(img, px - 4, py - 11)
     }
+  }
+
+  /**
+   * Open PRs glitter: a few sparkles twinkling round each bud, each on its own clock so a bed of
+   * them shimmers rather than blinks. Drawn after the night tint so they shine in the dark.
+   */
+  _drawGlitter(frame) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    // A soft golden pulse under each bud, so an open PR is findable even zoomed right out.
+    ctx.globalCompositeOperation = 'lighter'
+    for (const f of frame.flowers) {
+      if (!f.open) continue
+      const cx = cam.offX + f.x * T * s
+      const cy = cam.offY + (f.y * T - 5) * s
+      const rad = 11 * s
+      const pulse = 0.22 + 0.14 * Math.sin(frame.time * 2.4 + (hashString(f.id) % 100) / 16)
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
+      g.addColorStop(0, `rgba(255, 226, 120, ${pulse})`)
+      g.addColorStop(1, 'rgba(255, 226, 120, 0)')
+      ctx.fillStyle = g
+      ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2)
+    }
+    ctx.globalCompositeOperation = 'source-over'
+    for (const f of frame.flowers) {
+      if (!f.open) continue
+      const seed = hashString(f.id)
+      for (let k = 0; k < 4; k++) {
+        const phase = ((seed >>> (k * 7)) % 100) / 100
+        const t = (frame.time * 0.9 + phase + k * 0.25) % 1
+        const a = Math.sin(t * Math.PI) // fade in, then out
+        if (a < 0.15) continue
+        // Each sparkle moves to a new spot every time it twinkles.
+        const cycle = Math.floor(frame.time * 0.9 + phase + k * 0.25)
+        const r = mulberry32(seed + k * 131 + cycle * 977)
+        const wx = Math.round(f.x * T - 5 + r() * 10)
+        const wy = Math.round(f.y * T - 12 + r() * 11)
+        const x = cam.offX + wx * s
+        const y = cam.offY + wy * s
+        ctx.globalAlpha = a
+        ctx.fillStyle = P.glitter
+        ctx.fillRect(x, y, s, s)
+        if (a > 0.6) {
+          // Brightest moment: a four-pointed twinkle.
+          ctx.fillRect(x - s, y, s, s)
+          ctx.fillRect(x + s, y, s, s)
+          ctx.fillRect(x, y - s, s, s)
+          ctx.fillRect(x, y + s, s, s)
+          ctx.fillStyle = P.white
+          ctx.fillRect(x, y, s, s)
+        }
+      }
+    }
+    ctx.globalAlpha = 1
   }
 
   _drawEffects(frame) {
@@ -300,6 +356,7 @@ export class Canvas2dRenderer {
     }
     this._drawEffects(frame)
     this._drawNight(frame, night)
+    this._drawGlitter(frame)
     this._drawBadges(frame)
     this._drawLabels(frame, ui)
   }

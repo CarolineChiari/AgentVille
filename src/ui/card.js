@@ -2,7 +2,7 @@
 import { esc, ago, bytes } from './dom.js'
 import { STATUS_LABEL, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
-import { BADGE, PETALS } from '../render/sprites/palette.js'
+import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 
 const GAP = 18
 
@@ -22,6 +22,8 @@ export function createCard(root, village) {
     else if (act === 'viewed') village.viewed()
     else if (act === 'archive') village.archive()
     else if (act === 'restore') village.unarchive(village.selected)
+    else if (act === 'openPr') village.openPr()
+    else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'close') village.select(null)
   })
 
@@ -87,6 +89,39 @@ export function createCard(root, village) {
     g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, { color }), 3, 8)
   }
 
+  /** A pull request: what it was, who wrote it, and a way to it. Open ones are asking for you. */
+  function fillPr(f) {
+    const pr = f.pr
+    const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
+    const status = f.open
+      ? `<span style="color:${P.glitter}">✦</span> ${pr.draft ? 'Draft PR' : 'Open PR'} #${pr.number} · waiting to merge`
+      : `<span style="color:${color}">✿</span> ${esc(f.name)} · ${esc(f.workLabel)} · PR #${pr.number}`
+    const meta = [
+      ['Repo', f.slug],
+      pr.author && ['Author', pr.author],
+      pr.branch && ['Branch', pr.branch],
+      f.open ? ['Opened', ago(pr.createdAt)] : ['Merged', ago(pr.mergedAt)],
+      ['Changes', `+${pr.additions} −${pr.deletions}`],
+      ['Labels', pr.labels.length ? pr.labels.join(', ') : 'none (white flower)'],
+    ].filter(Boolean)
+    card.innerHTML = `
+      <div class="head">
+        <canvas class="avatar" width="16" height="24"></canvas>
+        <div style="min-width:0;flex:1">
+          <b title="${esc(pr.title)}">${esc(pr.title)}</b>
+          <span class="status">${status}</span>
+        </div>
+        <button class="btn" data-act="close" title="Close (Esc)">✕</button>
+      </div>
+      <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      <div class="actions">
+        <button class="btn primary" data-act="openPr" ${pr.url ? '' : 'disabled'}>Open PR<kbd>↵</kbd></button>
+        ${f.threadId ? `<button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
+      </div>`
+    const g = card.querySelector('canvas.avatar').getContext('2d')
+    g.drawImage(sprites.get(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), 3, 8)
+  }
+
   function drawAvatar(v) {
     const c = card.querySelector('canvas.avatar')
     if (!c || !v) return
@@ -99,6 +134,17 @@ export function createCard(root, village) {
     /** Content: called when the selection or the scan changes. */
     update() {
       const id = village.selected
+      const f = id && village.flower(id)
+      if (f?.pr) {
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}`
+        if (id !== shownId || key !== shownKey) {
+          fillPr(f)
+          shownId = id
+          shownKey = key
+        }
+        card.hidden = false
+        return
+      }
       const t = id && village.thread(id)
       if (!t) {
         card.hidden = true

@@ -34,7 +34,8 @@ const hud = createHud(hudRoot, {
   settings,
   onSettings() {
     saveSettings(settings)
-    village.apply()
+    if (settings.prGardens) village.pollPrs()
+    else village.apply()
   },
   onFly: fly,
 })
@@ -147,6 +148,7 @@ addEventListener('keydown', (e) => {
   const centerY = camera.height / 2 / camera.dpr
   switch (e.key) {
     case 'n': case 'N': { const id = village.nextWaiting(); if (id) fly({ villager: id }); break }
+    case 'p': case 'P': { const id = village.nextOpenPr(); if (id) fly({ villager: id }); break }
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break
     case 'a': case 'A': village.archive(); break

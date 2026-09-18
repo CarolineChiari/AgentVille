@@ -2,7 +2,7 @@
 
 Every Claude Code session on this machine is a villager in a pixel-art village. Each repo is a
 plot; each session is one villager and one building. The server reads Claude Code's own files
-read-only; `data/village.json` is the only file this project writes.
+read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`).
 
 ## Layout
 
@@ -19,7 +19,8 @@ read-only; `data/village.json` is the only file this project writes.
 
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
 - No runtime dependencies without discussion. Vite is the only dev dependency.
-- Never write outside `data/`. Never write to a harness's files. Never execute anything from
+- Never write outside `data/`. Never write to a harness's files. The only network access is
+  `server/github.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
 - Every colour comes from `src/render/sprites/palette.js`. No hex strings elsewhere.
 - Paths via `path.join` / `fileURLToPath(import.meta.url)`, never `process.cwd()`. Split paths

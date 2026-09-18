@@ -41,6 +41,8 @@ export function readTranscriptMeta(records) {
     startedAt: 0,
     model: '',
     prState: '',
+    prNumber: 0,
+    prUrl: '',
   }
   for (const r of records) {
     if (!r || typeof r !== 'object') continue
@@ -48,8 +50,11 @@ export function readTranscriptMeta(records) {
       meta.customTitle = r.customTitle.trim()
     } else if (r.type === 'summary' && !meta.summary && typeof r.summary === 'string') {
       meta.summary = r.summary.trim()
-    } else if (r.type === 'pr-link' && !meta.prState) {
-      meta.prState = 'OPEN'
+    } else if (r.type === 'pr-link') {
+      // The last PR a thread linked is the one it is about.
+      if (!meta.prState) meta.prState = 'OPEN'
+      if (Number.isInteger(r.prNumber)) meta.prNumber = r.prNumber
+      if (typeof r.prUrl === 'string' && /^https:\/\/github\.com\//.test(r.prUrl)) meta.prUrl = r.prUrl
     }
     if (!isMain(r)) continue
     if (!meta.cwd && typeof r.cwd === 'string' && r.cwd) meta.cwd = r.cwd

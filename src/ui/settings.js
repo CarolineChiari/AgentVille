@@ -4,6 +4,7 @@ const KEY = 'agentville.settings'
 
 export const DEFAULTS = {
   hideDormant: true,
+  prGardens: true, // grow flowers from the repo's pull requests (reads GitHub through `gh`)
   openIn: 'vscode', // 'vscode' | 'app' — where Open and New session send you
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,

@@ -123,6 +123,8 @@ export function createClaudeCodeAdapter(opts = {}) {
       lastFocusedAt: num(s.lastFocusedAt),
       hasError: Boolean(s.error),
       prState: typeof s.prState === 'string' ? s.prState.toUpperCase() : '',
+      prNumber: Number.isInteger(s.prNumber) ? s.prNumber : 0,
+      prUrl: typeof s.prUrl === 'string' && /^https:\/\/github\.com\//.test(s.prUrl) ? s.prUrl : '',
       archived: s.isArchived === true || s.isArchived === 'True',
       source: 'desktop',
     })
@@ -159,6 +161,8 @@ export function createClaudeCodeAdapter(opts = {}) {
         e.model = e.model || m.model
         e.createdAt = e.createdAt || m.startedAt || tr.mtime
         e.prState = e.prState || m.prState
+        e.prNumber = e.prNumber || m.prNumber
+        e.prUrl = e.prUrl || m.prUrl
         e.waiting = Boolean(info.waiting) && e.live && fresh
       }
       if (isBookkeepingOnly(e, t)) continue

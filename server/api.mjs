@@ -5,6 +5,7 @@ import { ConflictError, createStateStore } from './state.mjs'
 import { createOpener, resolveFolder } from './opener.mjs'
 import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
+import { createPrStore } from './github.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -87,6 +88,13 @@ export function createApiMiddleware(opts = {}) {
   const store = opts.stateStore ?? createStateStore(opts.dataDir ?? DEFAULT_DATA_DIR)
   const opener = opts.opener ?? createOpener()
   const extraHosts = new Set(opts.extraHosts ?? [])
+  const prStore = opts.prStore ?? createPrStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
+  // Repo name → folder, from the latest scan: the PR lookup reads each folder's git remote.
+  let projects = new Map()
+  const remember = (threads) => {
+    projects = new Map()
+    for (const t of threads) if (t.project && t.projectPath && !projects.has(t.project)) projects.set(t.project, t.projectPath)
+  }
 
   // An adapter may hand back several URLs to open in order (folder first, then session).
   const launch = (result) =>
@@ -97,6 +105,7 @@ export function createApiMiddleware(opts = {}) {
   const routes = {
     'GET /api/threads': async () => {
       const [{ threads, warnings }, state] = await Promise.all([scanAll({ harnesses }), store.read()])
+      remember(threads)
       const archived = new Set(state.archived)
       for (const t of threads) {
         if (!t.archived && (archived.has(t.id) || refStrings(t.ref).some((s) => archived.has(`${t.harness}:${s}`)))) {
@@ -142,6 +151,25 @@ export function createApiMiddleware(opts = {}) {
       const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
       return [200, { ok: true, url: result.url }]
+    },
+
+    'GET /api/prs': async () => {
+      if (!projects.size) remember((await scanAll({ harnesses })).threads)
+      const list = [...projects].map(([name, dir]) => ({ name, path: dir }))
+      return [200, await prStore.get(list)]
+    },
+
+    /** Only GitHub pages, over https: this endpoint exists to open a PR, not arbitrary links. */
+    'POST /api/open-url': async (body) => {
+      let u
+      try {
+        u = new URL(String(body?.url || ''))
+      } catch {
+        return [400, { ok: false, error: 'Not a URL.' }]
+      }
+      if (u.protocol !== 'https:' || u.hostname !== 'github.com') return [400, { ok: false, error: 'Only GitHub links can be opened.' }]
+      const launched = opener.launch(u.href)
+      return launched.ok ? [200, { ok: true }] : [500, launched]
     },
 
     'POST /api/reveal': async (body) => {

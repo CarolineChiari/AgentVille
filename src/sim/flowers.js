@@ -57,7 +57,7 @@ export const FLOWER_KINDS = [
   // design & UI — showy
   { name: 'Rose', work: 'ui', shape: 'rose', size: 'm', stem: 'mid', leaves: 2 },
   { name: 'Peony', work: 'ui', shape: 'rose', size: 'l', stem: 'mid', leaves: 1 },
-  { name: 'Camellia', work: 'ui', shape: 'rose', size: 'm', stem: 'tall', leaves: 0 },
+  { name: 'Camellia', work: 'ui', shape: 'rose', size: 's', stem: 'tall', leaves: 0 },
   { name: 'Orchid', work: 'ui', shape: 'lily', size: 'l', stem: 'mid', leaves: 1 },
   { name: 'Poppy', work: 'ui', shape: 'cross', size: 'l', stem: 'tall', leaves: 1 },
   // performance — sunflowers
@@ -108,4 +108,59 @@ export function flowerFor(t) {
   const family = KINDS_BY_WORK[work]
   const kind = family[hashString(`flower:${t.id}`) % family.length]
   return { kind, color: hashString(`petal:${t.id}`), work }
+}
+
+/**
+ * Labels that say what a PR was. `type:` labels are read before `area:` ones, since "chore in
+ * the frontend" is a chore first.
+ */
+const LABEL_WORK = [
+  [/bug|fix|defect|regression|hotfix/, 'fix'],
+  [/test|qa\b/, 'test'],
+  [/perf|performance|speed/, 'perf'],
+  [/doc/, 'docs'],
+  [/chore|refactor|maintenance|cleanup|tech.?debt/, 'refactor'],
+  [/enhancement|feature|feat\b/, 'feature'],
+  [/front.?end|\bui\b|\bux\b|design|css|style/, 'ui'],
+  [/infra|ci\b|cd\b|deploy|devops|terraform|docker|automation|dependenc|config|build|release/, 'infra'],
+  [/back.?end|api|data|database|schema|model/, 'data'],
+  [/question|research|spike|discussion|rfc/, 'research'],
+]
+const SIZE_LABEL = /size\W*(xs|s|m|l|xl)\b/
+
+export function workFromLabels(labels) {
+  const sorted = [...labels].map((l) => l.toLowerCase()).sort((a, b) => Number(!a.startsWith('type')) - Number(!b.startsWith('type')))
+  for (const l of sorted) {
+    if (SIZE_LABEL.test(l) || /^(priority|status)\b/.test(l)) continue
+    const hit = LABEL_WORK.find(([re]) => re.test(l))
+    if (hit) return hit[1]
+  }
+  return null
+}
+
+export function sizeFromLabels(labels) {
+  for (const l of labels) {
+    const m = SIZE_LABEL.exec(l.toLowerCase())
+    if (m) return m[1] === 'xs' || m[1] === 's' ? 's' : m[1] === 'm' ? 'm' : 'l'
+  }
+  return null
+}
+
+/**
+ * The flower a pull request grows. Labels choose the kind (and a size label the bloom's size);
+ * without them the title does. An unlabeled PR is always white — the one colour the random
+ * palette never uses — so unlabeled work stands out as such.
+ * @param {{ title: string, labels: string[] }} pr
+ * @param {string} key a stable id, e.g. `pr:owner/repo#12`
+ */
+export function flowerForPr(pr, key) {
+  const labels = pr.labels || []
+  const work = workFromLabels(labels) || workOf(pr.title)
+  const size = sizeFromLabels(labels)
+  let family = KINDS_BY_WORK[work]
+  const sized = size && family.filter((i) => FLOWER_KINDS[i].size === size)
+  if (sized?.length) family = sized
+  const kind = family[hashString(`flower:${key}`) % family.length]
+  const white = labels.length === 0
+  return { kind, color: hashString(`petal:${key}`), work, white }
 }
