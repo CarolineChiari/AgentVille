@@ -133,6 +133,10 @@ export const PALETTE = {
 
   shadow: '#18122047', // 28% alpha
   interior: '#3a2a24',
+  // Wear and tear (see weathering.js): what paint fades towards as a building ages, and the
+  // grime that stains and streaks its walls.
+  dust: '#a39a88',
+  grime: '#5b5342',
   void: '#4e8a3c', // outside the map: more countryside
 
   // The arrival square: its portal, the runes that wake it, and the mosaic round its foot.

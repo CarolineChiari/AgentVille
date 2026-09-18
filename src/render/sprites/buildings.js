@@ -8,8 +8,10 @@
 // a family of roof colours but no two are quite alike.
 import { PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
+import { lookFor, weather } from './weathering.js'
 import { mulberry32, pick, rngFor } from '../../sim/rng.js'
 import { WALLS } from '../../sim/style.js'
+import { KEPT } from '../../sim/wear.js'
 
 export const BUILDING_W = 32
 /** Roof colours a plot's buildings share, as indices into the palette's roof colours. */
@@ -620,8 +622,9 @@ const KINDS = {
 }
 
 /**
- * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean }} o
- *        `wall` and `roofs` are the plot's style; `low` comes from `fitted`.
+ * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean, wear?: number }} o
+ *        `wall` and `roofs` are the plot's style; `low` comes from `fitted`; `wear` is a grade
+ *        from src/sim/wear.js, and only a finished building shows it.
  */
 export function drawBuilding(o) {
   const H = heightOf(o.kind, o.variant, o.low)
@@ -641,8 +644,24 @@ export function drawBuilding(o) {
     return pc.outline(P.outline)
   }
   const draw = KINDS[o.kind] || KINDS.house
-  draw(pc, { rand, accent: o.accent, roofColor: roofColorOf(o.variant, roofs), lit: o.lit, roof: o.stage >= 3, frame: o.frame || 0, variant: o.variant, wall, roofs, low: Boolean(o.low) })
+  const frame = o.frame || 0
+  const opts = { rand, accent: o.accent, roofColor: roofColorOf(o.variant, roofs), lit: o.lit, roof: o.stage >= 3, frame, variant: o.variant, wall, roofs, low: Boolean(o.low) }
+  draw(pc, opts)
   if (o.stage === 2 && !NO_SCAFFOLD.has(o.kind)) scaffold(pc, H)
+  const look = o.stage >= 3 ? lookFor(o.wear ?? KEPT) : null
+  if (look) {
+    // Weathering tells the roof from the walls by the building drawn without it, and leaves alone
+    // whatever changes between frames. Each drawing gets the same texture stream as the first.
+    const again = (roof, f) => {
+      const other = new PixelCanvas(BUILDING_W, H)
+      draw(other, { ...opts, rand: mulberry32(o.variant * 7919 + 1), roof, frame: f })
+      return other
+    }
+    const frames = buildingFrames(o.kind, o.stage)
+    const others = []
+    for (let f = 0; f < frames; f++) if (f !== frame % frames) others.push(again(true, f))
+    weather(pc, again(false, 0), look, o.variant, others)
+  }
   return pc.outline(P.outline)
 }
 

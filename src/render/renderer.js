@@ -9,6 +9,8 @@ import { lawnCover, lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
+import { sweepAt, sweepRow, twinklesAt } from './shine.js'
+import { GLEAMING, KEPT } from '../sim/wear.js'
 import {
   ARCH_H, ARCH_W, CENTER, SIZE, SPILL, arrivalSparkles, beam, crystalAt, fairyLights, gemAt, makePigeons, motes, petals, portalOpening,
   runePixels, spillColor, stepPigeons, veilColor, vortexMotes,
@@ -109,6 +111,9 @@ export class Canvas2dRenderer {
     this.pigeons = makePigeons(PIGEONS, this.pigeonRand) // in the square's own pixels
     this.hashes = new Map() // id → hashString(id), so per-frame passes don't rehash every id
     this.chimneys = new Map() // building look → where its chimney is, or null
+    this.shineCanvas = null // scratch: a gleaming building with the light sweeping over it
+    this.gleaming = [] // [sprite, x, y, seed] of each gleaming building drawn this frame, for its sparkles
+    this.solids = new WeakMap() // sprite → its opaque pixels, so sparkles land on the building
   }
 
   _hash(id) {
@@ -310,13 +315,88 @@ export class Canvas2dRenderer {
     const frames = buildingFrames(kind, b.stage)
     const frame = frames > 1 ? Math.floor(time * 1.6) % frames : 0
     const style = b.style || PLAIN_STYLE
+    // Only a finished building shows its age; a site going up is always new.
+    const wear = b.stage >= 3 ? b.wear ?? KEPT : KEPT
     const img = sprites.get(`building.${kind}.${b.stage}`, frame, {
-      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low,
+      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low, wear,
     })
     const H = heightOf(kind, b.variant, low)
     const shadow = b.stage >= 2 ? shadowOf(kind) : 0
     if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
-    this._blit(img, b.x * T + (b.w * T - BUILDING_W) / 2, (b.y + b.h) * T - H, b.alpha)
+    const x = b.x * T + (b.w * T - BUILDING_W) / 2
+    const y = (b.y + b.h) * T - H
+    this._blit(img, x, y, b.alpha)
+    if (wear === GLEAMING && b.alpha >= 1) {
+      this._drawSweep(img, x, y, this._hash(b.id), time)
+      this.gleaming.push([img, x, y, this._hash(b.id)])
+    }
+  }
+
+  /**
+   * The band of light sweeping across a gleaming building, now and then. Painted over a copy of
+   * its sprite so it only lights the building, and drawn with it, so whoever stands in front of
+   * the building stays in front of the shine too.
+   */
+  _drawSweep(img, wx, wy, seed, time) {
+    const lead = sweepAt(seed, time, img.width, img.height)
+    if (lead === null) return
+    let c = this.shineCanvas
+    if (!c) c = this.shineCanvas = document.createElement('canvas')
+    if (c.width < img.width || c.height < img.height) {
+      c.width = Math.max(c.width, img.width)
+      c.height = Math.max(c.height, img.height)
+    }
+    const g = c.getContext('2d')
+    g.clearRect(0, 0, c.width, c.height)
+    g.drawImage(img, 0, 0)
+    g.globalCompositeOperation = 'source-atop'
+    for (let y = 0; y < img.height; y++) {
+      for (const [x, width, strength] of sweepRow(lead, y, img.height)) {
+        g.fillStyle = rgba(P.white, strength)
+        g.fillRect(x, y, width, 1)
+      }
+    }
+    g.globalCompositeOperation = 'source-over'
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.drawImage(c, 0, 0, img.width, img.height, cam.offX + Math.round(wx) * s, cam.offY + Math.round(wy) * s, img.width * s, img.height * s)
+  }
+
+  /** Which pixels of a sprite are opaque, read back once per sprite. */
+  _solid(img) {
+    let mask = this.solids.get(img)
+    if (!mask) {
+      const data = img.getContext('2d').getImageData(0, 0, img.width, img.height).data
+      mask = new Uint8Array(img.width * img.height)
+      for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] > 0 ? 1 : 0
+      this.solids.set(img, mask)
+    }
+    return mask
+  }
+
+  /** Sparkles twinkling on every gleaming building, bright even at night. */
+  _drawSparkles(frame) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.fillStyle = P.glitter
+    for (const [img, bx, by, seed] of this.gleaming) {
+      const mask = this._solid(img)
+      const solid = (x, y) => mask[y * img.width + x] === 1
+      for (const t of twinklesAt(seed, frame.time, img.width, img.height, solid)) {
+        const x = cam.offX + Math.round(bx + t.x) * s
+        const y = cam.offY + Math.round(by + t.y) * s
+        ctx.globalAlpha = t.a
+        ctx.fillRect(x, y, s, s)
+        if (t.a > 0.6) {
+          // Brightest moment: a four-pointed twinkle.
+          ctx.fillRect(x - s, y, s, s)
+          ctx.fillRect(x + s, y, s, s)
+          ctx.fillRect(x, y - s, s, s)
+          ctx.fillRect(x, y + s, s, s)
+        }
+      }
+    }
+    ctx.globalAlpha = 1
   }
 
   /** Tall scenery stands on the bottom centre of its sprite, so a new kind needs no code here. */
@@ -842,6 +922,7 @@ export class Canvas2dRenderer {
     for (const st of frame.statics) if (st.sprite) items.push([st.y, 0, st])
     // Pigeons have gone to roost by dark.
     if (night < 0.6 && this._squareInView(view)) for (const b of this.pigeons) items.push([(SQUARE_Y + b.y) / T, 5, b])
+    this.gleaming = []
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
     for (const b of frame.boards || []) items.push([b.y, 4, b])
@@ -867,6 +948,7 @@ export class Canvas2dRenderer {
     this._drawMotes(frame, view, night)
     this._drawArrival(frame, view)
     this._drawGlitter(frame)
+    this._drawSparkles(frame)
     this._drawBadges(frame)
     this._drawLabels(frame, ui)
   }

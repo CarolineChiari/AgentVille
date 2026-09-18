@@ -4,6 +4,7 @@ import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
+import { wearOf } from '../sim/wear.js'
 import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
@@ -116,7 +117,7 @@ export class Village {
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
-      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]),
+      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now),
     }))
     for (const t of this.view.live) {
       if (!this.state.seen[t.id]) {

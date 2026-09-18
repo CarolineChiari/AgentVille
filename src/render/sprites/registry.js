@@ -3,7 +3,8 @@
 //
 // Names:  villager.<anim>.<facing>      (params: look)
 //         building.<kind>.<stage>       (params: accent, variant, lit; wall and roofs from the plot's style;
-//                                        low, down the sides of a courtyard, see `fitted`)
+//                                        low, down the sides of a courtyard, see `fitted`; wear, how
+//                                        long since its thread did anything, see src/sim/wear.js)
 //         tile.<kind>.<variant>         (params: tone, a lawn's green; links, a footpath's joins)
 //         deco.<kind>.<variant>         (params: tone, a lawn's green, for lawn cover and fence
 //                                        verges; ground too, for a path's grass fringe)
@@ -34,7 +35,7 @@ export function generate(name, frame, p) {
     case 'villager':
       return drawVillager(p.look, a, b, frame)
     case 'building':
-      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low })
+      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
     case 'tile':
       return drawTile(a, Number(b), p)
     case 'deco':

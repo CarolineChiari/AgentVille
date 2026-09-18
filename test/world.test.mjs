@@ -402,3 +402,13 @@ test('the square\'s corner gardens, fountain, carts and benches stand where nobo
   // The benches face the portal from either side, and it can still be reached from all round.
   assert.ok(!w.nav.isBlocked(6, 9) && !w.nav.isBlocked(1, 3) && !w.nav.isBlocked(10, 8))
 })
+
+test('a building wears whatever its thread\'s roster says, and changes the moment that does', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'working', { wear: 0 }), T('t2', 'a', 'sleeping', { wear: 5 }), T('t3', 'a')])
+  const wear = () => Object.fromEntries(w.snapshot().buildings.map((b) => [b.id, b.wear]))
+  assert.deepEqual(wear(), { t1: 0, t2: 5, t3: 1 }, 'a thread with no wear given is drawn as it was built')
+  // Picked back up after months: good as new straight away, not a step at a time.
+  w.setRoster([T('t1', 'a', 'idle', { wear: 2 }), T('t2', 'a', 'working', { wear: 0 }), T('t3', 'a')])
+  assert.deepEqual(wear(), { t1: 2, t2: 0, t3: 1 })
+})

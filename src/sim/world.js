@@ -11,6 +11,7 @@ import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
 import { paintWild } from './wild.js'
 import { PLAIN_STYLE } from './style.js'
+import { KEPT } from './wear.js'
 
 export const ACCENT_COUNT = 10
 /** A villager sprite is one tile wide; at 0.6 two bodies at rest still overlapped by 6 px. */
@@ -72,7 +73,8 @@ export class World {
   }
 
   /**
-   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean }[]} threads
+   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number }[]} threads
+   *        `wear` is how weathered its building looks, a grade from wear.js
    * @param {Map<string, number[][]>} [memory] saved layout; only read on the first call
    * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
    *        finished work per repo, oldest first; each becomes a flower in that plot's garden, and an
@@ -166,6 +168,7 @@ export class World {
         if (b.place(x, y, name)) dirty = true
         b.roomy = roomy
         b.lit = t.status === 'working' || t.status === 'waiting'
+        b.wear = t.wear ?? KEPT
       }
     }
     for (const [id, b] of this.buildings) {
@@ -457,7 +460,7 @@ export class World {
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
-        alpha: b.alpha, lit: b.lit, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
+        alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
         style: this.plots.get(b.plot)?.style ?? PLAIN_STYLE,
       })),
       villagers: [...this.villagers.values()]

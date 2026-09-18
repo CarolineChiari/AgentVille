@@ -6,6 +6,16 @@ const TITLES = [
   'Add CSV export', 'Make the map sticky', 'Profile the render loop', 'Review open PRs',
 ]
 
+const MIN = 60_000
+const HOUR = 60 * MIN
+const DAY = 24 * HOUR
+/**
+ * How long ago each roll of demo thread last did anything, so the village shows every grade of
+ * wear. Rolls 0–2 are running; 9 and 10 are asleep, and spread from days to seasons by `n`.
+ */
+const IDLE = [0, 10 * MIN, 20 * MIN, 25 * MIN, 3 * HOUR, 30 * HOUR, 40 * MIN, 8 * HOUR, 2 * DAY]
+const ASLEEP = [5 * DAY, 20 * DAY, 90 * DAY, 10 * DAY, 45 * DAY, 150 * DAY]
+
 export function demoThreads(now = Date.now()) {
   const out = []
   let n = 0
@@ -28,7 +38,7 @@ export function demoThreads(now = Date.now()) {
         model: 'claude-opus-5',
         effort: '',
         createdAt: now - n * 3_600_000,
-        lastActivityAt: roll === 10 ? now - 5 * 86_400_000 : now - roll * 600_000,
+        lastActivityAt: now - (roll >= 9 ? ASLEEP[(n + roll) % ASLEEP.length] : IDLE[roll]),
         lastFocusedAt: 0,
         running: roll < 3,
         unread: roll === 3 || roll === 4,

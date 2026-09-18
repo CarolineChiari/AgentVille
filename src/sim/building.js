@@ -2,6 +2,7 @@
 // session always builds the same thing; where it stands is decided by the plot's slot map.
 import { BUILDING_H, BUILDING_W, BUILD_SECONDS } from './constants.js'
 import { hashString, pick, rngFor } from './rng.js'
+import { KEPT } from './wear.js'
 
 export const KINDS = ['house', 'cottage', 'shop', 'barn', 'windmill', 'workshop', 'well', 'farm', 'tower', 'greenhouse', 'stall']
 // Weighted: homes are the common case, oddities are a pleasant surprise. Never reorder or extend
@@ -31,6 +32,7 @@ export class Building {
     this.removing = false
     this.plot = ''
     this.lit = false
+    this.wear = KEPT // how long its thread has sat untouched; see wear.js
     // Open ground above it: true on a courtyard's top row, where only the fence and the road
     // are behind it. Down the sides the house above opens its door onto the row just above.
     this.roomy = true
