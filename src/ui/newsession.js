@@ -1,31 +1,22 @@
 // The new-session form: pick a repo (or type any folder), optionally write the first prompt, go.
-import { esc } from './dom.js'
+import { agentName, esc } from './dom.js'
 
 const OTHER = '__other__'
 
-/** What the model menu offers. '' leaves it to your Claude Code default (settings.json). */
-export const MODELS = [
-  ['', 'Your default'],
-  ['fable', 'Fable'],
-  ['opus', 'Opus'],
-  ['opus[1m]', 'Opus, 1M context'],
-  ['sonnet', 'Sonnet'],
-  ['haiku', 'Haiku'],
-]
-/** The CLI's --effort levels. '' leaves it to your default. */
-export const EFFORTS = [
-  ['', 'Your default'],
-  ['low', 'Low'],
-  ['medium', 'Medium'],
-  ['high', 'High'],
-  ['xhigh', 'Extra high'],
-  ['max', 'Max'],
-]
-const TARGETS = [
-  ['vscode', 'VS Code'],
-  ['terminal', 'Terminal'],
-  ['app', 'Claude app'],
-]
+/**
+ * Only the harnesses on this machine, each with the places it can start a session here — both
+ * come from the server, which looked. A harness with nowhere to start is not offered.
+ */
+export function startableHarnesses(harnesses) {
+  return (harnesses || []).filter((h) => h.detected && Array.isArray(h.targets) && h.targets.length)
+}
+
+/** The remembered choice when it is still on offer, else the first thing that is. */
+export function pick(list, remembered, key = 'id') {
+  return list.find((x) => x[key] === remembered) || list[0] || null
+}
+
+const options = (list, selected) => list.map(([v, l]) => `<option value="${esc(v)}" ${v === selected ? 'selected' : ''}>${esc(l)}</option>`).join('')
 
 export function createNewSession(root, village, { onRemember = () => {} } = {}) {
   const box = document.createElement('div')
@@ -33,13 +24,21 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
   box.hidden = true
   root.appendChild(box)
 
+  const harnesses = () => startableHarnesses(village.harnesses)
+  const current = () => pick(harnesses(), box.querySelector('[data-f="harness"]')?.value)
+  const currentTarget = () => pick(current()?.targets || [], box.querySelector('[data-f="target"]')?.value)
+
   function render(preselect) {
     const folders = village.knownFolders()
     const pre = folders.find((f) => f.name === preselect)?.path ?? folders[0]?.path ?? OTHER
     const s = village.settings
-    const target = s.newTarget || s.openIn
-    const model = s.newModel || ''
-    const effort = s.newEffort || ''
+    const list = harnesses()
+    const h = pick(list, s.newHarness)
+    if (!h) {
+      box.innerHTML = `<h2>New session</h2><p class="note">No coding agent that AgentVille can start was found on this machine.</p>
+        <div class="actions"><button class="btn" data-act="cancel">Close</button></div>`
+      return
+    }
     box.innerHTML = `<h2>New session</h2>
       <label class="stack">Folder
         <select data-f="folder">
@@ -47,36 +46,47 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
           <option value="${OTHER}" ${pre === OTHER ? 'selected' : ''}>Another folder…</option>
         </select></label>
       <input type="text" data-f="other" placeholder="/full/path/to/folder" ${pre === OTHER ? '' : 'hidden'} spellcheck="false">
-      <div class="row3">
-        <label class="stack">Open in
-          <select data-f="target">${TARGETS.map(([v, l]) => `<option value="${v}" ${v === target ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label class="stack">Model
-          <select data-f="model">${MODELS.map(([v, l]) => `<option value="${esc(v)}" ${v === model ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label class="stack">Effort
-          <select data-f="effort">${EFFORTS.map(([v, l]) => `<option value="${v}" ${v === effort ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      </div>
+      <label class="stack" ${list.length > 1 ? '' : 'hidden'}>Agent
+        <select data-f="harness">${options(list.map((x) => [x.id, x.name]), h.id)}</select></label>
+      <div class="row3" data-f="row"></div>
       <label class="stack">First prompt <span class="hint-inline">optional</span>
-        <textarea data-f="prompt" rows="4" maxlength="1800" placeholder="What should Claude work on?"></textarea></label>
+        <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>
       <p class="note" data-f="note"></p>
       <div class="actions"><button class="btn primary" data-act="start">Start<kbd>⌘↵</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
+    renderTargets()
   }
 
-  /**
-   * Say what will happen. Only the terminal can take a model or an effort level, so picking
-   * either moves you there.
-   */
-  function explain(changed) {
-    const t = box.querySelector('[data-f="target"]')
-    const m = box.querySelector('[data-f="model"]')
-    const e = box.querySelector('[data-f="effort"]')
-    if ((changed === 'model' && m.value) || (changed === 'effort' && e.value)) t.value = 'terminal'
-    const how = [m.value ? m.selectedOptions[0].textContent : 'your default model', e.value ? `${e.selectedOptions[0].textContent.toLowerCase()} effort` : ''].filter(Boolean).join(' and ')
-    const note = {
-      vscode: 'Opens in VS Code with the prompt typed in — press Enter there to send it. VS Code uses your default model and effort; change them in its menus, or choose Terminal here.',
-      terminal: `Opens a terminal in the folder running Claude Code with ${how}${navigator.platform.startsWith('Win') ? '; your prompt goes on the clipboard' : ', starting on your prompt'}.`,
-      app: 'Opens the Claude app in the folder with your default model and effort; your prompt goes on the clipboard.',
-    }[t.value]
-    box.querySelector('[data-f="note"]').textContent = `${note} The villager walks in once the session starts.`
+  /** The "Open in" menu for the chosen harness, and its model/effort menus when that target has them. */
+  function renderTargets() {
+    const h = current()
+    const s = village.settings
+    // Claude's first choice follows the Open-in setting, as it always has.
+    const remembered = s.newTargets?.[h.id] || (h.id === 'claude-code' ? s.openIn : '')
+    const t = pick(h.targets, remembered)
+    const model = s.newModel || ''
+    const effort = s.newEffort || ''
+    box.querySelector('[data-f="row"]').innerHTML = `
+      <label class="stack">Open in
+        <select data-f="target">${options(h.targets.map((x) => [x.id, x.label]), t.id)}</select></label>
+      <span data-f="choices" style="display:contents"></span>`
+    renderChoices(model, effort)
+    box.querySelector('[data-f="prompt"]').placeholder = `What should ${agentName({ harnessName: h.name })} work on?`
+  }
+
+  function renderChoices(model = '', effort = '') {
+    const t = currentTarget()
+    const menus = [
+      t?.models && `<label class="stack">Model<select data-f="model">${options(t.models, model)}</select></label>`,
+      t?.efforts && `<label class="stack">Effort<select data-f="effort">${options(t.efforts, effort)}</select></label>`,
+    ].filter(Boolean)
+    box.querySelector('[data-f="choices"]').innerHTML = menus.join('')
+    explain()
+  }
+
+  /** Say what will happen, in the harness's own words. */
+  function explain() {
+    const t = currentTarget()
+    box.querySelector('[data-f="note"]').textContent = t ? `${t.note} The villager walks in once the session starts.` : ''
   }
 
   function folder() {
@@ -87,20 +97,26 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
   async function start() {
     const f = folder()
     if (!f) return box.querySelector('[data-f="other"]').focus()
-    const target = box.querySelector('[data-f="target"]').value
-    const model = target === 'terminal' ? box.querySelector('[data-f="model"]').value : ''
-    const effort = target === 'terminal' ? box.querySelector('[data-f="effort"]').value : ''
-    village.settings.newTarget = target
-    village.settings.newModel = model
-    village.settings.newEffort = effort
+    const h = current()
+    const t = currentTarget()
+    if (!h || !t) return
+    const model = box.querySelector('[data-f="model"]')?.value || ''
+    const effort = box.querySelector('[data-f="effort"]')?.value || ''
+    const s = village.settings
+    s.newHarness = h.id
+    s.newTargets = { ...(s.newTargets || {}), [h.id]: t.id }
+    if (t.models) s.newModel = model
+    if (t.efforts) s.newEffort = effort
     onRemember()
-    const ok = await village.startSession(f, box.querySelector('[data-f="prompt"]').value.trim(), { target, model, effort })
+    const ok = await village.startSession(f, box.querySelector('[data-f="prompt"]').value.trim(), { harness: h.id, target: t.id, model, effort })
     if (ok) close()
   }
 
   box.addEventListener('change', (e) => {
-    if (['target', 'model', 'effort'].includes(e.target.dataset.f)) explain(e.target.dataset.f)
-    if (e.target.dataset.f === 'folder') {
+    const f = e.target.dataset.f
+    if (f === 'harness') renderTargets()
+    else if (f === 'target') renderChoices(village.settings.newModel, village.settings.newEffort)
+    if (f === 'folder') {
       const other = box.querySelector('[data-f="other"]')
       other.hidden = e.target.value !== OTHER
       if (!other.hidden) other.focus()
@@ -119,9 +135,8 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
 
   function open(preselect = village.selectedPlot) {
     render(preselect)
-    explain()
     box.hidden = false
-    box.querySelector('[data-f="prompt"]').focus()
+    ;(box.querySelector('[data-f="prompt"]') || box.querySelector('[data-act="cancel"]')).focus()
   }
   function close() {
     box.hidden = true

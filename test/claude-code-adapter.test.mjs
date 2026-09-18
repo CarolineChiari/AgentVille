@@ -97,8 +97,8 @@ test('a waiting thread is unread, not running', async (t) => {
 test('openThread prefers the desktop link and refuses ids that only stringify to one', () => {
   const a = adapterFor('/nowhere')
   const d = `local_${uuid(9)}`
-  assert.deepEqual(a.openThread({ desktopSessionId: d, cliSessionId: uuid(9) }), { ok: true, url: `claude://claude.ai/epitaxy/${d}` })
-  assert.deepEqual(a.openThread({ cliSessionId: uuid(9) }), { ok: true, url: `claude://resume?session=${uuid(9)}` })
+  assert.equal(a.openThread({ desktopSessionId: d, cliSessionId: uuid(9) }).url, `claude://claude.ai/epitaxy/${d}`)
+  assert.equal(a.openThread({ cliSessionId: uuid(9) }).url, `claude://resume?session=${uuid(9)}`)
   assert.equal(a.openThread({ cliSessionId: [uuid(9)] }).ok, false)
   assert.equal(a.openThread({ desktopSessionId: { toString: () => d } }).ok, false)
   assert.equal(a.openThread(null).ok, false)

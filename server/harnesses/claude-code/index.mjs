@@ -6,11 +6,12 @@ import os from 'node:os'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readTail, exists } from '../../lib/fsutil.mjs'
-import { HARNESS_ID, isCliId, isDesktopId, isEffort, isModel, threadId } from './ids.mjs'
+import { EFFORT_CHOICES, HARNESS_ID, MODEL_CHOICES, isCliId, isDesktopId, isEffort, isModel, threadId } from './ids.mjs'
 import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
 import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
+import { folderUrl } from '../vscode-family.mjs'
 
 const NAME = 'Claude Code'
 // Enough of the head to reach the first real prompt past a long run of tool-list attachments.
@@ -226,15 +227,15 @@ export function createClaudeCodeAdapter(opts = {}) {
       if (!isCliId(r.cliSessionId)) return { ok: false, error: 'This thread only exists in the Claude app, so VS Code cannot open it.' }
       const folder = typeof r.cwd === 'string' && path.isAbsolute(r.cwd) ? r.cwd : ''
       const session = `vscode://anthropic.claude-code/open?${new URLSearchParams({ session: r.cliSessionId })}`
-      return { ok: true, url: session, urls: folder ? [vscodeFolderUrl(folder), session] : [session] }
+      return { ok: true, where: 'VS Code', url: session, urls: folder ? [vscodeFolderUrl(folder), session] : [session] }
     }
     // Navigating the desktop app to a thread it already has is preferred. `resume` imports the
     // transcript as a second session, so it is only for threads that exist only as a CLI file.
     if (isDesktopId(r.desktopSessionId)) {
-      return { ok: true, url: `claude://claude.ai/epitaxy/${r.desktopSessionId}` }
+      return { ok: true, where: 'the Claude app', url: `claude://claude.ai/epitaxy/${r.desktopSessionId}` }
     }
     if (isCliId(r.cliSessionId)) {
-      return { ok: true, url: `claude://resume?${new URLSearchParams({ session: r.cliSessionId })}` }
+      return { ok: true, where: 'the Claude app', url: `claude://resume?${new URLSearchParams({ session: r.cliSessionId })}` }
     }
     return { ok: false, error: 'This thread has no id Claude can open.' }
   }
@@ -286,27 +287,47 @@ export function createClaudeCodeAdapter(opts = {}) {
       if (!exe) return { ok: false, error: "Couldn't find the claude command. Install Claude Code's CLI to start sessions in a terminal." }
       const text = typeof prompt === 'string' ? prompt.trim().slice(0, 20000) : ''
       const args = [...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])]
-      return { ok: true, terminal: { exe, args, cwd: dir, prompt: text } }
+      return { ok: true, where: 'a terminal', terminal: { exe, args, cwd: dir, prompt: text } }
     }
     if (target === 'vscode') {
       const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''
       const open = `vscode://anthropic.claude-code/open${text ? `?${new URLSearchParams({ prompt: text })}` : ''}`
-      return { ok: true, url: open, urls: [vscodeFolderUrl(dir), open] }
+      return { ok: true, where: 'VS Code', promptPassed: Boolean(text), url: open, urls: [vscodeFolderUrl(dir), open] }
     }
-    return { ok: true, url: `claude://code/new?${new URLSearchParams({ folder: dir })}` }
+    return { ok: true, where: 'the Claude app', url: `claude://code/new?${new URLSearchParams({ folder: dir })}` }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, readTranscript, paths: { ...cli } }
+  /**
+   * Where a new session can start on this machine. The terminal needs the CLI and the app needs
+   * the app, so each is offered only once it is found. VS Code is always offered: its extension
+   * keeps nothing we could look for until it has run once.
+   */
+  async function targets() {
+    const out = [{
+      id: 'vscode',
+      label: 'VS Code',
+      note: 'Opens in VS Code with the prompt typed in — press Enter there to send it. VS Code uses your default model and effort; change them in its menus, or choose Terminal here.',
+    }]
+    if (opts.claudePath ?? (await findClaude({ home, env, platform }))) {
+      out.push({
+        id: 'terminal',
+        label: 'Terminal',
+        note: `Opens a terminal in the folder running Claude Code${platform === 'win32' ? '; your prompt goes on the clipboard' : ', starting on your prompt'}.`,
+        models: MODEL_CHOICES,
+        efforts: EFFORT_CHOICES,
+      })
+    }
+    const root = await desktopRoot()
+    if (root && (await exists(root))) {
+      out.push({ id: 'app', label: 'Claude app', note: 'Opens the Claude app in the folder with your default model and effort; your prompt goes on the clipboard.' })
+    }
+    return out
+  }
+
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, paths: { ...cli } }
 }
 
-/**
- * `vscode://file/<path>` opens a folder in VS Code, or focuses the window that already has it.
- * Windows paths go forward-slashed (`vscode://file/C:/code/app`); each segment is escaped.
- */
-export function vscodeFolderUrl(dir) {
-  const parts = String(dir).split(/[\\/]/).filter(Boolean)
-  const drive = /^[A-Za-z]:$/.test(parts[0] || '') ? parts.shift() + '/' : ''
-  return `vscode://file/${drive}${parts.map(encodeURIComponent).join('/')}/`
-}
+/** `vscode://file/<path>/`: opens the folder in VS Code, or focuses the window that has it. */
+export const vscodeFolderUrl = (dir) => folderUrl('vscode', dir)
 
 export default createClaudeCodeAdapter()

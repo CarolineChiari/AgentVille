@@ -19,9 +19,11 @@ const CMD_SPECIAL = /["%^&|<>!\r\n]/
 
 /**
  * The text of the macOS launch script. Exported for tests: what matters is what it does not do.
- * @param {{ cwd: string, exe: string, args: string[], promptFile?: string, self: string }} o
+ * `promptArgs` go just before the prompt and only with it: `copilot -i <prompt>` needs its flag,
+ * and a bare `-i` with no prompt after it would be an error.
+ * @param {{ cwd: string, exe: string, args: string[], promptArgs?: string[], promptFile?: string, self: string }} o
  */
-export function commandScript({ cwd, exe, args, promptFile, self }) {
+export function commandScript({ cwd, exe, args, promptArgs = [], promptFile, self }) {
   const lines = [
     '#!/bin/zsh -l',
     `rm -f -- ${shq(self)}`,
@@ -30,7 +32,7 @@ export function commandScript({ cwd, exe, args, promptFile, self }) {
   const argv = [shq(exe), ...args.map(shq)].join(' ')
   if (promptFile) {
     lines.push(`AGENTVILLE_PROMPT="$(cat -- ${shq(promptFile)})"`, `rm -f -- ${shq(promptFile)}`)
-    lines.push(`exec ${argv} "$AGENTVILLE_PROMPT"`)
+    lines.push(`exec ${[argv, ...promptArgs.map(shq)].join(' ')} "$AGENTVILLE_PROMPT"`)
   } else {
     lines.push(`exec ${argv}`)
   }
@@ -38,7 +40,7 @@ export function commandScript({ cwd, exe, args, promptFile, self }) {
 }
 
 /**
- * @param {{ exe: string, args: string[], cwd: string, prompt?: string }} spec
+ * @param {{ exe: string, args: string[], cwd: string, prompt?: string, promptArgs?: string[] }} spec
  * @param {{ dataDir: string, platform?: string, spawn?: Function }} opts
  * @returns {Promise<{ ok: true, promptPassed: boolean } | { ok: false, error: string }>}
  */
@@ -61,7 +63,8 @@ export async function openInTerminal(spec, { dataDir, platform = process.platfor
     const self = path.join(dir, `${id}.command`)
     const promptFile = prompt ? path.join(dir, `${id}.prompt.txt`) : undefined
     if (promptFile) await fsp.writeFile(promptFile, prompt, { mode: 0o600 })
-    await fsp.writeFile(self, commandScript({ cwd, exe, args, promptFile, self }), { mode: 0o700 })
+    const promptArgs = Array.isArray(spec.promptArgs) ? spec.promptArgs.map(String) : []
+    await fsp.writeFile(self, commandScript({ cwd, exe, args, promptArgs, promptFile, self }), { mode: 0o700 })
     // `open` hands a .command file to whatever terminal the person uses for them (Terminal by default).
     run('open', [self])
     return { ok: true, promptPassed: Boolean(prompt) }

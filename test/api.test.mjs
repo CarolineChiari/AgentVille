@@ -15,6 +15,7 @@ const fakeHarness = {
   scanThreads: async () => [{ id: 'fake:1', title: 'One', lastActivityAt: 1, ref: { sid: '1' } }],
   openThread: (ref) => (ref?.sid === '1' ? { ok: true, url: 'fake://1' } : { ok: false, error: 'nope' }),
   newSession: (dir) => ({ ok: true, url: `fake://new?${dir}` }),
+  targets: async () => [{ id: 'vscode', label: 'VS Code', note: '' }, { id: 'terminal', label: 'Terminal', note: '' }],
 }
 
 before(async () => {
@@ -53,7 +54,7 @@ test('threads endpoint returns the documented shape', async () => {
 
 test('harnesses endpoint reports detection and platform', async () => {
   const body = await (await fetch(`${base}/api/harnesses`)).json()
-  assert.deepEqual(body.harnesses, [{ id: 'fake', name: 'Fake', detected: true }])
+  assert.deepEqual(body.harnesses.map(({ targets, ...h }) => ({ ...h, targets: targets.map((t) => t.id) })), [{ id: 'fake', name: 'Fake', detected: true, targets: ['vscode', 'terminal'] }])
   assert.equal(body.platform, 'test')
 })
 
@@ -157,4 +158,18 @@ test('new-session passes the prompt and model through, and runs terminal launche
   assert.equal(r.status, 200)
   assert.equal(terminals.length, 1)
   assert.deepEqual(seen, { target: 'terminal', prompt: '', model: 'opus', effort: 'high' })
+})
+
+test('new-session only uses a target the harness offers on this machine', async () => {
+  let seen
+  fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, url: 'fake://new' })
+  await post('/api/new-session', { folder: os.tmpdir(), target: 'app' })
+  assert.equal(seen.target, 'vscode', 'an unoffered target falls back to the first offered one')
+  await post('/api/new-session', { folder: os.tmpdir(), target: ['terminal'] })
+  assert.equal(seen.target, 'vscode', 'a target must be a string')
+  const saved = fakeHarness.targets
+  fakeHarness.targets = async () => []
+  const r = await post('/api/new-session', { folder: os.tmpdir(), target: 'vscode' })
+  fakeHarness.targets = saved
+  assert.equal(r.status, 400)
 })

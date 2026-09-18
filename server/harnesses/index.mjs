@@ -1,7 +1,10 @@
 // The registry. Adding a harness is one new directory here plus one line in this list.
 import claudeCode from './claude-code/index.mjs'
+import copilot from './copilot/index.mjs'
+import cursor from './cursor/index.mjs'
+import antigravity from './antigravity/index.mjs'
 
-export const HARNESSES = [claudeCode]
+export const HARNESSES = [claudeCode, copilot, cursor, antigravity]
 
 export const harnessById = (id, list = HARNESSES) => list.find((h) => h.id === id) || null
 

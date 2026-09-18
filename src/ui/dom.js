@@ -26,3 +26,12 @@ export function bytes(n) {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
+
+/** The Open button's words. A harness with one place to go names it; Claude follows the Open-in setting. */
+export function openLabel(t, openIn) {
+  if (t?.opensIn) return `Open in ${t.opensIn}`
+  return openIn === 'vscode' ? 'Open in VS Code' : 'Open'
+}
+
+/** Who is talking in a transcript, short: 'Claude', 'Copilot', 'Cursor'. */
+export const agentName = (t) => ({ 'Claude Code': 'Claude', 'GitHub Copilot': 'Copilot' })[t?.harnessName] || t?.harnessName || 'Claude'

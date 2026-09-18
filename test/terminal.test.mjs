@@ -44,3 +44,10 @@ test('on Windows cmd-special paths are refused and the prompt is left to the cli
   assert.deepEqual(ok, { ok: true, promptPassed: false })
   assert.equal(calls[0].args[0], '/c start "" /D "C:\\work\\app" "C:\\bin\\claude.exe" "--model" "sonnet"')
 })
+
+test('prompt flags go just before the prompt, and only when there is one', () => {
+  const withPrompt = commandScript({ cwd: '/w', exe: '/bin/copilot', args: [], promptArgs: ['-i'], promptFile: '/d/p.txt', self: '/d/x.command' })
+  assert.ok(withPrompt.includes(`exec '/bin/copilot' '-i' "$AGENTVILLE_PROMPT"`))
+  const without = commandScript({ cwd: '/w', exe: '/bin/copilot', args: [], promptArgs: ['-i'], self: '/d/x.command' })
+  assert.ok(without.includes(`exec '/bin/copilot'\n`), 'a bare -i would be an error')
+})

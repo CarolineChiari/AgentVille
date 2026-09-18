@@ -71,9 +71,14 @@ export async function scanThreads(opts) {
   return (await scanAll(opts)).threads
 }
 
+/** Every harness, whether it is on this machine, and — only if it is — where it can start a session. */
 export async function harnessStatus({ harnesses = HARNESSES } = {}) {
   return Promise.all(
-    harnesses.map(async (h) => ({ id: h.id, name: h.name, detected: await h.detect().catch(() => false) })),
+    harnesses.map(async (h) => {
+      const detected = await h.detect().catch(() => false)
+      const targets = detected && h.targets ? await h.targets().catch(() => []) : []
+      return { id: h.id, name: h.name, detected, targets }
+    }),
   )
 }
 

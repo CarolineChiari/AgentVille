@@ -98,11 +98,14 @@ export function createApiMiddleware(opts = {}) {
     for (const t of threads) if (t.project && t.projectPath && !projects.has(t.project)) projects.set(t.project, t.projectPath)
   }
 
-  // An adapter may hand back several URLs to open in order (folder first, then session).
-  const launch = (result) =>
-    Array.isArray(result.urls) && result.urls.length > 1 && opener.launchAll
+  // An adapter may hand back several URLs to open in order (folder first, then session), or a
+  // terminal window to run a command in.
+  const launch = async (result) => {
+    if (result.terminal) return terminal(result.terminal)
+    return Array.isArray(result.urls) && result.urls.length > 1 && opener.launchAll
       ? opener.launchAll(result.urls)
       : opener.launch(result.urls?.[0] ?? result.url)
+  }
 
   const routes = {
     'GET /api/threads': async () => {
@@ -139,7 +142,7 @@ export function createApiMiddleware(opts = {}) {
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot open this thread.' }]
       const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
-      return [200, { ok: true, url: result.url, note: result.note }]
+      return [200, { ok: true, url: result.url, where: result.where || '', note: result.note }]
     },
 
     'POST /api/new-session': async (body) => {
@@ -147,19 +150,20 @@ export function createApiMiddleware(opts = {}) {
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const h = body?.harness ? harnessById(body.harness, harnesses) : await defaultHarness({ harnesses })
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
-      const target = ['vscode', 'terminal'].includes(body?.target) ? body.target : 'app'
+      // Only a target this harness offers on this machine right now.
+      const offered = h.targets ? (await h.targets()).map((t) => t.id) : []
+      const target = typeof body?.target === 'string' && offered.includes(body.target) ? body.target : offered[0]
+      if (!target) return [400, { ok: false, error: `${h.name} has no way to start a session on this machine.` }]
       const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
       const model = typeof body?.model === 'string' ? body.model : ''
       const effort = typeof body?.effort === 'string' ? body.effort : ''
       const result = await h.newSession(dir, { target, prompt, model, effort })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
-      if (result.terminal) {
-        const t = await terminal(result.terminal)
-        return t.ok ? [200, { ok: true, promptPassed: t.promptPassed }] : [500, { ok: false, error: t.error }]
-      }
       const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
-      return [200, { ok: true, url: result.url, promptPassed: target === 'vscode' }]
+      // A terminal knows whether the prompt made it (Windows can't take one); otherwise the adapter says.
+      const promptPassed = result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed)
+      return [200, { ok: true, url: result.url, where: result.where || '', promptPassed }]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

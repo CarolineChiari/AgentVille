@@ -59,12 +59,12 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
 
     side.innerHTML = `
-      <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new Claude Code session (C)">+ New session</button></div>
+      <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new session (C)">+ New session</button></div>
       <div class="brand-sub"><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
       <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k])}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
-        ${repos.length ? '' : `<p style="color:var(--muted)">${village.loaded ? 'No sessions found yet. Start one in Claude Code and it will walk in.' : 'Reading your sessions…'}</p>`}
+        ${repos.length ? '' : `<p style="color:var(--muted)">${village.loaded ? 'No sessions found yet. Start one and it will walk in.' : 'Reading your sessions…'}</p>`}
         ${repos.map((r) => repoRow(r, r.name === sel)).join('')}
         ${section('folded', `Resting (${foldedNames.length})`, foldedNames.map((n) => `<button class="repo" data-act="wake" data-name="${esc(n)}" title="Every thread here has been quiet for three days"><span class="dot" style="background:var(--muted)"></span><span class="name">${esc(n)}</span></button>`).join(''), foldedNames.length)}
         ${section('hidden', `Hidden (${hiddenNames.length})`, hiddenNames.map((n) => `<button class="repo" data-act="unhide" data-name="${esc(n)}"><span class="dot" style="background:var(--muted)"></span><span class="name">${esc(n)}</span><span class="badges"><span>Show</span></span></button>`).join(''), hiddenNames.length)}
@@ -125,7 +125,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     } else {
       const s = settings
       sheet.innerHTML = `<h2>Settings</h2>
-        <label>Open threads in
+        <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>

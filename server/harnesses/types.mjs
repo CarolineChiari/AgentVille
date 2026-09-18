@@ -29,6 +29,8 @@
  * @property {number}  sizeBytes       Transcript size in bytes
  * @property {string}  source          Free-form bookkeeping (`'desktop'` / `'cli'`)
  * @property {boolean} canOpen
+ * @property {string}  opensIn         Where Open always goes ('VS Code', 'Cursor'), or '' when it
+ *                                     follows the person's Open-in setting
  * @property {object}  ref             Opaque; handed straight back on open
  *
  * @typedef {object} HarnessAdapter
@@ -37,17 +39,26 @@
  * @property {() => Promise<boolean>} detect               Cheap: runs on every scan
  * @property {() => Promise<Thread[]>} scanThreads         Throwing costs only this harness's threads
  * @property {(ref: object, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} openThread
- * @property {(dir: string, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} newSession
+ *           `target` is the person's Open-in preference; a harness with only one place ignores it.
+ * @property {(dir: string, opts?: { target?: string, prompt?: string, model?: string, effort?: string }) => OpenResult | Promise<OpenResult>} newSession
+ * @property {() => Promise<Target[]>} targets             Where a new session can start *on this machine*
  *
  * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
  *           Optional: the conversation, for the transcript panel.
  *
- * `urls`, when present, are opened in order with a short pause between them.
- * @typedef {{ ok: true, url: string, urls?: string[], note?: string } | { ok: false, error: string }} OpenResult
+ * One way to start a session. `models` / `efforts`, when present, are `[value, label]` menus the
+ * form offers for this target only; '' means the harness's own default.
+ * @typedef {{ id: string, label: string, note: string, models?: string[][], efforts?: string[][] }} Target
+ *
+ * `urls`, when present, are opened in order with a short pause between them. `terminal` instead
+ * asks for a terminal window running `exe` (see server/terminal.mjs). `where` finishes the
+ * sentence "Opening … in"; `promptPassed` says the prompt travelled with it, so the page need
+ * not put it on the clipboard.
+ * @typedef {{ ok: true, url?: string, urls?: string[], terminal?: object, where?: string, promptPassed?: boolean, note?: string } | { ok: false, error: string }} OpenResult
  */
 
 export const THREAD_FIELDS = [
   'id', 'harness', 'harnessName', 'title', 'preview', 'project', 'projectPath', 'worktree', 'cwd',
   'gitBranch', 'model', 'effort', 'createdAt', 'lastActivityAt', 'lastFocusedAt', 'running', 'unread',
-  'hasError', 'prState', 'prNumber', 'prUrl', 'archived', 'sizeBytes', 'source', 'canOpen', 'ref',
+  'hasError', 'prState', 'prNumber', 'prUrl', 'archived', 'sizeBytes', 'source', 'canOpen', 'opensIn', 'ref',
 ]

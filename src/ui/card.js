@@ -1,5 +1,5 @@
 // The thread card: parked beside the selected villager, following it around the screen.
-import { esc, ago, bytes } from './dom.js'
+import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
@@ -32,6 +32,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
     const statusColor = { waiting: BADGE.waiting, blocked: BADGE.blocked, working: BADGE.working, done: BADGE.done, celebrating: BADGE.party }[t.status]
     const meta = [
       ['Repo', t.project],
+      village.harnesses.filter((h) => h.detected).length > 1 && ['Agent', t.harnessName],
       t.worktree && ['Worktree', t.worktree],
       t.gitBranch && ['Branch', t.gitBranch],
       t.model && ['Model', t.model],
@@ -50,9 +51,9 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
-        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
+        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
-        ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until Claude does something new">Reviewed<kbd>V</kbd></button>' : ''}
+        ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
       </div>`
   }
@@ -69,7 +70,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       ['Finished', ago(f.finishedAt)],
       ['Transcript', bytes(t.sizeBytes)],
     ].filter(Boolean)
-    // Archived in the Claude app itself can only be undone there.
+    // Archived in the harness's own app can only be undone there.
     const restorable = !t.archived
     card.innerHTML = `
       <div class="head">
@@ -83,9 +84,9 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       ${t.preview && t.preview !== t.title ? `<p class="preview">${esc(t.preview)}</p>` : ''}
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       <div class="actions">
-        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
+        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
-        ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : '<span class="note">Archived in Claude</span>'}
+        ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : `<span class="note">Archived in ${esc(t.harnessName || 'Claude')}</span>`}
       </div>`
     const c = card.querySelector('canvas.avatar')
     const g = c.getContext('2d')

@@ -322,11 +322,10 @@ export class Village {
     const t = this.thread(id)
     if (!t) return
     if (this.demo) return this.toast('Demo mode: nothing to open.')
-    if (!t.canOpen) return this.toast('This thread has nothing Claude can open.', 'error')
-    const target = this.settings.openIn
+    if (!t.canOpen) return this.toast(`This thread has nothing ${t.harnessName || 'Claude'} can open.`, 'error')
     try {
-      const r = await api.openThread(t.harness, t.ref, target)
-      this.toast(r.note || `Opening “${t.title}” in ${target === 'vscode' ? 'VS Code' : 'the Claude app'}`)
+      const r = await api.openThread(t.harness, t.ref, this.settings.openIn)
+      this.toast(r.note || `Opening “${t.title}”${r.where ? ` in ${r.where}` : ''}`)
     } catch (err) {
       this.toast(err.message, 'error')
     }
@@ -376,19 +375,20 @@ export class Village {
   }
 
   /**
-   * Start a session in a folder, optionally with a first prompt (prefilled in VS Code, copied to
-   * the clipboard for the Claude app, whose link can't carry one). The new villager walks in from
-   * the gate once the session writes its transcript, so look again a few times soon after.
+   * Start a session in a folder with one of the detected harnesses, optionally with a first prompt
+   * (sent along where the harness's link or CLI can carry it, copied to the clipboard where it
+   * can't). The new villager walks in from the gate once the session writes its transcript, so
+   * look again a few times soon after.
    */
-  async startSession(folder, prompt = '', { target = this.settings.openIn, model = '', effort = '' } = {}) {
+  async startSession(folder, prompt = '', { harness = '', target = '', model = '', effort = '' } = {}) {
     if (!folder) return false
     if (this.demo) {
       this.toast('Demo mode: nothing to start.')
       return false
     }
-    const where = { vscode: 'VS Code', terminal: 'a terminal', app: 'the Claude app' }[target] || 'Claude'
     try {
-      const r = await api.newSession(folder, target, prompt, model, effort)
+      const r = await api.newSession(folder, { harness, target, prompt, model, effort })
+      const where = r.where || 'a new window'
       // Wherever the prompt couldn't travel with the session, it goes to the clipboard instead.
       const copied = prompt && !r.promptPassed && (await navigator.clipboard.writeText(prompt).then(() => true, () => false))
       const how = [model, effort && `${effort} effort`].filter(Boolean).join(', ')

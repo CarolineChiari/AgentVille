@@ -1,6 +1,6 @@
 // The transcript panel: a thread's conversation, read from its transcript on disk. Refreshes
 // itself while the thread is live, and keeps you at the bottom only if you were already there.
-import { esc, ago } from './dom.js'
+import { esc, ago, openLabel, agentName } from './dom.js'
 import { STATUS_LABEL } from '../sim/status.js'
 
 const LIVE_REFRESH_MS = 3000
@@ -73,14 +73,14 @@ export function createTranscript(root, village) {
     return `<div class="t-head">
       <div style="min-width:0;flex:1"><b title="${esc(t.title)}">${esc(t.title)}</b>
         <span class="t-sub">${esc(t.project)}${t.status ? ` · ${esc(STATUS_LABEL[t.status] || '')}` : ''} · ${ago(t.lastActivityAt)}</span></div>
-      <button class="btn primary" data-act="open">${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}</button>
+      <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}</button>
       <button class="btn" data-act="close" title="Close (T)">✕</button>
     </div>`
   }
 
-  function message(m) {
+  function message(m, who) {
     if (m.role === 'tool') return `<div class="m tool"><span class="tn">${esc(m.name)}</span> ${esc(m.detail || '')}</div>`
-    return `<div class="m ${m.role}"><div class="who">${m.role === 'user' ? 'You' : 'Claude'}<span>${m.at ? ago(m.at) : ''}</span></div><div class="body">${formatText(m.text)}</div></div>`
+    return `<div class="m ${m.role}"><div class="who">${m.role === 'user' ? 'You' : esc(who)}<span>${m.at ? ago(m.at) : ''}</span></div><div class="body">${formatText(m.text)}</div></div>`
   }
 
   async function load() {
@@ -99,7 +99,7 @@ export function createTranscript(root, village) {
     panel.innerHTML = `${header(t)}<div class="t-list">${
       !r.ok
         ? `<p class="t-empty">${esc(r.error || 'No transcript.')}</p>`
-        : `${r.total > r.messages.length ? `<button class="btn t-more" data-act="more">Show earlier (${r.total - r.messages.length} more)</button>` : ''}${r.messages.map(message).join('') || '<p class="t-empty">Nothing said yet.</p>'}`
+        : `${r.total > r.messages.length ? `<button class="btn t-more" data-act="more">Show earlier (${r.total - r.messages.length} more)</button>` : ''}${r.messages.map((m) => message(m, agentName(t))).join('') || '<p class="t-empty">Nothing said yet.</p>'}`
     }</div>`
     const next = panel.querySelector('.t-list')
     // Stay pinned to the newest message if you were reading there; after "show earlier", keep the

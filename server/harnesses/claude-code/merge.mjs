@@ -113,6 +113,7 @@ export function toThread(entry, harnessName) {
     sizeBytes: entry.sizeBytes,
     source: entry.source,
     canOpen: isDesktopId(entry.desktopSessionId) || isCliId(entry.cliSessionId),
+    opensIn: '',
     ref: {
       desktopSessionId: entry.desktopSessionId,
       desktopSessionIds: entry.desktopSessionIds,

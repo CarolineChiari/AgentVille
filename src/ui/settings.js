@@ -5,8 +5,9 @@ const KEY = 'agentville.settings'
 export const DEFAULTS = {
   hideDormant: true,
   prGardens: true, // grow flowers from the repo's pull requests (reads GitHub through `gh`)
-  openIn: 'vscode', // 'vscode' | 'app' — where Open sends you, and New session by default
-  newTarget: '', // last 'Open in' chosen in the new-session form ('' = follow openIn)
+  openIn: 'vscode', // 'vscode' | 'app' — where Open sends a Claude Code thread, and its New session default
+  newHarness: '', // last agent chosen in the new-session form ('' = the first one found)
+  newTargets: {}, // harness id → last 'Open in' chosen for it (Claude's falls back to openIn)
   newModel: '', // last model chosen there ('' = your Claude Code default)
   newEffort: '', // last effort chosen there ('' = your default)
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`

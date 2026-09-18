@@ -20,3 +20,23 @@ export const isModel = (v) => typeof v === 'string' && MODEL_RE.test(v)
 /** Effort levels the CLI's --effort flag accepts. */
 export const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max'])
 export const isEffort = (v) => typeof v === 'string' && EFFORTS.has(v)
+
+/** The model menu for a terminal session. '' leaves it to your Claude Code default (settings.json). */
+export const MODEL_CHOICES = [
+  ['', 'Your default'],
+  ['fable', 'Fable'],
+  ['opus', 'Opus'],
+  ['opus[1m]', 'Opus, 1M context'],
+  ['sonnet', 'Sonnet'],
+  ['haiku', 'Haiku'],
+]
+
+/** The effort menu for a terminal session. '' leaves it to your default. */
+export const EFFORT_CHOICES = [
+  ['', 'Your default'],
+  ['low', 'Low'],
+  ['medium', 'Medium'],
+  ['high', 'High'],
+  ['xhigh', 'Extra high'],
+  ['max', 'Max'],
+]
