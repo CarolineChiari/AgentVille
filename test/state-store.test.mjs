@@ -44,3 +44,15 @@ test('a stale base is refused with the current state', async (t) => {
     return true
   })
 })
+
+test('a repo\'s own tasks are kept, cleaned, and an emptied list is dropped', () => {
+  const s = normalizeState({
+    tasks: {
+      app: [{ id: 'c-deploy', label: ' Deploy ', prompt: 'Ship it.' }, { id: 'bad id', label: 'x', prompt: 'y' }],
+      empty: [],
+      junk: 'nope',
+    },
+  })
+  assert.deepEqual(s.tasks, { app: [{ id: 'c-deploy', label: 'Deploy', prompt: 'Ship it.' }] })
+  assert.deepEqual(normalizeState({ tasks: [1, 2] }).tasks, {})
+})

@@ -35,7 +35,8 @@
       "electron/**",
       "server/**",
       "dist/**",
-      "src/render/sprites/palette.js"
+      "src/render/sprites/palette.js",
+      "src/game/tasks.js"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",

@@ -37,4 +37,49 @@ export const TASKS = [
   },
 ]
 
-export const taskById = (id) => TASKS.find((t) => t.id === id) || null
+// A custom task is saved in village.json, which a person can edit by hand: these bound what it can
+// hold. The prompt limit matches the new-session form's textarea, so a task always fits there.
+export const LABEL_MAX = 40
+export const PROMPT_MAX = 1800
+export const CUSTOM_MAX = 20
+const CUSTOM_ID = /^c-[a-z0-9-]{1,48}$/
+
+/** A custom task as saved, or null when it isn't one. */
+export function cleanTask(t) {
+  if (!t || typeof t !== 'object') return null
+  const label = typeof t.label === 'string' ? t.label.trim().slice(0, LABEL_MAX) : ''
+  const prompt = typeof t.prompt === 'string' ? t.prompt.trim().slice(0, PROMPT_MAX) : ''
+  if (typeof t.id !== 'string' || !CUSTOM_ID.test(t.id) || !label || !prompt) return null
+  return { id: t.id, label, prompt }
+}
+
+/** A folder's own tasks, cleaned, without duplicates, at most CUSTOM_MAX. */
+export function cleanTasks(list) {
+  const out = []
+  const ids = new Set()
+  for (const t of Array.isArray(list) ? list : []) {
+    const c = cleanTask(t)
+    if (c && !ids.has(c.id) && out.length < CUSTOM_MAX) {
+      ids.add(c.id)
+      out.push(c)
+    }
+  }
+  return out
+}
+
+/**
+ * A new id from the label, unique within the folder. The `c-` prefix keeps a custom task from
+ * ever colliding with a built-in one.
+ */
+export function customId(label, taken = []) {
+  const slug = String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'task'
+  const used = new Set(taken)
+  let id = `c-${slug}`
+  for (let n = 2; used.has(id); n++) id = `c-${slug}-${n}`
+  return id
+}
+
+/** Every task a folder offers: the built-in ones, then its own. */
+export const tasksFor = (custom = []) => [...TASKS, ...cleanTasks(custom)]
+
+export const taskById = (id, custom = []) => tasksFor(custom).find((t) => t.id === id) || null

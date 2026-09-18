@@ -3,11 +3,10 @@ import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
-import { TASKS } from '../game/tasks.js'
 
 const GAP = 18
 
-export function createCard(root, village, { onTranscript = () => {} } = {}) {
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -35,6 +34,9 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         fill(t)
         drawAvatar(village.world.villager(village.selected))
       }
+    } else if (act === 'editTasks') {
+      const t = village.thread(village.selected)
+      if (t) onEditTasks(t.project)
     } else if (act === 'task') {
       tasksOpen = false
       village.runTask(village.selected, b.dataset.task)
@@ -82,7 +84,8 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       ? 'Continues this conversation in a terminal, or starts a new session here if it can’t.'
       : `Starts a new ${esc(t.harnessName || 'agent')} session in this folder.`
     return `<div class="tasks">
-      ${TASKS.map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}
+      ${village.tasksFor(t.project).map((x) => `<button class="btn${x.id.startsWith('c-') ? ' custom' : ''}" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}
+      <button class="btn link" data-act="editTasks" title="Add tasks of your own for ${esc(t.project)}">+ Edit tasks</button>
       <p class="note">${how}</p>
     </div>`
   }
@@ -185,7 +188,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         return
       }
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? 'f' : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
+      const key = `${flower ? 'f' : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}`
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)

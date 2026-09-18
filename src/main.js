@@ -12,6 +12,7 @@ import { createCard } from './ui/card.js'
 import { createToasts } from './ui/toast.js'
 import { createTranscript } from './ui/transcript.js'
 import { createNewSession } from './ui/newsession.js'
+import { createTaskEditor } from './ui/taskeditor.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
@@ -33,7 +34,9 @@ let hoverPlot = null
 const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed() })
 const transcript = createTranscript(hudRoot, village)
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
+const taskEditor = createTaskEditor(hudRoot, village)
 const card = createCard(hudRoot, village, {
+  onEditTasks: (project) => taskEditor.open(project),
   onTranscript: (id) => {
     transcript.toggle(id)
     // Bring the villager (or flower) into the part of the map the panel leaves visible.
@@ -50,6 +53,7 @@ const hud = createHud(hudRoot, {
   },
   onFly: fly,
   onNewSession: (repo) => newSession.open(repo),
+  onEditTasks: (repo) => taskEditor.open(repo),
 })
 const ui = {
   changed() {

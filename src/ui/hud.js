@@ -33,7 +33,7 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {} }) {
+export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {} }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -111,6 +111,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn primary" data-act="new">New session<kbd>C</kbd></button>
         <button class="btn" data-act="reveal">${folderWord()}</button>
         <button class="btn" data-act="copy">Copy path</button>
+        <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${r.flowers ? `<div class="garden-note">✿ ${r.flowers} finished — click a flower in the garden to look back</div>` : ''}
@@ -155,6 +156,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'newAny': onNewSession(village.selectedPlot); break
       case 'reveal': village.reveal(); break
       case 'copy': village.copyPath(); break
+      case 'tasks': onEditTasks(village.selectedPlot); break
       case 'hide': village.hide(); break
       case 'unhide': village.unhide(name); break
       case 'unarchive': village.unarchive(id); break

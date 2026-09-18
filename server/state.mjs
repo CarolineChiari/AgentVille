@@ -1,6 +1,7 @@
 // data/village.json: the only file AgentVille writes, anywhere.
 import fsp from 'node:fs/promises'
 import path from 'node:path'
+import { cleanTasks } from '../src/game/tasks.js'
 
 export const STATE_VERSION = 1
 const FILE = 'village.json'
@@ -14,6 +15,7 @@ export function emptyState() {
     seen: {},
     hiddenProjects: [],
     viewedAt: {},
+    tasks: {},
     settings: null,
     updatedAt: 0,
   }
@@ -39,6 +41,18 @@ const plotMap = (v) => {
   return out
 }
 
+/** Repo name → its own tasks. An emptied list is dropped rather than kept as []. */
+const taskMap = (v) => {
+  const out = {}
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    for (const [k, list] of Object.entries(v)) {
+      const ok = cleanTasks(list)
+      if (ok.length) out[k] = ok
+    }
+  }
+  return out
+}
+
 /** Every field coerced to its type; unknown fields dropped. A hand-edited file cannot crash the page. */
 export function normalizeState(raw) {
   const s = raw && typeof raw === 'object' ? raw : {}
@@ -50,6 +64,7 @@ export function normalizeState(raw) {
     seen: numberMap(s.seen),
     hiddenProjects: strings(s.hiddenProjects),
     viewedAt: numberMap(s.viewedAt),
+    tasks: taskMap(s.tasks),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }

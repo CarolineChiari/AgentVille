@@ -5,13 +5,13 @@ import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
 import { demoThreads } from './demo.js'
-import { taskById } from './tasks.js'
+import { CUSTOM_MAX, cleanTask, customId, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 
 const SAVE_DELAY = 500
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, settings: null, updatedAt: 0,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, settings: null, updatedAt: 0,
 })
 
 export class Village {
@@ -409,7 +409,7 @@ export class Village {
    */
   async runTask(id, taskId) {
     const t = this.thread(id)
-    const task = taskById(taskId)
+    const task = t && taskById(taskId, this.customTasks(t.project))
     if (!t || !task) return
     if (this.demo) return this.toast('Demo mode: nothing to send.')
     // Two processes answering one conversation would talk over each other.
@@ -426,6 +426,49 @@ export class Village {
     } catch (err) {
       this.toast(err.message, 'error')
     }
+  }
+
+  /** A repo's own tasks, as saved. */
+  customTasks(project) {
+    return this.state.tasks?.[project] || []
+  }
+
+  /** Every task a repo offers: the built-in ones, then its own. */
+  tasksFor(project) {
+    return tasksFor(this.customTasks(project))
+  }
+
+  /**
+   * Add a task to a repo, or replace one of its own when `id` names it. Returns false (and says
+   * why) when there is nothing to save.
+   */
+  saveTask(project, { id = '', label = '', prompt = '' }) {
+    if (!project) return false
+    const list = this.customTasks(project)
+    const i = list.findIndex((x) => x.id === id)
+    const task = cleanTask({ id: i >= 0 ? id : customId(label, list.map((x) => x.id)), label, prompt })
+    if (!task) {
+      this.toast('A task needs a name and a prompt.', 'error')
+      return false
+    }
+    if (i < 0 && list.length >= CUSTOM_MAX) {
+      this.toast(`${project} already has ${CUSTOM_MAX} tasks of its own.`, 'error')
+      return false
+    }
+    this.state.tasks = { ...this.state.tasks, [project]: i >= 0 ? list.map((x, j) => (j === i ? task : x)) : [...list, task] }
+    this.queueSave()
+    this.onChange()
+    return true
+  }
+
+  removeTask(project, id) {
+    const list = this.customTasks(project).filter((x) => x.id !== id)
+    const tasks = { ...this.state.tasks }
+    if (list.length) tasks[project] = list
+    else delete tasks[project]
+    this.state.tasks = tasks
+    this.queueSave()
+    this.onChange()
   }
 
   /** Every folder the village knows, for the new-session picker: repos with plots first. */

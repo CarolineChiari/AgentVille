@@ -39,3 +39,9 @@ test('settings are taken whole, never merged field by field', () => {
 test('updatedAt comes from the server copy', () => {
   assert.equal(mergeState(S(), S({ updatedAt: 1 }), S({ updatedAt: 7 })).updatedAt, 7)
 })
+
+test('tasks added to different repos in two tabs both survive', () => {
+  const t = (id) => [{ id, label: id, prompt: 'p' }]
+  const out = mergeState(S({ tasks: {} }), S({ tasks: { a: t('c-a') } }), S({ tasks: { b: t('c-b') } }))
+  assert.deepEqual(out.tasks, { a: t('c-a'), b: t('c-b') })
+})

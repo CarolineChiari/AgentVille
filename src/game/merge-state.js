@@ -3,7 +3,7 @@
 // tries again. The server never merges: it cannot know which of two layouts a person meant.
 
 const SETS = ['archived', 'hiddenProjects']
-const MAPS = ['archivedAt', 'plots', 'seen', 'viewedAt']
+const MAPS = ['archivedAt', 'plots', 'seen', 'viewedAt', 'tasks']
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 

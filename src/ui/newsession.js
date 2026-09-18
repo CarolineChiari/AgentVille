@@ -1,6 +1,5 @@
 // The new-session form: pick a repo (or type any folder), optionally write the first prompt, go.
 import { agentName, esc } from './dom.js'
-import { TASKS, taskById } from '../game/tasks.js'
 
 const OTHER = '__other__'
 
@@ -50,12 +49,20 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <label class="stack" ${list.length > 1 ? '' : 'hidden'}>Agent
         <select data-f="harness">${options(list.map((x) => [x.id, x.name]), h.id)}</select></label>
       <div class="row3" data-f="row"></div>
-      <div class="chips" title="Fill in a ready-made task">${TASKS.map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}">${esc(x.label)}</button>`).join('')}</div>
+      <div class="chips" data-f="chips" title="Fill in a ready-made task"></div>
       <label class="stack">First prompt <span class="hint-inline">optional</span>
         <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>
       <p class="note" data-f="note"></p>
       <div class="actions"><button class="btn primary" data-act="start">Start<kbd>⌘↵</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
     renderTargets()
+    renderChips()
+  }
+
+  /** The chosen repo's tasks: the built-in ones, then its own. Another folder gets the built-ins. */
+  const project = () => village.knownFolders().find((f) => f.path === box.querySelector('[data-f="folder"]')?.value)?.name || ''
+  function renderChips() {
+    const el = box.querySelector('[data-f="chips"]')
+    if (el) el.innerHTML = village.tasksFor(project()).map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')
   }
 
   /** The "Open in" menu for the chosen harness, and its model/effort menus when that target has them. */
@@ -119,6 +126,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     if (f === 'harness') renderTargets()
     else if (f === 'target') renderChoices(village.settings.newModel, village.settings.newEffort)
     if (f === 'folder') {
+      renderChips()
       const other = box.querySelector('[data-f="other"]')
       other.hidden = e.target.value !== OTHER
       if (!other.hidden) other.focus()
@@ -128,7 +136,8 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     const act = e.target.closest('[data-act]')?.dataset.act
     if (act === 'task') {
       const p = box.querySelector('[data-f="prompt"]')
-      p.value = taskById(e.target.closest('[data-task]').dataset.task)?.prompt || p.value
+      const id = e.target.closest('[data-task]').dataset.task
+      p.value = village.tasksFor(project()).find((x) => x.id === id)?.prompt || p.value
       p.focus()
     } else if (act === 'start') start()
     else if (act === 'cancel') close()
