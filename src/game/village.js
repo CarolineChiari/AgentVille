@@ -4,6 +4,7 @@ import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
+import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
 import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
@@ -17,14 +18,17 @@ const emptyState = () => ({
 
 export class Village {
   /**
-   * @param {{ world: import('../sim/world.js').World, settings: object, demo?: boolean, onChange?: Function, toast?: Function }} opts
+   * `notify` hears about every thread that has just started needing you, whatever the settings
+   * say; whether that becomes a notification is up to it.
+   * @param {{ world: import('../sim/world.js').World, settings: object, demo?: boolean, onChange?: Function, toast?: Function, notify?: Function }} opts
    */
-  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {} }) {
+  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {} }) {
     this.world = world
     this.settings = settings
     this.demo = demo
     this.onChange = onChange
     this.toast = toast
+    this.notify = notify
     this.state = emptyState()
     this.base = emptyState()
     this.threads = []
@@ -44,6 +48,8 @@ export class Village {
     this.harnesses = []
     this.warnings = []
     this.loaded = false
+    this.scanned = false // a scan has come back, so `threads` is the real list and not the empty start
+    this._asking = null // ids that needed you at the last look; null until the first one
     this._saveTimer = null
     this._saving = null
     this._nextIndex = -1
@@ -73,6 +79,7 @@ export class Village {
         this.warnings = r.warnings || []
       }
       this.byId = new Map(this.threads.map((t) => [t.id, t]))
+      this.scanned = true
       if (!this.demo) {
         await Promise.all([this.settings.prGardens && this.pollPrs(false), this.settings.issueBoards && this.pollIssues(false)])
       }
@@ -134,6 +141,13 @@ export class Village {
       dirty = true
     }
     this.loaded = true
+    // Not before the first scan: a settings change can apply the empty list, and the baseline
+    // taken from that would make every question already waiting look new.
+    if (this.scanned) {
+      const { fresh, asking } = newlyAsking(this.view.live, this._asking)
+      this._asking = asking
+      if (fresh.length) this.notify(fresh)
+    }
     const sel = this.selected
     if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
     if (dirty) this.queueSave()

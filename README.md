@@ -106,6 +106,12 @@ A villager whose session has stopped on you, with a question, a plan to approve 
 prompt, shows `?` and says what it needs, even while its last transcript entry looks like work.
 AgentVille reads this from the status each running Claude Code process keeps for itself.
 
+**Notify me when a villager needs me**, in Settings, sends a desktop notification when a villager
+stops on a question, a permission prompt or an error while the village is behind other windows.
+It's off until you turn it on, and that's when the browser asks for permission. Several at once
+come as one notification, a villager that stays waiting doesn't ring again, and clicking it
+brings the village forward on that villager. Your own OS shows it; nothing is sent anywhere.
+
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill like a contribution graph:

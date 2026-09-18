@@ -38,7 +38,7 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {} }) {
+export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -134,6 +134,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
+        <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
         <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
@@ -206,7 +207,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const k = e.target.dataset.set
     if (!k) return
     settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
-    onSettings()
+    onSettings(k)
     renderSheet()
   })
 

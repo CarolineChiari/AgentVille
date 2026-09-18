@@ -11,6 +11,7 @@ import { loadSettings, saveSettings } from './ui/settings.js'
 import { createHud } from './ui/hud.js'
 import { createCard } from './ui/card.js'
 import { createToasts } from './ui/toast.js'
+import { createNotices } from './ui/notices.js'
 import { createTranscript } from './ui/transcript.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
@@ -32,7 +33,15 @@ const renderer = new Canvas2dRenderer(canvas, camera)
 let hovered = null
 let hoverPlot = null
 
-const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed() })
+const notices = createNotices({
+  settings,
+  onOpen(id) {
+    if (!village.thread(id)) return
+    village.select(id)
+    fly({ villager: id })
+  },
+})
+const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show })
 const transcript = createTranscript(hudRoot, village)
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
@@ -48,7 +57,9 @@ const card = createCard(hudRoot, village, {
 const hud = createHud(hudRoot, {
   village,
   settings,
-  onSettings() {
+  canNotify: notices.supported,
+  onSettings(key) {
+    if (key === 'notify' && settings.notify) enableNotices()
     saveSettings(settings)
     village.apply()
     if (settings.prGardens) village.pollPrs()
@@ -64,6 +75,15 @@ const ui = {
     card.update()
     transcript.refresh()
   },
+}
+
+/** Notifications were just turned on: ask for permission now, from that click, and turn them back off if refused. */
+async function enableNotices() {
+  if (await notices.enable()) return toast('AgentVille will let you know when a villager needs you while it’s in the background.')
+  settings.notify = false
+  saveSettings(settings)
+  hud.render()
+  toast('Notifications are blocked for this page. Allow them in the browser’s site settings, then turn this on again.', 'error')
 }
 
 // ---------- camera helpers ----------
