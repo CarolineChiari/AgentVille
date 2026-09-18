@@ -8,6 +8,9 @@ function run(world, seconds, dt = 1 / 30) {
   for (let t = 0; t < seconds; t += dt) world.tick(dt)
 }
 
+/** Distance from a villager to the nearest place its building lets it stand. */
+const fromStand = (v, b) => Math.min(...b.standSpots().map((p) => Math.hypot(v.x - p.x, v.y - p.y)))
+
 test('the first roster trickles everybody out of the gate, then they reach their plots', () => {
   const w = new World()
   w.setRoster([T('t1', 'a', 'waiting'), T('t2', 'a'), T('t3', 'b', 'working')])
@@ -17,8 +20,7 @@ test('the first roster trickles everybody out of the gate, then they reach their
   assert.equal(snap.villagers.length, 3)
   for (const v of snap.villagers) assert.notEqual(w.villager(v.id).loco, 'entering', `${v.id} never arrived`)
   const waiting = w.villager('t1')
-  const b = w.buildings.get('t1')
-  assert.ok(Math.hypot(waiting.x - b.front.x, waiting.y - b.front.y) < 0.7, 'waiting villager stands at its door')
+  assert.ok(fromStand(waiting, w.buildings.get('t1')) < 0.7, 'waiting villager stands by its door')
 })
 
 test('a known newcomer appears in place; an unknown one walks in from the gate', () => {
@@ -68,8 +70,7 @@ test('a status change at site re-targets', () => {
   w.setRoster([T('t1', 'a', 'waiting')])
   run(w, 6)
   const v = w.villager('t1')
-  const f = w.buildings.get('t1').front
-  assert.ok(Math.hypot(v.x - f.x, v.y - f.y) < 0.7)
+  assert.ok(fromStand(v, w.buildings.get('t1')) < 0.7)
   assert.ok(['idle', 'wave', 'jump'].includes(v.anim))
   assert.equal(v.badge, 'waiting')
 })
@@ -110,7 +111,7 @@ test('flowers fill each garden column top to bottom, then move right', () => {
   const p = (id) => w.flower(id)
   assert.ok(p('f1').y > p('f0').y && p('f1').x === p('f0').x, 'second flower is below the first')
   assert.ok(p('f7').x > p('f0').x && p('f7').y === p('f0').y, 'eighth flower starts the next column')
-  for (const f of flowers) assert.ok(w.nav.isBlocked(Math.floor(p(f.id).x), Math.floor(p(f.id).y - 0.2)), 'flowers stand in the bed, which nobody walks on')
+  for (const f of flowers) assert.ok(!w.nav.isBlocked(Math.floor(p(f.id).x), Math.floor(p(f.id).y - 0.2)), 'the garden is walkable')
 })
 
 test('a repo with only finished threads keeps its plot and garden', () => {
@@ -140,8 +141,32 @@ test('a done villager stands at its door with a checkmark and does not wave', ()
     seen.add(w.villager('t1').anim)
   }
   const v = w.villager('t1')
-  const f = w.buildings.get('t1').front
-  assert.ok(Math.hypot(v.x - f.x, v.y - f.y) < 0.7)
+  assert.ok(fromStand(v, w.buildings.get('t1')) < 0.7)
   assert.equal(v.badge, 'done')
   assert.deepEqual([...seen], ['idle'])
+})
+
+test('neighbouring buildings never offer the same spot to work or stand on', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'a', 'working'), T('t3', 'a', 'working')])
+  const seen = new Map()
+  for (const [id, b] of w.buildings) {
+    for (const p of [...b.workSpots(), ...b.standSpots()]) {
+      const k = `${p.x},${p.y}`
+      if (seen.has(k) && seen.get(k) !== id) assert.fail(`${id} and ${seen.get(k)} share ${k}`)
+      seen.set(k, id)
+    }
+  }
+})
+
+test('idle villagers spread over the whole yard, garden included', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a'), T('t2', 'a'), T('t3', 'a')])
+  const rows = new Set()
+  for (let s = 0; s < 90 * 30; s++) {
+    w.tick(1 / 30)
+    if (s % 30) continue
+    for (const v of w.villagers.values()) if (v.loco === 'site' && !v.moving) rows.add(((Math.floor(v.y) % 12) + 12) % 12)
+  }
+  assert.ok([...rows].some((r) => r >= 5), `only ever stood on rows ${[...rows].sort().join(',')}`)
 })

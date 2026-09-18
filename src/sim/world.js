@@ -11,7 +11,8 @@ import { STATUS_RANK } from './status.js'
 import { hashString, rngFor } from './rng.js'
 
 export const ACCENT_COUNT = 10
-const SEPARATION = 0.6
+/** A villager sprite is one tile wide; at 0.6 two bodies at rest still overlapped by 6 px. */
+const SEPARATION = 1
 
 /** The ground: tile kinds and decorations over a rectangle of tiles. */
 export class TileMap {
@@ -252,8 +253,9 @@ export class World {
     nav.version = this.nav.version + 1
     for (let y = map.oy; y < map.oy + map.h; y++) {
       for (let x = map.ox; x < map.ox + map.w; x++) {
-        // Nobody walks through the flower beds.
-        if (BLOCKING_DECO.has(map.decoAt(x, y)) || map.tileAt(x, y) === TILE.BED) nav.setBlocked(x, y)
+        // The garden bed is walkable: with it blocked, a yard was two 8-tile corridors and three
+        // villagers ended up standing on each other in the top one.
+        if (BLOCKING_DECO.has(map.decoAt(x, y))) nav.setBlocked(x, y)
       }
     }
     for (const s of statics) if (s.blocks) for (const [bx, by] of s.blocks) nav.setBlocked(bx, by)
@@ -303,11 +305,16 @@ export class World {
     }
   }
 
-  /** A random walkable yard tile near this villager's own building. */
+  /**
+   * A random walkable yard tile in this villager's own building's cell. The whole cell, garden
+   * included: a 4-tile radius stopped at the bed and never reached the walkway below it.
+   */
   wanderSpot(v, b) {
     const plot = this.plots.get(b.plot)
+    const cx = Math.floor(b.x / CELL_TILES)
+    const cy = Math.floor(b.y / CELL_TILES)
     const tiles = (plot ? plot.yardTiles() : []).filter(
-      (t) => Math.abs(t.x - b.x) <= 4 && Math.abs(t.y - b.y) <= 4 && !this.nav.isBlocked(t.x, t.y),
+      (t) => Math.floor(t.x / CELL_TILES) === cx && Math.floor(t.y / CELL_TILES) === cy && !this.nav.isBlocked(t.x, t.y),
     )
     if (!tiles.length) return b.front
     const t = tiles[Math.floor(v.rand() * tiles.length)]

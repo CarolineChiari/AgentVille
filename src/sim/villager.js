@@ -90,7 +90,9 @@ export class Villager {
         this.wait = range(this.rand, 4, 9)
       }
     } else {
-      const f = b.front
+      // Always the same spot for the same villager, so it doesn't pace between them.
+      const spots = b.standSpots().filter((p) => world.nav.standable(p.x, p.y))
+      const f = spots.length ? spots[hashString(`stand:${this.id}`) % spots.length] : b.front
       this.setGoal(f.x, f.y, WALK_SPEED)
     }
   }
@@ -114,6 +116,9 @@ export class Villager {
     }
 
     const arrived = this.goal ? this._move(dt, world) : true
+    // With no goal nothing moves this tick. Left set, `moving` froze an idle villager where it
+    // first arrived, since it only picks somewhere new to stroll once it has stopped.
+    if (!this.goal) this.moving = false
     if (arrived) {
       if (this.loco === 'leaving') {
         this.alpha = Math.max(0, this.alpha - dt * 2)

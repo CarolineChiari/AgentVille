@@ -45,16 +45,26 @@ export class Building {
     return { x: this.x + this.w / 2, y: this.y + this.h / 2 }
   }
 
-  /** Candidate spots to hammer from, before filtering by what is walkable. */
+  /**
+   * Where the occupant may stand to wait, sleep or cheer: the door, or a step down and to either
+   * side of it, so a crowd of idle neighbours doesn't pile onto one point.
+   */
+  standSpots() {
+    const f = this.front
+    return [f, { x: f.x - 1, y: f.y + 1 }, { x: f.x + 1, y: f.y + 1 }]
+  }
+
+  /**
+   * Candidate spots to hammer from, before filtering by what is walkable. All in front of the
+   * building: the side spots used to sit in the gap between two buildings, and neighbours shared them.
+   */
   workSpots() {
     const { x, y, w, h } = this
     return [
       { x: x + 0.5, y: y + h + 0.5 },
       { x: x + w - 0.5, y: y + h + 0.5 },
-      { x: x - 0.5, y: y + h - 0.5 },
-      { x: x + w + 0.5, y: y + h - 0.5 },
-      { x: x - 0.5, y: y + 0.5 },
-      { x: x + w + 0.5, y: y + 0.5 },
+      { x: x + 0.5, y: y + h + 1.5 },
+      { x: x + w - 0.5, y: y + h + 1.5 },
     ]
   }
 

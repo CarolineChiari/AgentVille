@@ -165,27 +165,28 @@ export class Canvas2dRenderer {
     return age < 0.6 ? 0 : age < 1.4 ? 1 : 2
   }
 
-  _drawFlowers(frame) {
-    const { ctx, camera: cam } = this
+  /** Flowers on screen. They are drawn in the depth-sorted pass, so a villager in the bed stands among them. */
+  _flowersInView(frame) {
+    const cam = this.camera
     const tl = cam.toWorld(0, 0)
     const br = cam.toWorld(cam.width / cam.dpr, cam.height / cam.dpr)
+    return frame.flowers.filter((f) => f.x * T > tl.x - 8 && f.x * T < br.x + 8 && f.y * T > tl.y - 16 && f.y * T < br.y + 16)
+  }
+
+  _drawFlower(f, time) {
+    const { ctx, camera: cam } = this
     const s = cam.scale
-    // Top rows first so a lower flower's bloom overlaps the stem behind it.
-    const list = frame.flowers.filter((f) => f.x * T > tl.x - 8 && f.x * T < br.x + 8 && f.y * T > tl.y - 16 && f.y * T < br.y + 16)
-    list.sort((a, b) => a.y - b.y)
-    for (const f of list) {
-      const px = f.x * T
-      const py = f.y * T
-      if (f.selected || f.hovered) {
-        ctx.fillStyle = f.selected ? 'rgba(255, 216, 115, 0.55)' : 'rgba(255, 255, 255, 0.28)'
-        ctx.fillRect(cam.offX + Math.round(px - 4) * s, cam.offY + Math.round(py - 7) * s, 8 * s, 8 * s)
-      }
-      const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
-      const stage = f.open ? 1 : this._flowerStage(f, frame.time)
-      const img = sprites.get(`flower.${f.kind}.${stage}`, 0, { color })
-      // The stem's base pixel (4, 11) sits on the flower's spot.
-      this._blit(img, px - 4, py - 11)
+    const px = f.x * T
+    const py = f.y * T
+    if (f.selected || f.hovered) {
+      ctx.fillStyle = f.selected ? 'rgba(255, 216, 115, 0.55)' : 'rgba(255, 255, 255, 0.28)'
+      ctx.fillRect(cam.offX + Math.round(px - 4) * s, cam.offY + Math.round(py - 7) * s, 8 * s, 8 * s)
     }
+    const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
+    const stage = f.open ? 1 : this._flowerStage(f, time)
+    const img = sprites.get(`flower.${f.kind}.${stage}`, 0, { color })
+    // The stem's base pixel (4, 11) sits on the flower's spot.
+    this._blit(img, px - 4, py - 11)
   }
 
   /**
@@ -341,10 +342,12 @@ export class Canvas2dRenderer {
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
     this._drawGround(frame)
-    this._drawFlowers(frame)
 
     const night = ui.night
+    // Everything that stands up is drawn back to front by the y of its base, so a lower flower's
+    // bloom overlaps the stem behind it and a villager in the bed hides behind the row in front.
     const items = []
+    for (const f of this._flowersInView(frame)) items.push([f.y, 3, f])
     for (const st of frame.statics) items.push([st.y, 0, st])
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
@@ -352,7 +355,8 @@ export class Canvas2dRenderer {
     for (const [, kind, it] of items) {
       if (kind === 0) this._drawStatic(it, night)
       else if (kind === 1) this._drawBuilding(it, night, frame.time)
-      else this._drawVillager(it, night)
+      else if (kind === 2) this._drawVillager(it, night)
+      else this._drawFlower(it, frame.time)
     }
     this._drawEffects(frame)
     this._drawNight(frame, night)
