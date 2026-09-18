@@ -334,3 +334,47 @@ test('a building on a courtyard\'s top row has room above it; one down the side 
   assert.ok(snap.buildings.some((b) => b.roomy) && snap.buildings.some((b) => !b.roomy))
   for (const b of snap.buildings) assert.equal(b.roomy, b.y === top, `the building at ${b.x},${b.y}`)
 })
+
+test('two villagers squeezing side by side into one gap in a fence both get through', () => {
+  const w = new World()
+  // The first plot takes the cell north of the square; its bottom fence has a gap at x 4..5, y -2.
+  // t3 keeps the plot on the map, asleep at its door so it never wanders by and breaks them up.
+  w.setRoster([T('t1', 'a'), T('t2', 'a'), T('t3', 'a', 'sleeping')])
+  run(w, 25)
+  w.setRoster([T('t3', 'a', 'sleeping')]) // t1 and t2 are archived and walk out to the gate
+  // Let their houses finish coming down first: that rebuilds the map, and every route with it.
+  run(w, 2)
+  assert.ok(!w.nav.isBlocked(4, -2) && w.nav.isBlocked(3, -2) && w.nav.isBlocked(5, -2), 'the gap is where this test expects it')
+  // Where a long simulated run left two villagers: shoulder to shoulder at the mouth of the gap,
+  // each too far to one side to fit through it, each step towards the middle shoved straight back
+  // by the other. They stood there walking for good.
+  const at = { t1: [4.035885324295117, -2.224418682578415], t2: [4.908706023882051, -2.2203862875951685] }
+  for (const [id, [x, y]] of Object.entries(at)) {
+    const v = w.villager(id)
+    v.setGoal(w.gate.x, w.gate.y)
+    Object.assign(v, { x, y, stuck: 0, moving: true, anim: 'walk', path: [{ x: 4.5, y: -0.5 }, { ...w.gate }], pathVersion: w.nav.version })
+  }
+  run(w, 12)
+  for (const id of ['t1', 't2']) {
+    const v = w.villager(id)
+    assert.ok(!v || v.y > -1, `${id} is still stuck at the gap, at ${v?.x.toFixed(2)},${v?.y.toFixed(2)}`)
+  }
+})
+
+test('a villager whose every step is shoved straight back counts as stuck, and walks through', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')])
+  run(w, 25)
+  const v = w.villager('t1')
+  v.setGoal(w.gate.x, w.gate.y)
+  let through = false
+  for (let t = 0; t < 8; t += 1 / 30) {
+    const x = v.x
+    const y = v.y
+    v.tick(1 / 30, w)
+    // The crowd puts it back where it was, as two villagers in one gap do to each other.
+    if (!v.ghost) Object.assign(v, { x, y })
+    else through = true
+  }
+  assert.ok(through, 'walking on the spot never counted as stuck')
+})

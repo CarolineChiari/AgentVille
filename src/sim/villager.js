@@ -188,6 +188,12 @@ export class Villager {
     let budget = this.speed * dt
     const sx = this.x
     const sy = this.y
+    // Headway over the last tick, the crowd's shoves included: where this villager is now against
+    // where it set off from last tick. A step the crowd shoves straight back looks like walking but
+    // gets nowhere; two villagers squeezing into one gap side by side did that to each other for good.
+    const headway = Math.hypot(sx - this.lastX, sy - this.lastY)
+    this.lastX = sx
+    this.lastY = sy
     while (budget > 1e-6 && this.path.length) {
       const wp = this.path[0]
       const dx = wp.x - this.x
@@ -208,7 +214,7 @@ export class Villager {
     if (this.moving) this.facing = facingFrom(this.x - sx, this.y - sy, this.facing)
 
     // Getting nowhere: re-route, then walk through the crowd, then give up and hop clear.
-    if (moved < this.speed * dt * 0.2) this.stuck += dt
+    if (Math.min(moved, headway) < this.speed * dt * 0.2) this.stuck += dt
     else this.stuck = Math.max(0, this.stuck - dt * 2)
     if (this.stuck > STUCK_TELEPORT) {
       const next = this.path[0] || this.goal
