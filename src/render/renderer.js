@@ -4,12 +4,16 @@ import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, BUTTERFLIES, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, hexToRgb, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
-import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
+import { DECO_VARIANTS, LINK, STATIC_FRAMES, tileVariant } from './sprites/tiles.js'
 import { lawnCover, lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
-import { ARCH_H, ARCH_W, CENTER, SIZE, arrivalSparkles, portalOpening, runePixels, veilColor } from './square.js'
+import {
+  ARCH_H, ARCH_W, CENTER, SIZE, arrivalSparkles, beam, crystalAt, fairyLights, gemAt, makePigeons, motes, petals, portalOpening, runePixels,
+  stepPigeons, veilColor, vortexMotes,
+} from './square.js'
+import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
@@ -41,12 +45,17 @@ const LAWN_TONED = new Set(['clover', 'lawnflowers', 'tuft'])
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
-const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14 }
+const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14, cart: 20, bench: 12 }
+/** Pigeons on the square; their own random stream, as their comings and goings are nobody's business. */
+const PIGEONS = 8
 /** The arrival square's top-left corner in world pixels, and its portal's opening and runes. */
 const SQUARE_X = GATE_CELL[0] * CELL_TILES * T
 const SQUARE_Y = GATE_CELL[1] * CELL_TILES * T
 const OPENING = portalOpening()
+const IN_OPENING = new Set(OPENING.flatMap(([y, x0, x1]) => Array.from({ length: x1 - x0 + 1 }, (_, i) => y * ARCH_W + x0 + i)))
 const RUNE_PX = runePixels()
+const FAIRY_LIGHTS = fairyLights()
+const CORE_RGB = [parseInt(P.portalCore.slice(1, 3), 16), parseInt(P.portalCore.slice(3, 5), 16), parseInt(P.portalCore.slice(5, 7), 16)]
 /** How near the gate someone fading in or out has to be to set the portal flaring, in tiles. */
 const PORTAL_REACH = 1.5
 /** Statics that light up after dark. */
@@ -96,6 +105,8 @@ export class Canvas2dRenderer {
     this.lastTime = null
     this.time = 0
     this.veil = null // a small canvas the portal's veil is painted into each frame
+    this.pigeonRand = mulberry32(20260918)
+    this.pigeons = makePigeons(PIGEONS, this.pigeonRand) // in the square's own pixels
     this.hashes = new Map() // id → hashString(id), so per-frame passes don't rehash every id
     this.chimneys = new Map() // building look → where its chimney is, or null
   }
@@ -311,12 +322,20 @@ export class Canvas2dRenderer {
   /** Tall scenery stands on the bottom centre of its sprite, so a new kind needs no code here. */
   _drawStatic(st, night) {
     const lit = LIT_STATICS.has(st.sprite) ? { lit: night > 0.35 } : undefined
-    const img = sprites.get(`static.${st.sprite}.${st.variant || 0}`, 0, lit)
+    const frames = STATIC_FRAMES[st.sprite] || 1
+    const img = sprites.get(`static.${st.sprite}.${st.variant || 0}`, frames > 1 ? Math.floor(this.time * 5) % frames : 0, lit)
     const shadow = STATIC_SHADOW[st.sprite]
     if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
     // The portal's veil goes in first, so the stone frames it and anyone arriving shows through it.
     if (st.sprite === 'arch') this._drawVeil(st.x * T - ARCH_W / 2, st.y * T - ARCH_H)
     this._blit(img, st.x * T - img.width / 2, st.y * T - img.height)
+    if (st.sprite === 'obelisk') {
+      // Its crystal floats over it, bobbing, and glints now and then.
+      const i = st.variant || 0
+      const [cx, cy] = crystalAt(i, this.time)
+      const glint = Math.floor(this.time * 0.8 + i * 1.3) % 4 === 0 ? 1 : 0
+      this._blit(sprites.get('fx.crystal', glint), SQUARE_X + cx - 3, SQUARE_Y + cy - 5)
+    }
   }
 
   // ---------- the arrival square ----------
@@ -341,6 +360,12 @@ export class Canvas2dRenderer {
         d[i + 3] = Math.round(a * 255)
       }
     }
+    for (const [x, y, a] of vortexMotes(this.time, this.flare)) {
+      if (!IN_OPENING.has(y * ARCH_W + x)) continue
+      const i = (y * ARCH_W + x) * 4
+      for (let k = 0; k < 3; k++) d[i + k] = Math.round(d[i + k] + (CORE_RGB[k] - d[i + k]) * a)
+      d[i + 3] = Math.max(d[i + 3], Math.round(a * 255))
+    }
     this.veilCtx.putImageData(this.veilImg, 0, 0)
     this._blit(this.veil, wx, wy)
   }
@@ -363,10 +388,70 @@ export class Canvas2dRenderer {
     ctx.globalAlpha = 1
   }
 
-  /** The square's bunting, fluttering: over everything, as it hangs overhead. */
+  /** The square's bunting, fluttering in the village's repos' colours: over everything, as it hangs overhead. */
   _drawBunting(frame, view) {
     if (!this._squareInView(view)) return
-    this._blit(sprites.get('fx.bunting', Math.floor(frame.time * 1.5) % 2), SQUARE_X, SQUARE_Y)
+    const accents = [...frame.plots].sort((a, b) => (a.name < b.name ? -1 : 1)).map((p) => p.accent).join(',')
+    this._blit(sprites.get('fx.bunting', Math.floor(frame.time * 1.5) % 2, { accents }), SQUARE_X, SQUARE_Y)
+  }
+
+  /** A pigeon: pecking about the paving, or in the air with its shadow on the ground under it. */
+  _drawPigeon(b) {
+    const x = SQUARE_X + b.x
+    const y = SQUARE_Y + b.y
+    const dir = b.face > 0 ? 'e' : 'w'
+    if (b.mode === 'fly') {
+      this._blit(sprites.get('fx.shadow.8'), x - 4, y - 2, 0.6)
+      this._blit(sprites.get(`fx.pigeon.${dir}`, 2 + (Math.floor(this.time * 12) % 2)), x - 5, y - 7 - b.air)
+    } else {
+      this._blit(sprites.get(`fx.pigeon.${dir}`, b.peck ? 1 : 0), x - 5, y - 7)
+    }
+  }
+
+  /** Blossom drifting down from the gardens' trees. */
+  _drawPetals(frame, view) {
+    if (!this._squareInView(view)) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    for (const [px, py, a, light] of petals(frame.time)) {
+      ctx.globalAlpha = a
+      ctx.fillStyle = light ? P.blossomLight : P.blossom
+      ctx.fillRect(cam.offX + (SQUARE_X + px) * s, cam.offY + (SQUARE_Y + py) * s, s, s)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** After dark, fairy lights along the bunting, each twinkling on its own. */
+  _drawFairyLights(frame, view, night) {
+    if (night < 0.2 || !this._squareInView(view)) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    for (const [px, py, k] of FAIRY_LIGHTS) {
+      const x = cam.offX + (SQUARE_X + px) * s
+      const y = cam.offY + (SQUARE_Y + py) * s
+      const a = night * (0.55 + 0.45 * Math.sin(frame.time * 2.3 + k * 1.7))
+      ctx.globalAlpha = a * 0.35
+      ctx.fillStyle = P.windowLit
+      ctx.fillRect(x - s, y, s * 3, s)
+      ctx.fillRect(x, y - s, s, s * 3)
+      ctx.globalAlpha = a
+      ctx.fillStyle = k % 3 ? P.windowLitCore : P.runeGlow
+      ctx.fillRect(x, y, s, s)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** Motes of light drifting up round the portal: a few by day, a swarm of them after dark. */
+  _drawMotes(frame, view, night) {
+    if (!this._squareInView(view)) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.fillStyle = P.runeGlow
+    for (const [px, py, a] of motes(frame.time, night)) {
+      ctx.globalAlpha = a
+      ctx.fillRect(cam.offX + (SQUARE_X + px) * s, cam.offY + (SQUARE_Y + py) * s, s, s)
+    }
+    ctx.globalAlpha = 1
   }
 
   /** While somebody steps through: a glow round the portal and sparkles rising off its pad. */
@@ -384,6 +469,18 @@ export class Canvas2dRenderer {
     ctx.fillStyle = g
     ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2)
     ctx.globalCompositeOperation = 'source-over'
+    // Beams from each crystal to the keystone's gem, with pulses of light running up them.
+    const gem = gemAt()
+    SQUARE_OBELISKS.forEach((_, i) => {
+      const pts = beam(crystalAt(i, frame.time), gem)
+      const flicker = 0.55 + 0.45 * Math.sin(frame.time * 13 + i * 2)
+      pts.forEach(([px, py], k) => {
+        const pulse = ((k / pts.length - frame.time * 1.4 - i * 0.25) % 1 + 1) % 1 < 0.1
+        ctx.globalAlpha = Math.min(1, this.flare * (pulse ? 1 : 0.6 * flicker))
+        ctx.fillStyle = pulse ? P.portalCore : P.runeGlow
+        ctx.fillRect(cam.offX + (SQUARE_X + px) * s, cam.offY + (SQUARE_Y + py) * s, s, s)
+      })
+    })
     ctx.fillStyle = P.portalCore
     for (const [px, py, a] of arrivalSparkles(frame.time, this.flare)) {
       if (a < 0.1) continue
@@ -637,8 +734,12 @@ export class Canvas2dRenderer {
     }
     for (const b of frame.buildings) if (b.lit && b.stage >= 2) glow((b.x + b.w / 2) * T, (b.y + b.h) * T - 12, 22, 0.33)
     for (const st of frame.statics) if (st.sprite === 'lamp') glow(st.x * T, st.y * T - 22, 28, 0.38)
-    // The portal lights the whole square after dark.
+    // The portal lights the whole square after dark, and each crystal throws a little light.
     glow(SQUARE_X + CENTER.x, SQUARE_Y + CENTER.y - 24, 56, 0.4 + 0.3 * this.flare, P.portal)
+    SQUARE_OBELISKS.forEach((_, i) => {
+      const [cx, cy] = crystalAt(i, frame.time)
+      glow(SQUARE_X + cx, SQUARE_Y + cy, 14, 0.5, P.crystal)
+    })
     ctx.globalCompositeOperation = 'source-over'
   }
 
@@ -711,6 +812,9 @@ export class Canvas2dRenderer {
     const busy = gate && frame.villagers.some((v) => v.alpha < 1 && Math.abs(v.x - gate.x) < PORTAL_REACH && Math.abs(v.y - gate.y) < PORTAL_REACH)
     this.flare = busy ? Math.min(1, this.flare + dt * 3) : Math.max(0, this.flare - dt * 0.6)
     const view = this._view()
+    // Pigeons scatter from anybody walking by, wherever they are looking.
+    const walkers = frame.villagers.map((v) => [v.x * T - SQUARE_X, v.y * T - SQUARE_Y])
+    stepPigeons(this.pigeons, dt, walkers, this.pigeonRand)
 
     this._drawGround(frame)
     this._drawWater(frame)
@@ -722,7 +826,9 @@ export class Canvas2dRenderer {
     const items = []
     const flowers = this._flowersInView(frame)
     for (const f of flowers) items.push([f.y, 3, f])
-    for (const st of frame.statics) items.push([st.y, 0, st])
+    for (const st of frame.statics) if (st.sprite) items.push([st.y, 0, st])
+    // Pigeons have gone to roost by dark.
+    if (night < 0.6 && this._squareInView(view)) for (const b of this.pigeons) items.push([(SQUARE_Y + b.y) / T, 5, b])
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
     for (const b of frame.boards || []) items.push([b.y, 4, b])
@@ -732,8 +838,10 @@ export class Canvas2dRenderer {
       else if (kind === 1) this._drawBuilding(it, night, frame.time)
       else if (kind === 2) this._drawVillager(it, night)
       else if (kind === 3) this._drawFlower(it, frame.time)
+      else if (kind === 5) this._drawPigeon(it)
       else this._drawBoard(it)
     }
+    this._drawPetals(frame, view)
     this._drawBunting(frame, view)
     this._drawSmoke(frame, view)
     this._drawClouds(frame, view, night)
@@ -742,6 +850,8 @@ export class Canvas2dRenderer {
     this._drawEffects(frame)
     this._drawDusk(ui.dusk || 0)
     this._drawNight(frame, night)
+    this._drawFairyLights(frame, view, night)
+    this._drawMotes(frame, view, night)
     this._drawArrival(frame, view)
     this._drawGlitter(frame)
     this._drawBadges(frame)

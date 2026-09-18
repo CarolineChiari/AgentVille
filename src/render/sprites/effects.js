@@ -1,5 +1,5 @@
 // Badges over heads and the little bits of weather villagers make: sparks, confetti, z's.
-import { BADGE, BUTTERFLIES, CONFETTI, PALETTE as P, shade } from './palette.js'
+import { ACCENTS, BADGE, BUTTERFLIES, CONFETTI, PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
 import { SIZE, buntingStrings, pennants } from '../square.js'
 
@@ -99,16 +99,73 @@ export function drawBird(frame) {
 /**
  * The arrival square's bunting, the size of the whole square: strings from lamppost to lamppost
  * and up to the arch, a pennant every few pixels. Frame 1 has every other pennant blown aside.
+ * `accents` ("3,0,7") are the village's repos' colours, which it flies; with none, confetti.
  */
-export function drawBunting(frame) {
+export function drawBunting(frame, accents = '') {
   const pc = new PixelCanvas(SIZE, SIZE)
+  const own = String(accents).split(',').filter((a) => a !== '').map((a) => ACCENTS[Number(a) % ACCENTS.length])
+  const colors = own.length ? own : CONFETTI
   for (const pts of buntingStrings()) for (const [x, y] of pts) pc.px(x, y, P.woodDark)
   pennants().forEach(([x, y, c], i) => {
-    const color = CONFETTI[c % CONFETTI.length]
+    const color = colors[c % colors.length]
     const blown = frame % 2 === 1 && i % 2 === 0 ? 1 : 0
     pc.hline(x - 1, x + 1, y + 1, color)
     pc.hline(x - 1, x + 1, y + 2, shade(color, -0.15))
     pc.px(x + blown, y + 3, color)
   })
   return pc
+}
+
+/** A crystal of the square, floating: a long diamond, facets lit on one side; frame 1 glints. */
+export function drawCrystal(frame) {
+  const pc = new PixelCanvas(7, 11)
+  for (let y = 0; y < 11; y++) {
+    const half = y < 4 ? y * 0.75 : (10 - y) * 0.45
+    const a = Math.round(3 - half)
+    const b = Math.round(3 + half)
+    pc.hline(a, b, y, P.crystal)
+    pc.px(b, y, P.crystalDark)
+    if (b - a > 1) pc.px(a + 1, y, P.portalCore)
+  }
+  pc.vline(3, 1, 9, P.portal)
+  if (frame % 2) {
+    pc.px(2, 2, P.white)
+    pc.px(1, 4, P.white)
+  }
+  return pc.outline(P.outline)
+}
+
+/**
+ * A pigeon, 10×8, facing west: frame 0 standing, 1 head down pecking, 2 and 3 wings up and down
+ * in flight. The renderer mirrors it to face east. Darker than the paving, with a sheen on its neck
+ * and pink feet, or on grey stone it was a grey speck.
+ */
+export function drawPigeon(frame) {
+  const pc = new PixelCanvas(10, 8)
+  const f = frame % 4
+  if (f >= 2) {
+    // In flight: wings spread, up or down.
+    pc.hline(2, 6, 4, P.pigeon)
+    pc.hline(3, 6, 5, P.pigeonDark)
+    pc.px(1, 4, P.pigeonNeck)
+    pc.px(0, 4, P.pigeonDark)
+    pc.hline(7, 8, 4, P.pigeonDark)
+    const up = f === 2
+    for (let i = 0; i < 4; i++) pc.px(3 + i, up ? 3 - Math.min(i, 3 - i) : 5 + Math.min(i, 3 - i), i % 3 ? P.pigeon : P.pigeonDark)
+    return pc.outline(P.outline)
+  }
+  const dy = f === 1 ? 2 : 0
+  pc.ellipse(5.5, 4.5, 3.5, 2, P.pigeon) // body
+  pc.hline(4, 7, 4, P.pigeonDark) // folded wing, with its two bars
+  pc.px(5, 5, P.pigeonDark)
+  pc.px(7, 5, P.pigeonDark)
+  pc.hline(8, 9, 4, P.pigeonDark) // tail
+  pc.px(2, 3 + dy / 2, P.pigeonNeck)
+  pc.px(3, 3, P.pigeonNeck)
+  pc.rect(1, 1 + dy, 2, 2, P.pigeon) // head
+  pc.px(0, 2 + dy, P.flower[0]) // beak
+  pc.px(1, 1 + dy, P.eye)
+  pc.px(4, 7, P.flower[0]) // feet
+  pc.px(6, 7, P.flower[0])
+  return pc.outline(P.outline)
 }

@@ -389,3 +389,16 @@ test('the square keeps the way out of the portal open, with planters either side
   assert.equal(planters.length, 2)
   for (const p of planters) assert.ok(w.nav.isBlocked(...p.blocks[0]))
 })
+
+test('the square\'s corner gardens, fountain, carts and benches stand where nobody walks through them', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')])
+  for (const [x, y] of [[0, 0], [11, 0], [0, 11], [11, 11], [1, 0], [0, 1]]) assert.ok(w.nav.isBlocked(x, y), `the garden at ${x},${y} is walkable`)
+  for (const sprite of ['fountain', 'cart', 'bench']) {
+    const props = w.statics.filter((s) => s.sprite === sprite)
+    assert.ok(props.length > 0, `no ${sprite}`)
+    for (const p of props) for (const [x, y] of p.blocks) assert.ok(w.nav.isBlocked(x, y))
+  }
+  // The benches face the portal from either side, and it can still be reached from all round.
+  assert.ok(!w.nav.isBlocked(6, 9) && !w.nav.isBlocked(1, 3) && !w.nav.isBlocked(10, 8))
+})

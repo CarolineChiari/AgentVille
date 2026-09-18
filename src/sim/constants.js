@@ -16,6 +16,23 @@ export const GATE_TILE = { x: 6, y: 6.5 } // the arch's walk-through point insid
 export const SQUARE_LAMPS = [[1, 1], [10, 1], [1, 10], [10, 10]]
 /** Planters either side of the arch, two tiles out from its pillars. */
 export const SQUARE_PLANTERS = [[2, 6], [9, 6]]
+/** Crystal obelisks on the rim of the portal's dais, at its four diagonals. */
+export const SQUARE_OBELISKS = [[3, 4], [8, 4], [3, 9], [8, 9]]
+/**
+ * A garden in each corner of the square: a raised quarter-circle bed this many tiles across from
+ * the corner, a blossom tree in it and the corner's lamppost standing among the flowers.
+ */
+export const SQUARE_GARDEN = 2.75
+/**
+ * Everything else standing in the square: [sprite, variant, x, y, tiles it covers]. Its (x, y) is
+ * the tile it stands on (its bottom row), and it covers that tile and the ones listed.
+ */
+export const SQUARE_PROPS = [
+  ['tree', 6, 0, 0], ['tree', 7, 11, 0], ['tree', 7, 0, 11], ['tree', 6, 11, 11],
+  ['fountain', 0, 6, 1, [[-1, 0]]], // two tiles wide, centred on the portal's axis behind it
+  ['cart', 0, 3, 1], ['cart', 1, 8, 1],
+  ['bench', 0, 1, 6, [[0, -1]]], ['bench', 1, 10, 6, [[0, -1]]], // two tiles long, facing the portal
+]
 
 /** Road ring plus fence ring: the yard starts this many tiles in from a plot's edge. */
 export const YARD_INSET = 2

@@ -2,11 +2,13 @@
 // it. Pure geometry and colour, in pixels of the square's own cell (0..191 each way), so it is
 // tested under Node; the sprites and the renderer draw from it.
 //
-//   - the floor: running-bond paving inside a kerb, and round the portal's foot a mosaic of
-//     cobble rings, a ring of runes and a gold star;
-//   - the portal's opening, and the shimmering veil that fills it;
-//   - bunting from the lampposts to the arch.
-import { CELL_TILES, GATE_TILE, SQUARE_LAMPS } from '../sim/constants.js'
+//   - the floor: running-bond paving inside a kerb, and round the portal's foot a raised round
+//     dais, a step down from it all round, its top a mosaic of cobble rings, a ring of runes and a
+//     gold star;
+//   - the portal's opening, and the vortex that fills it;
+//   - crystals floating over the obelisks round the dais, and the beams between them and the portal;
+//   - bunting from the lampposts to the arch, and motes of light drifting up round it all.
+import { CELL_TILES, GATE_TILE, SQUARE_GARDEN, SQUARE_LAMPS, SQUARE_OBELISKS, SQUARE_PROPS } from '../sim/constants.js'
 import { lattice } from '../sim/noise.js'
 import { PALETTE as P, hexToRgb } from './sprites/palette.js'
 
@@ -23,7 +25,17 @@ export const CENTER = { x: GATE_TILE.x * T, y: (Math.floor(GATE_TILE.y) + 1) * T
 const STAR = 14 // the gold star on its pale pad
 const RUNES = 18 // the band of runes round it
 const COURSES = 52 // rings of cobbles
-const BORDER = 56 // a dark kerb round the whole mosaic
+const DAIS = 56 // coping stones round the dais's edge, from COURSES out to here
+/**
+ * The dais stands a step above the square. Seen from the front and above, its front face shows
+ * under its southern edge, then the step's top round it all, then the step's own face: each is
+ * a disc drawn a little lower than the one on it, so the back of the step barely shows and the
+ * front shows in full.
+ */
+const DAIS_FACE = 5
+const STEP = 7 // how far the step reaches out from under the dais
+const STEP_FACE = 3
+export const STEP_OUTER = DAIS + STEP
 /** Cobble rings this wide; the mortar between them is their inside pixel. */
 const COURSE = (COURSES - RUNES) / 6
 /** A cobble is about this long round its ring. */
@@ -46,8 +58,55 @@ function runeAt(d, a) {
   return Boolean(bits & (1 << Math.floor(((f - 0.12) / 0.76) * 4)))
 }
 
+/** The corner gardens' radius in px, from the square's corners. */
+export const GARDEN = SQUARE_GARDEN * T
+/** How far the top gardens' kerbs stand proud of the paving: their faces show below them. */
+const GARDEN_FACE = 4
+/** Flowers in a garden bed: in each 4×4 block, a bloom this often, in one of these. */
+const BED_BLOOM = 0.34
+const BED_COLOURS = [P.flower[0], P.flower[1], P.flower[3], P.flower[4], P.petalWhite, P.blossom]
+
+/** Distance from the nearest corner of the square, and whether that corner is on the top edge. */
+function fromCorner(px, py) {
+  const cx = px + 0.5 < SIZE / 2 ? 0 : SIZE
+  const cy = py + 0.5 < SIZE / 2 ? 0 : SIZE
+  return { d: Math.hypot(px + 0.5 - cx, py + 0.5 - cy), top: cy === 0, cx, cy }
+}
+
+/** A corner garden's bed: grass, flowers, and petals fallen from its blossom tree. */
+function bedPixel(px, py) {
+  const bx = px >> 2
+  const by = py >> 2
+  if (lattice(bx, by, 71) < BED_BLOOM) {
+    // A bloom: a plus shape round a spot in its block, a lighter heart.
+    const ox = (bx << 2) + 1 + Math.floor(lattice(bx, by, 73) * 2)
+    const oy = (by << 2) + 1 + Math.floor(lattice(bx, by, 74) * 2)
+    const c = BED_COLOURS[Math.floor(lattice(bx, by, 72) * BED_COLOURS.length)]
+    if (px === ox && py === oy) return c === P.petalWhite ? P.pollen : P.petalWhite
+    if (Math.abs(px - ox) + Math.abs(py - oy) === 1) return c
+    if (px === ox && py === oy + 2) return P.leafDark
+  }
+  const g = P.yardTones[0]
+  const h = lattice(px, py, 75)
+  if (h < 0.04) return P.blossomLight // a fallen petal
+  if (h < 0.2) return g[1]
+  if (h > 0.9) return g[2]
+  return g[0]
+}
+
 /** The colour of the square's floor at (px, py), in the square's own pixels. */
 export function squarePixel(px, py) {
+  // A garden in each corner: a raised bed with a stone kerb, its face showing under the top two.
+  const corner = fromCorner(px, py)
+  if (corner.d < GARDEN) {
+    if (corner.d >= GARDEN - 1) return P.stoneDark
+    if (corner.d >= GARDEN - 3) return P.stoneLight
+    return bedPixel(px, py)
+  }
+  if (corner.top) {
+    const lifted = Math.hypot(px + 0.5 - corner.cx, py + 0.5 - GARDEN_FACE - corner.cy)
+    if (lifted < GARDEN) return lifted >= GARDEN - 1 || (px + py) % 5 === 0 ? P.stoneDark : P.stone
+  }
   // The kerb round the square: long slabs, lit along their inner edge.
   const edge = Math.min(px, py, SIZE - 1 - px, SIZE - 1 - py)
   if (edge < KERB) {
@@ -91,7 +150,30 @@ export function squarePixel(px, py) {
     if (h > 0.9) return warm ? P.plazaLight : P.plaza
     return warm ? P.sandstone : P.cobbleSlate
   }
-  if (d < BORDER) return d < BORDER - 1 ? P.stoneDark : P.plazaDark
+  if (d < DAIS) {
+    // Coping: long curved stones, lit on the top, with a dark lip where they drop away.
+    if (d >= DAIS - 1) return P.stoneDark
+    const joint = ((a / TAU + 1) * 40) % 1 < 0.06
+    if (joint) return P.stoneDark
+    return d < COURSES + 1 ? P.stoneLight : P.stone
+  }
+  // Below the dais's southern edge, its face; then the step, drawn a face lower; then the step's face.
+  const south = (r) => (Math.abs(dx) < r ? CENTER.y + Math.sqrt(r * r - dx * dx) : -Infinity)
+  const below = py + 0.5 - south(DAIS)
+  if (below >= 0 && below < DAIS_FACE) {
+    if (below < 1) return P.stoneLight
+    if (below >= DAIS_FACE - 1) return P.stoneDark
+    return (px + (below > 2.5 ? 3 : 0)) % 6 === 0 ? P.stoneDark : P.stone
+  }
+  const ds = Math.hypot(dx, dy - DAIS_FACE)
+  if (ds < STEP_OUTER) {
+    if (ds >= STEP_OUTER - 1) return P.stoneLight
+    return ((Math.atan2(dy - DAIS_FACE, dx) / TAU + 1) * 52) % 1 < 0.05 ? P.plazaDark : P.stoneLight
+  }
+  const stepBelow = py + 0.5 - DAIS_FACE - south(STEP_OUTER)
+  if (stepBelow >= 0 && stepBelow < STEP_FACE) return stepBelow < 1 ? P.stone : P.stoneDark
+  // The dais's shadow on the paving just south of it.
+  if (stepBelow >= STEP_FACE && stepBelow < STEP_FACE + 2) return P.plazaDark
   // Running-bond paving: courses 4 px high, stones 4 px long, joints staggered course to course.
   const row = py >> 2
   const off = row % 2 ? 2 : 0
@@ -128,20 +210,23 @@ export const ARCH_RISE = 32
 export const ARCH_INNER = 23.5
 /** Pillars fill the arch's first and last 8 columns; the gap between them is the way through. */
 export const PILLAR = 8
+/** The arch's thickness, seen on the inner faces of its pillars and under its curve. */
+export const SOFFIT = 3
 
 /**
  * The portal's opening, row by row, in the arch sprite's pixels: [y, x0, x1], a pixel inside the
- * stone and its outline all round, so the veil drawn in it never shows past the arch.
+ * stone and its outline all round, so the vortex drawn in it never shows past the arch.
  */
 export function portalOpening() {
   const rows = []
+  const inner = ARCH_INNER - SOFFIT - 1
   for (let y = 0; y < ARCH_H; y++) {
-    let x0 = PILLAR + 1
-    let x1 = ARCH_W - PILLAR - 2
+    let x0 = PILLAR + SOFFIT + 1
+    let x1 = ARCH_W - PILLAR - SOFFIT - 2
     if (y < ARCH_RISE) {
       const dy = ARCH_RISE - y - 0.5
-      if (dy >= ARCH_INNER - 1) continue
-      const w = Math.sqrt((ARCH_INNER - 1) ** 2 - dy * dy)
+      if (dy >= inner) continue
+      const w = Math.sqrt(inner ** 2 - dy * dy)
       x0 = Math.max(x0, Math.ceil(ARCH_W / 2 - w))
       x1 = Math.min(x1, Math.floor(ARCH_W / 2 - 1 + w))
     }
@@ -150,37 +235,116 @@ export function portalOpening() {
   return rows
 }
 
+/** The middle of the opening, and how far it reaches across and up, for the vortex's shape. */
+const EYE = { x: ARCH_W / 2, y: 38, rx: ARCH_W / 2 - PILLAR - SOFFIT - 1, ry: 27 }
+
 const rgb = (hex) => {
   const { r, g, b } = hexToRgb(hex)
   return [r, g, b]
 }
+const ABYSS = rgb(P.portalAbyss)
 const DEEP = rgb(P.portalDeep)
 const MID = rgb(P.portal)
 const CORE = rgb(P.portalCore)
 const mix = (a, b, t) => [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * t))
+/** Dark to bright through the vortex's four colours. */
+function ramp(light) {
+  if (light < 0.3) return mix(ABYSS, DEEP, light / 0.3)
+  if (light < 0.65) return mix(DEEP, MID, (light - 0.3) / 0.35)
+  return mix(MID, CORE, Math.min(1, (light - 0.65) / 0.35))
+}
 
 /**
- * The veil in the portal at arch-sprite pixel (x, y), time `t` in seconds: [r, g, b, alpha 0..1].
- * Bands of light rise through it, it pools brighter at the ground, a few specks glint, and
- * `flare` (0..1, somebody arriving or leaving) floods it with light.
+ * The vortex in the portal at arch-sprite pixel (x, y), time `t` in seconds: [r, g, b, alpha 0..1].
+ * Three arms of light wheel round a bright eye, the dark between them falling away into the deep;
+ * a rim of light runs round its edge, and a few specks glint. `flare` (0..1, somebody arriving or
+ * leaving) spins it faster and floods it from the eye out.
  */
 export function veilColor(x, y, t, flare = 0) {
-  const u = (x - ARCH_W / 2) / (ARCH_W / 2 - PILLAR) // -1 at one pillar, 1 at the other
-  const band = 0.5 + 0.5 * Math.sin(y * 0.42 + t * 3.1 + Math.sin(x * 0.33 + t * 1.3) * 1.6)
-  const swirl = 0.5 + 0.5 * Math.sin((x + y) * 0.21 - t * 2.2)
-  const ground = Math.max(0, (y - ARCH_H + 14) / 14) // the bottom rows pool light
-  let light = 0.25 + 0.45 * band * swirl + 0.3 * ground
-  let alpha = 0.3 + 0.25 * band + 0.2 * ground - 0.15 * u * u
-  const speck = lattice(x, y * 131 + Math.floor(t * 5), 97) > 0.992
-  if (speck) {
-    light = 1
+  const ex = (x + 0.5 - EYE.x) / EYE.rx
+  const ey = (y + 0.5 - EYE.y) / EYE.ry
+  const r = Math.min(1.2, Math.hypot(ex, ey))
+  const th = Math.atan2(ey, ex)
+  const spin = t * (1.4 + flare * 2.6)
+  const arms = 0.5 + 0.5 * Math.sin(3 * th + 7 * r - spin * 2.2)
+  const depth = Math.max(0, 1 - r)
+  let light = 0.08 + 0.55 * depth ** 1.4 + 0.42 * arms * (0.35 + 0.65 * Math.min(1, r))
+  let alpha = 0.78 + 0.2 * depth
+  if (r > 0.88) {
+    // The rim: where the vortex meets the stone it burns brightest.
+    light = Math.max(light, 0.62 + 0.25 * Math.sin(th * 5 - t * 4))
     alpha = 0.95
   }
-  // A flare brightens the veil without whiting it out: the bands still show through at its height.
-  light = Math.min(1, light + flare * 0.35)
-  alpha = Math.min(0.9, alpha + flare * 0.3)
-  const c = light < 0.6 ? mix(DEEP, MID, light / 0.6) : mix(MID, CORE, (light - 0.6) / 0.4)
-  return [...c, Math.max(0.05, alpha)]
+  if (lattice(x, y * 131 + Math.floor(t * 5), 97) > 0.992) {
+    light = 1
+    alpha = 1
+  }
+  light = Math.min(1, light + flare * 0.4 * (1 - 0.5 * Math.min(1, r)))
+  alpha = Math.min(1, alpha + flare * 0.1)
+  return [...ramp(light), alpha]
+}
+
+/**
+ * Motes of light in the vortex, in arch-sprite pixels: [x, y, alpha]. Drawn in along the arms
+ * toward the eye while all is quiet; hurled out from it while somebody steps through.
+ */
+export function vortexMotes(t, flare, n = 10) {
+  const out = []
+  for (let k = 0; k < n; k++) {
+    const phase = lattice(k, 1, 63)
+    const life = (t * 0.32 + phase) % 1
+    const r = flare > 0.3 ? life : 1 - life
+    const th = lattice(k, 2, 64) * TAU + (flare > 0.3 ? -1 : 1) * life * 4.5
+    out.push([Math.round(EYE.x + Math.cos(th) * r * EYE.rx * 0.95), Math.round(EYE.y + Math.sin(th) * r * EYE.ry * 0.95), Math.sin(life * Math.PI)])
+  }
+  return out
+}
+
+// ---------- crystals ----------
+
+/** An obelisk's sprite is this tall; its crystal floats this far over it, bobbing this much. */
+export const OBELISK_H = 30
+const FLOAT = 7
+const BOB = 2
+
+/** Where obelisk `i`'s crystal is at time `t`, its centre in the square's pixels. */
+export function crystalAt(i, t) {
+  const [lx, ly] = SQUARE_OBELISKS[i]
+  const bob = Math.round(Math.sin(t * 1.6 + i * 1.9) * BOB)
+  return [lx * T + T / 2, (ly + 1) * T - OBELISK_H - FLOAT + bob]
+}
+
+/** The gem in the arch's keystone, where the crystals' beams meet. */
+export const gemAt = () => [CENTER.x, CENTER.y - ARCH_H + 5]
+
+/** The pixels of a straight beam from `a` to `b`, both ends included. */
+export function beam(a, b) {
+  const [x0, y0] = a
+  const [x1, y1] = b
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))
+  const out = []
+  for (let i = 0; i <= n; i++) out.push([Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n)])
+  return out
+}
+
+// ---------- motes ----------
+
+/**
+ * Motes of light drifting up round the dais: [px, py, alpha] in the square's pixels. A few by day,
+ * more and brighter at night (`night` 0..1).
+ */
+export function motes(t, night, n = 16) {
+  const out = []
+  for (let k = 0; k < n; k++) {
+    const phase = lattice(k, 3, 65)
+    const life = (t * 0.11 + phase) % 1
+    const cycle = Math.floor(t * 0.11 + phase)
+    const x = CENTER.x + (lattice(k, cycle, 66) - 0.5) * 150 + Math.sin(t * 0.9 + k) * 4
+    const y = CENTER.y + 44 - life * 110
+    const a = Math.sin(life * Math.PI) * (k < n / 3 ? 0.55 : night) * (0.45 + 0.55 * night)
+    if (a > 0.04) out.push([Math.round(x), Math.round(y), a])
+  }
+  return out
 }
 
 // ---------- bunting ----------
@@ -196,13 +360,14 @@ export const lampTop = ([lx, ly]) => [lx * T + T / 2, (ly + 1) * T - 26]
 export const archTop = () => [CENTER.x, CENTER.y - ARCH_H + 2]
 
 /**
- * The strings of bunting: along the top and bottom edges between the lampposts, and from the two
- * top lampposts to the arch's keystone. Each is a list of [px, py] a pixel apart, sagging.
+ * The strings of bunting: along the bottom edge between the lampposts, and from the two top
+ * lampposts to the arch's keystone. Each is a list of [px, py] a pixel apart, sagging. None runs
+ * along the top edge: it cut straight across the fountain and the carts.
  */
 export function buntingStrings() {
   const [tl, tr, bl, br] = SQUARE_LAMPS.map(lampTop)
   const top = archTop()
-  return [[tl, tr], [bl, br], [tl, top], [tr, top]].map(([a, b]) => {
+  return [[bl, br], [tl, top], [tr, top]].map(([a, b]) => {
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
     const n = Math.ceil(len)
     const pts = []
@@ -223,6 +388,15 @@ export function pennants() {
   return out
 }
 
+/** Fairy lights strung along the bunting, between the pennants: [px, py, k]. */
+export function fairyLights() {
+  const out = []
+  buntingStrings().forEach((pts) => {
+    for (let i = PENNANT_GAP; i < pts.length - 2; i += PENNANT_GAP) out.push([...pts[i], out.length])
+  })
+  return out
+}
+
 // ---------- arrivals ----------
 
 /** Sparkles rising off the pad while somebody comes or goes: [px, py, alpha], at most `n`. */
@@ -238,4 +412,119 @@ export function arrivalSparkles(t, flare, n = 14) {
     out.push([Math.round(x), Math.round(y), flare * Math.sin(life * Math.PI)])
   }
   return out
+}
+
+// ---------- blossom ----------
+
+/** The blossom trees of the square's gardens: where each one's crown is, in the square's pixels. */
+export function blossomCrowns() {
+  return SQUARE_PROPS.filter(([sprite, v]) => sprite === 'tree' && v >= 6).map(([, , lx, ly]) => [lx * T + T / 2, (ly + 1) * T - 22])
+}
+
+/** Petals drifting down from the blossom trees: [px, py, alpha, light?], a few per tree. */
+export function petals(t, per = 4) {
+  const out = []
+  blossomCrowns().forEach(([cx, cy], i) => {
+    for (let k = 0; k < per; k++) {
+      const phase = lattice(i, k, 81)
+      const life = (t * 0.16 + phase) % 1
+      const cycle = Math.floor(t * 0.16 + phase)
+      const x = cx + (lattice(i * 7 + k, cycle, 82) - 0.5) * 20 + life * 16 + Math.sin(t * 2 + k) * 3
+      const y = cy + life * 34
+      out.push([Math.round(x), Math.round(y), Math.sin(life * Math.PI), k % 2 === 0])
+    }
+  })
+  return out
+}
+
+// ---------- pigeons ----------
+
+/** Tiles of the square that something stands on, "x,y", from the layout. */
+const TAKEN = new Set([
+  ...SQUARE_LAMPS, ...SQUARE_OBELISKS,
+  ...SQUARE_PROPS.flatMap(([, , lx, ly, more = []]) => [[lx, ly], ...more.map(([dx, dy]) => [lx + dx, ly + dy])]),
+  [4, 6], [5, 6], [6, 6], [7, 6], [2, 6], [9, 6], // the arch, its opening and the planters
+].map(([x, y]) => `${x},${y}`))
+
+/** Can a pigeon stand at (px, py)? Anywhere on open paving or the dais, but not in the portal. */
+export function pigeonCanStand(px, py) {
+  if (px < KERB + 2 || py < KERB + 2 || px > SIZE - KERB - 3 || py > SIZE - KERB - 3) return false
+  if (fromCorner(px, py).d < GARDEN + 3) return false
+  if (TAKEN.has(`${Math.floor(px / T)},${Math.floor(py / T)}`)) return false
+  if (Math.hypot(px - CENTER.x, py - CENTER.y) < STAR + 10) return false
+  return !(py < CENTER.y && Math.abs(px - CENTER.x) < ARCH_W / 2 && py > CENTER.y - ARCH_H)
+}
+
+/** How near a villager may come, in px, before a pigeon takes off; and how fast they go. */
+const SPOOK = 18
+const WALK = 9
+const FLY = 70
+const FLIGHT = 1.1
+
+/** A handful of pigeons on the open paving in front of the portal. */
+export function makePigeons(n, rand) {
+  const out = []
+  for (let tries = 0; out.length < n && tries < 500; tries++) {
+    const x = KERB + rand() * (SIZE - 2 * KERB)
+    const y = CENTER.y + 20 + rand() * (SIZE - CENTER.y - 30)
+    if (pigeonCanStand(x, y)) out.push({ x, y, tx: x, ty: y, mode: 'peck', timer: rand() * 3, face: rand() < 0.5 ? -1 : 1, air: 0, peck: false })
+  }
+  return out
+}
+
+/** Somewhere a pigeon can land, `reach` px or so from (x, y), preferring the direction (dx, dy). */
+function landing(x, y, dx, dy, reach, rand) {
+  for (let i = 0; i < 30; i++) {
+    const a = Math.atan2(dy, dx) + (rand() - 0.5) * (1 + i * 0.2)
+    const r = reach * (0.6 + rand() * 0.6)
+    const tx = x + Math.cos(a) * r
+    const ty = y + Math.sin(a) * r
+    if (pigeonCanStand(tx, ty)) return [tx, ty]
+  }
+  return [x, y]
+}
+
+/**
+ * One step of the pigeons: they peck, wander a few steps, and take off from anybody who comes too
+ * close, landing a little way off. `walkers` are [px, py] in the square's pixels.
+ */
+export function stepPigeons(birds, dt, walkers, rand) {
+  for (const b of birds) {
+    const near = walkers.find(([wx, wy]) => Math.hypot(wx - b.x, wy - b.y) < SPOOK)
+    if (near && b.mode !== 'fly') {
+      const [tx, ty] = landing(b.x, b.y, b.x - near[0], b.y - near[1], 44, rand)
+      Object.assign(b, { mode: 'fly', tx, ty, timer: FLIGHT })
+    }
+    const dx = b.tx - b.x
+    const dy = b.ty - b.y
+    const dist = Math.hypot(dx, dy)
+    if (b.mode === 'fly') {
+      b.timer -= dt
+      const step = Math.min(dist, FLY * dt)
+      if (dist > 0.01) {
+        b.x += (dx / dist) * step
+        b.y += (dy / dist) * step
+        if (Math.abs(dx) > 0.5) b.face = Math.sign(dx)
+      }
+      // Up, and down again as it comes in to land.
+      b.air = Math.min(10, Math.max(0, dist / 3)) * Math.min(1, b.timer * 3 + 0.2)
+      if (dist < 1 && b.timer <= 0) Object.assign(b, { mode: 'peck', air: 0, timer: 1 + rand() * 3 })
+    } else if (b.mode === 'walk') {
+      const step = Math.min(dist, WALK * dt)
+      if (dist > 0.01) {
+        b.x += (dx / dist) * step
+        b.y += (dy / dist) * step
+        if (Math.abs(dx) > 0.3) b.face = Math.sign(dx)
+      }
+      if (dist < 0.5) Object.assign(b, { mode: 'peck', timer: 1 + rand() * 4 })
+    } else {
+      b.timer -= dt
+      b.peck = Math.sin(b.timer * 9) > 0.3
+      if (b.timer <= 0) {
+        const [tx, ty] = landing(b.x, b.y, rand() - 0.5, rand() - 0.5, 12, rand)
+        Object.assign(b, { mode: 'walk', tx, ty, peck: false })
+      }
+    }
+  }
+  return birds
 }

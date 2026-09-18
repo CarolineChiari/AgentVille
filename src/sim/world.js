@@ -1,6 +1,6 @@
 // The village: plots, buildings and villagers, stepped by `tick` and read out by `snapshot`.
 // Nothing here knows about pixels; a renderer draws the Frame this produces.
-import { CELL_TILES, GATE_CELL, GATE_TILE, MAX_ENTERING, SQUARE_LAMPS, SQUARE_PLANTERS } from './constants.js'
+import { CELL_TILES, GATE_CELL, GATE_TILE, MAX_ENTERING, SQUARE_GARDEN, SQUARE_LAMPS, SQUARE_OBELISKS, SQUARE_PLANTERS, SQUARE_PROPS } from './constants.js'
 import { key, ringOf } from './grid.js'
 import { allocatePlots } from './layout.js'
 import { Nav } from './nav.js'
@@ -306,6 +306,27 @@ export class World {
     SQUARE_PLANTERS.forEach(([lx, ly], i) => {
       statics.push({ id: `planter:${lx},${ly}`, sprite: 'planter', variant: i, x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]] })
     })
+    // Each obelisk's variant is its place in SQUARE_OBELISKS, which the renderer's crystals follow.
+    SQUARE_OBELISKS.forEach(([lx, ly], i) => {
+      statics.push({ id: `obelisk:${lx},${ly}`, sprite: 'obelisk', variant: i, x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]] })
+    })
+    for (const [sprite, variant, lx, ly, more = []] of SQUARE_PROPS) {
+      const blocks = [[x0 + lx, y0 + ly], ...more.map(([dx, dy]) => [x0 + lx + dx, y0 + ly + dy])]
+      // A prop two tiles wide stands centred between them.
+      const wide = more.some(([dx, dy]) => dx && !dy)
+      statics.push({ id: `${sprite}:${lx},${ly}`, sprite, variant, x: x0 + lx + (wide ? 0 : 0.5), y: y0 + ly + 1, blocks })
+    }
+    // The corner gardens' beds: nobody walks through the flowers. Nothing to draw here, as the
+    // beds are part of the square's floor; this only blocks their tiles.
+    const beds = []
+    for (let ly = 0; ly < CELL_TILES; ly++) {
+      for (let lx = 0; lx < CELL_TILES; lx++) {
+        const dx = Math.min(lx + 0.5, CELL_TILES - lx - 0.5)
+        const dy = Math.min(ly + 0.5, CELL_TILES - ly - 0.5)
+        if (Math.hypot(dx, dy) < SQUARE_GARDEN) beds.push([x0 + lx, y0 + ly])
+      }
+    }
+    statics.push({ id: 'gardens', x: x0, y: y0, blocks: beds })
   }
 
   /**

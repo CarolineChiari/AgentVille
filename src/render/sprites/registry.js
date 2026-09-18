@@ -12,12 +12,16 @@
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
-//         fx.bunting                    (the arrival square's, the size of its cell; two frames)
+//         fx.bunting                    (the arrival square's, the size of its cell; two frames;
+//                                        params: accents, the repos' colours it flies)
+//         fx.crystal                    (floating over an obelisk; frame 1 glints)
+//         fx.pigeon.<w|e>               (frames: standing, pecking, two of flight)
+//         static.<sprite>.<variant> takes a frame too, for the fountain's water
 //         tile.square.<y * 12 + x>      (one tile of the arrival square's floor)
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
-import { drawBadge, drawBird, drawBunting, drawButterfly, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawBadge, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 
 const memo = new Map()
@@ -40,14 +44,16 @@ export function generate(name, frame, p) {
     case 'flower':
       return drawFlower(Number(a), Number(b), p.color)
     case 'static':
-      return drawStatic(a, Number(b || 0), p)
+      return drawStatic(a, Number(b || 0), { ...p, frame })
     case 'fx':
       if (a === 'badge') return drawBadge(b)
       if (a === 'z') return drawZ()
       if (a === 'ring') return drawRing(b)
       if (a === 'butterfly') return drawButterfly(Number(b), frame)
       if (a === 'bird') return drawBird(frame)
-      if (a === 'bunting') return drawBunting(frame)
+      if (a === 'bunting') return drawBunting(frame, p.accents)
+      if (a === 'crystal') return drawCrystal(frame)
+      if (a === 'pigeon') return b === 'e' ? drawPigeon(frame).flipX() : drawPigeon(frame)
       if (a === 'shadow') {
         // A bare width gets a shadow a third as deep; a building's is far wider than it is deep.
         const [w, h] = b.split('x').map(Number)

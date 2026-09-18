@@ -1,10 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ARCH_H, ARCH_W, CENTER, PILLAR, SIZE, archTop, arrivalSparkles, buntingStrings, lampTop, pennants, portalOpening, runePixels, squarePixel, veilColor } from '../src/render/square.js'
+import {
+  ARCH_H, ARCH_W, CENTER, GARDEN, PILLAR, SIZE, archTop, arrivalSparkles, blossomCrowns, buntingStrings, crystalAt, fairyLights, gemAt,
+  lampTop, makePigeons, motes, pennants, petals, pigeonCanStand, portalOpening, runePixels, squarePixel, stepPigeons, veilColor,
+} from '../src/render/square.js'
+import { mulberry32 } from '../src/sim/rng.js'
 import { PALETTE as P } from '../src/render/sprites/palette.js'
 import { generate } from '../src/render/sprites/registry.js'
 import { SQUARE_TILES } from '../src/render/sprites/tiles.js'
-import { GATE_TILE, SQUARE_LAMPS } from '../src/sim/constants.js'
+import { GATE_TILE, SQUARE_LAMPS, SQUARE_OBELISKS } from '../src/sim/constants.js'
 
 const PALETTE_COLOURS = new Set(Object.values(P).flat().filter((c) => typeof c === 'string'))
 
@@ -71,14 +75,14 @@ test('the bunting hangs between the lampposts and up to the arch, inside the squ
   const strings = buntingStrings()
   const ends = strings.map((pts) => [pts[0], pts[pts.length - 1]])
   const [tl, tr, bl, br] = SQUARE_LAMPS.map(lampTop)
-  assert.deepEqual(ends, [[tl, tr], [bl, br], [tl, archTop()], [tr, archTop()]])
+  assert.deepEqual(ends, [[bl, br], [tl, archTop()], [tr, archTop()]])
   for (const pts of strings) {
     for (const [x, y] of pts) assert.ok(x >= 0 && y >= 0 && x < SIZE && y < SIZE)
     // It sags: its middle hangs below the straight line between its ends.
     const mid = pts[pts.length >> 1]
     assert.ok(mid[1] > (pts[0][1] + pts[pts.length - 1][1]) / 2)
   }
-  assert.ok(pennants().length > 40)
+  assert.ok(pennants().length > 30)
 })
 
 test('sparkles only rise while somebody is stepping through', () => {
@@ -86,4 +90,67 @@ test('sparkles only rise while somebody is stepping through', () => {
   const busy = arrivalSparkles(5, 1)
   assert.ok(busy.length > 5)
   for (const [x, y, a] of busy) assert.ok(x > 0 && x < SIZE && y > 0 && y <= CENTER.y && a >= 0 && a <= 1)
+})
+
+test('each corner of the square is a garden bed, its kerb round it', () => {
+  const inset = 12
+  for (const [x, y] of [[inset, inset], [SIZE - inset, inset], [inset, SIZE - inset], [SIZE - inset, SIZE - inset]]) {
+    assert.ok(![P.plaza, P.plazaDark, P.plazaLight, P.stone, P.stoneDark].includes(squarePixel(x, y)), `no garden at ${x},${y}`)
+  }
+  // Between the top-left bed and the dais, paving again.
+  const [x, y] = [20, 60]
+  assert.ok(Math.hypot(x, y) > GARDEN + 8 && Math.hypot(x - CENTER.x, y - CENTER.y) > 70)
+  assert.ok([P.plaza, P.plazaDark, P.plazaLight, P.stoneLight, P.moss].includes(squarePixel(x, y)))
+})
+
+test('crystals float over their obelisks, bobbing a little, and beams reach the portal\'s gem', () => {
+  SQUARE_OBELISKS.forEach(([lx, ly], i) => {
+    const ys = new Set()
+    for (let t = 0; t < 6; t += 0.1) {
+      const [x, y] = crystalAt(i, t)
+      assert.equal(x, lx * 16 + 8)
+      assert.ok(y < (ly + 1) * 16 - 30, 'a crystal sunk into its obelisk')
+      ys.add(y)
+    }
+    assert.ok(ys.size > 1, 'a crystal that never bobs')
+  })
+  assert.ok(gemAt()[1] < CENTER.y - ARCH_H / 2)
+})
+
+test('petals fall from the blossom trees, and fairy lights hang along the bunting', () => {
+  const crowns = blossomCrowns()
+  assert.equal(crowns.length, 4)
+  for (const [x, y, a] of petals(12.3)) {
+    assert.ok(crowns.some(([cx, cy]) => Math.abs(x - cx) < 40 && y >= cy - 2 && y < cy + 40), `a petal adrift at ${x},${y}`)
+    assert.ok(a >= 0 && a <= 1)
+  }
+  const on = new Set(buntingStrings().flat().map(([x, y]) => `${x},${y}`))
+  for (const [x, y] of fairyLights()) assert.ok(on.has(`${x},${y}`))
+  assert.ok(fairyLights().length > 15)
+})
+
+test('motes drift up round the portal, more of them by night', () => {
+  assert.ok(motes(20, 1).length > motes(20, 0).length)
+  for (const [x, y, a] of motes(20, 1)) assert.ok(x > 0 && x < SIZE && y < CENTER.y + 50 && a > 0 && a <= 1)
+})
+
+test('pigeons keep to open paving, and take off from anybody who comes near', () => {
+  const rand = mulberry32(7)
+  const birds = makePigeons(8, rand)
+  assert.equal(birds.length, 8)
+  for (const b of birds) assert.ok(pigeonCanStand(b.x, b.y))
+  // Nobody about: they peck and wander, and never step off the paving.
+  for (let i = 0; i < 600; i++) stepPigeons(birds, 1 / 30, [], rand)
+  for (const b of birds) assert.ok(b.mode === 'fly' || pigeonCanStand(b.x, b.y), `a pigeon wandered to ${b.x},${b.y}`)
+  // Somebody walks right up to one: it flies, and comes down somewhere it can stand, farther off.
+  const b = birds[0]
+  const walker = [b.x + 4, b.y]
+  stepPigeons(birds, 1 / 30, [walker], rand)
+  assert.equal(b.mode, 'fly')
+  for (let i = 0; i < 90; i++) stepPigeons(birds, 1 / 30, [], rand)
+  assert.equal(b.mode, 'peck')
+  assert.ok(pigeonCanStand(b.x, b.y))
+  assert.ok(Math.hypot(b.x - walker[0], b.y - walker[1]) > 18)
+  // Nothing stands in the portal itself.
+  assert.ok(!pigeonCanStand(CENTER.x, CENTER.y - 8))
 })

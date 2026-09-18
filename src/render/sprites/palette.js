@@ -138,6 +138,9 @@ export const PALETTE = {
   // The arrival square: its portal, the runes that wake it, and the mosaic round its foot.
   portal: '#5fd8e8',
   portalDeep: '#3d6fd6',
+  portalAbyss: '#231f6e', // the far end of the vortex
+  crystal: '#8fe9f5',
+  crystalDark: '#3f8fb8',
   portalCore: '#e8fdff',
   rune: '#6fa9b3', // carved into stone, unlit
   runeGlow: '#a8f6ff',
@@ -146,6 +149,12 @@ export const PALETTE = {
   cobbleSlate: '#7c8494',
   cobbleSlateDark: '#5f6676',
   inlay: '#e6c257', // the gold star at the portal's foot
+  blossom: '#f4a6c1', // cherry blossom
+  blossomDark: '#d97a9f',
+  blossomLight: '#fcd6e3',
+  pigeon: '#9a9fae',
+  pigeonDark: '#6c7080',
+  pigeonNeck: '#6fa89a', // the green-and-purple sheen on a pigeon's neck
   bird: '#3b3645',
   smoke: '#f2eff5',
   smokeShade: '#aaa5b4', // the underside of a puff, so smoke shows against pale paths too

@@ -3,7 +3,7 @@ import { PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
 import { mulberry32 } from '../../sim/rng.js'
 import { FENCES } from '../../sim/style.js'
-import { ARCH_H, ARCH_INNER, ARCH_RISE, ARCH_W, PILLAR, squarePixel } from '../square.js'
+import { ARCH_H, ARCH_INNER, ARCH_RISE, ARCH_W, OBELISK_H, PILLAR, SOFFIT, squarePixel } from '../square.js'
 
 const T = 16
 
@@ -51,7 +51,12 @@ export const DECO_VARIANTS = {
  * How many looks each tall static has. Trees: 0 broadleaf, 1 pine, 2 fruit, 3 birch, 4 autumn,
  * 5 willow. A board's variant is how many notes it shows.
  */
-export const STATIC_VARIANTS = { tree: 6, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, planter: 2, board: 7 }
+export const STATIC_VARIANTS = {
+  tree: 8, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, planter: 2, obelisk: 4, board: 7,
+  bench: 2, fountain: 1, cart: 2,
+}
+/** Statics that animate, and through how many frames. */
+export const STATIC_FRAMES = { fountain: 4 }
 /** The arrival square's floor comes in one tile per spot of its 12×12 cell: `tile.square.<y * 12 + x>`. */
 export const SQUARE_TILES = 144
 
@@ -384,16 +389,33 @@ function portalArch() {
   const pc = new PixelCanvas(ARCH_W, ARCH_H)
   const cx = ARCH_W / 2
   const outer = cx - 0.5
-  // The arch: wedge stones every 15°, lit on their upper faces.
+  // The arch: wedge stones every 15°, lit on their upper faces. Inside them, its thickness: the
+  // underside of the curve and the inner faces of the pillars, in shadow, darkest deepest in.
   for (let y = 0; y < ARCH_RISE; y++) {
     for (let x = 0; x < ARCH_W; x++) {
       const dx = x + 0.5 - cx
       const dy = ARCH_RISE - y - 0.5
       const d = Math.hypot(dx, dy)
-      if (d > outer || d < ARCH_INNER) continue
+      if (d > outer || d < ARCH_INNER - SOFFIT) continue
+      if (d < ARCH_INNER) {
+        pc.px(x, y, d < ARCH_INNER - SOFFIT + 1 ? P.cobbleSlateDark : P.cobbleSlate)
+        continue
+      }
       const deg = (Math.atan2(dy, dx) * 180) / Math.PI
       const joint = Math.abs(((deg + 7.5) % 15) - 7.5) < 1.6
       pc.px(x, y, joint ? P.stoneDark : d > outer - 1.5 ? P.stoneLight : d < ARCH_INNER + 1 ? P.stoneDark : P.stone)
+    }
+  }
+  for (let y = ARCH_RISE; y < ARCH_H; y++) {
+    for (let k = 0; k < SOFFIT; k++) {
+      const c = k === SOFFIT - 1 ? P.cobbleSlateDark : P.cobbleSlate
+      pc.px(PILLAR + k, y, c)
+      pc.px(ARCH_W - PILLAR - 1 - k, y, c)
+    }
+    // Courses carry on round the inner faces.
+    if ((y - ARCH_RISE) % 5 === 4) for (let k = 0; k < SOFFIT; k++) {
+      pc.px(PILLAR + k, y, P.cobbleSlateDark)
+      pc.px(ARCH_W - PILLAR - 1 - k, y, P.cobbleSlateDark)
     }
   }
   // The keystone, standing proud, with a gem in it.
@@ -459,6 +481,144 @@ function lamppost(lit) {
   pc.hline(4, 7, 2, P.metal)
   pc.vline(5, 0, 1, P.metalDark) // finial
   pc.vline(6, 0, 1, P.metal)
+  return pc.outline(P.outline)
+}
+
+/**
+ * A standing stone on the rim of the dais: a plinth, a tapering shaft with a rune cut down it, and
+ * a cradle at the top with nothing in it. Its crystal floats over it, drawn by the renderer so it
+ * can bob. `variant` is which of the four it is, and turns its runes.
+ */
+function obelisk(variant) {
+  const pc = new PixelCanvas(12, OBELISK_H)
+  const H = OBELISK_H
+  pc.rect(0, H - 5, 12, 5, P.stone) // plinth
+  pc.hline(0, 11, H - 5, P.stoneLight)
+  pc.hline(0, 11, H - 1, P.stoneDark)
+  pc.vline(11, H - 5, H - 1, P.stoneDark)
+  for (let y = 6; y < H - 5; y++) {
+    // The shaft narrows from 6 px to 4 going up.
+    const half = y < 14 ? 2 : 3
+    pc.hline(6 - half, 5 + half, y, P.stone)
+    pc.px(6 - half, y, P.stoneLight)
+    pc.px(5 + half, y, P.stoneDark)
+  }
+  for (let y = 10; y < H - 8; y += 3) pc.px(5 + ((y + variant) % 2), y, P.rune)
+  pc.px(5, 8, P.rune)
+  // The cradle: two prongs the crystal hovers between.
+  pc.rect(3, 4, 6, 2, P.stoneDark)
+  pc.vline(3, 1, 3, P.stone)
+  pc.vline(8, 1, 3, P.stone)
+  pc.px(3, 0, P.stoneLight)
+  pc.px(8, 0, P.stoneLight)
+  return pc.outline(P.outline)
+}
+
+/**
+ * A park bench two tiles long, seen from above and to one side: its seat of slats, its back
+ * standing up along the far edge, iron ends. Variant 0 faces east (it stands on the square's left),
+ * 1 faces west.
+ */
+function bench(variant) {
+  const pc = new PixelCanvas(14, 32)
+  // The back, on the west side, taller than the seat: a lit top edge and its slats.
+  pc.rect(1, 1, 3, 29, P.wood)
+  pc.vline(1, 1, 29, P.woodLight)
+  for (let y = 4; y < 30; y += 5) pc.hline(1, 3, y, P.woodDark)
+  // The seat, in slats running its length.
+  pc.rect(4, 3, 7, 26, P.woodLight)
+  for (const x of [6, 9]) pc.vline(x, 3, 28, P.wood)
+  pc.vline(10, 3, 28, P.woodDark)
+  // Iron ends and feet.
+  for (const y of [2, 28]) {
+    pc.hline(0, 11, y, P.metalDark)
+    pc.px(11, y + 1, P.metalDark)
+  }
+  pc.px(0, 30, P.metalDark)
+  pc.px(11, 31, P.metalDark)
+  pc.outline(P.outline)
+  return variant === 1 ? pc.flipX() : pc
+}
+
+/**
+ * The fountain behind the portal: a round stone basin two tiles wide, a pedestal with a bowl, and
+ * water leaping from the top and spilling over the bowl. `frame` (0..3) moves the water.
+ */
+function fountain(frame) {
+  const pc = new PixelCanvas(32, 30)
+  // The basin: a stone ring seen from above, water inside it.
+  pc.ellipse(16, 23, 15.5, 6.5, P.stone)
+  pc.ellipse(16, 22.5, 13.5, 5, P.waterDeep)
+  pc.ellipse(16, 23, 12.5, 4, P.water)
+  for (let x = 1; x < 31; x++) {
+    const top = 23 - Math.round(Math.sqrt(Math.max(0, 1 - ((x + 0.5 - 16) / 15.5) ** 2)) * 6.5)
+    pc.px(x, top, P.stoneLight)
+  }
+  pc.hline(3, 28, 29, P.stoneDark)
+  pc.hline(1, 30, 26, P.stone)
+  for (let x = 3; x < 30; x += 5) pc.vline(x, 26, 28, P.stoneDark)
+  // Ripples in the pool, moving with the frame.
+  for (let i = 0; i < 3; i++) {
+    const x = 7 + ((i * 7 + frame * 2) % 18)
+    pc.hline(x, x + 2, 22 + (i % 2) * 2, P.waterLight)
+  }
+  // The pedestal and its bowl.
+  pc.rect(14, 12, 4, 11, P.stone)
+  pc.vline(17, 12, 22, P.stoneDark)
+  pc.ellipse(16, 12, 6.5, 2.5, P.stone)
+  pc.ellipse(16, 11.5, 5, 1.5, P.water)
+  pc.hline(10, 22, 13, P.stoneDark)
+  // Water: a jet from the top, falling in two arcs into the bowl, spilling over its lip.
+  const h = [9, 10, 9, 8][frame % 4]
+  pc.vline(16, 11 - h, 10, P.waterLight)
+  pc.px(16, 11 - h - 1, P.white)
+  for (const side of [-1, 1]) {
+    for (let k = 0; k < 5; k++) pc.px(16 + side * (1 + k), 11 - h + Math.round(k * k * 0.45), P.waterLight)
+    for (let y = 13; y < 20; y += 2) pc.px(16 + side * 7, y + (frame % 2), P.waterLight)
+  }
+  pc.px(16 + ((frame % 2) ? 3 : -3), 11 - h + 3, P.white)
+  return pc.outline(P.outline)
+}
+
+/**
+ * A market cart: two wheels, a striped awning, and its wares: pots of flowers (0) or fruit (1).
+ */
+function cart(variant) {
+  const pc = new PixelCanvas(24, 26)
+  const cloth = variant ? P.roof[0] : P.roof[1]
+  // The awning on two poles.
+  pc.vline(2, 4, 20, P.woodDark)
+  pc.vline(21, 4, 20, P.woodDark)
+  for (let x = 1; x <= 22; x++) {
+    const c = Math.floor((x - 1) / 3) % 2 ? P.white : cloth
+    pc.vline(x, 2, 6, c)
+    if (Math.floor((x - 1) / 3) % 2 === 0) pc.px(x, 7, c)
+  }
+  pc.hline(1, 22, 1, shade(cloth, -0.25))
+  // The box, its boards, and the wares heaped on it.
+  pc.rect(1, 14, 22, 7, P.wood)
+  pc.hline(1, 22, 14, P.woodLight)
+  pc.hline(1, 22, 17, P.woodDark)
+  pc.vline(22, 14, 20, P.woodDark)
+  const wares = variant ? [P.fruit, P.pollen, P.crop, P.fruit, P.flower[4]] : [P.flower[0], P.flower[3], P.flower[1], P.blossom, P.flower[4]]
+  for (let i = 0; i < 5; i++) {
+    const x = 3 + i * 4
+    if (variant) {
+      pc.rect(x, 11, 3, 3, wares[i])
+      pc.px(x, 11, shade(wares[i], 0.35))
+    } else {
+      pc.rect(x, 12, 3, 2, P.bedEdge) // a pot
+      pc.px(x + 1, 11, P.leaf)
+      pc.hline(x, x + 2, 10, wares[i])
+      pc.px(x + 1, 9, wares[i])
+    }
+  }
+  // Wheels.
+  for (const x of [5, 18]) {
+    pc.ellipse(x, 22, 3.5, 3.5, P.woodDark)
+    pc.ellipse(x, 22, 2, 2, P.wood)
+    pc.px(x, 22, P.metalDark)
+  }
   return pc.outline(P.outline)
 }
 
@@ -926,6 +1086,15 @@ function tree(variant) {
     for (const [x, y] of [[3, 32], [6, 33], [18, 33], [20, 31]]) pc.px(x, y, rand() < 0.5 ? leaf : dark)
     return pc.outline(P.outline)
   }
+  if (variant === 6 || variant === 7) {
+    // Blossom: a cherry in flower, pink (6) or paler (7), petals flecked white, a few on the ground.
+    const pale = variant === 7
+    crown(pc, rand, 12, 12, 11.5, 10.5, P.blossomDark, pale ? P.blossomLight : P.blossom, pale ? P.white : P.blossomLight)
+    for (let i = 0; i < 9; i++) pc.px(3 + Math.floor(rand() * 18), 3 + Math.floor(rand() * 16), P.white)
+    for (let i = 0; i < 3; i++) pc.px(6 + Math.floor(rand() * 12), 4 + Math.floor(rand() * 14), P.leaf)
+    for (const [x, y] of [[4, 33], [7, 32], [17, 33], [20, 32]]) pc.px(x, y, P.blossom)
+    return pc.outline(P.outline)
+  }
   crown(pc, rand, 12, 12, 11.5, 10.5, P.leafDark, P.leaf, P.leafLight)
   if (variant === 2) {
     for (let i = 0; i < 7; i++) {
@@ -1029,6 +1198,10 @@ export function drawStatic(sprite, variant = 0, opts = {}) {
   if (sprite === 'lamp') return lamppost(opts.lit)
   if (sprite === 'arch') return portalArch()
   if (sprite === 'planter') return planter(variant)
+  if (sprite === 'obelisk') return obelisk(variant)
+  if (sprite === 'bench') return bench(variant)
+  if (sprite === 'fountain') return fountain(opts.frame || 0)
+  if (sprite === 'cart') return cart(variant)
   if (sprite === 'board') {
     // A notice board with `variant` notes pinned to it (0–6), filled left to right, top row first.
     // One pixel of margin all round leaves room for the outline.
