@@ -59,7 +59,7 @@ export const PALETTE = {
   trunk: '#6f4a2d',
   flower: ['#f06a92', '#f5d94e', '#ffffff', '#9a7cf0'],
   pebble: '#b8b2a6',
-  lampGlow: '#ffd97a',
+  lampGlow: '#ffc86e', // the warm pool a lit window or lamp throws at night
   water: '#5a93cf',
 
   bed: '#8b6445',
@@ -77,6 +77,11 @@ export const PALETTE = {
   shadow: '#18122047', // 28% alpha
   interior: '#3a2a24',
   void: '#4e8a3c', // outside the map: more countryside
+
+  // Drawn straight onto the canvas by the renderer rather than into a sprite.
+  highlight: '#ffffff', // under a hovered flower
+  glitterGlow: '#ffe278', // the pulse under an open PR's bud
+  labelInk: '#1c1624', // the halo round a plot's name
 }
 
 /** One per plot, picked by a hash of its name with collisions stepped past. */
@@ -113,6 +118,12 @@ export const NIGHT = { r: 52, g: 60, b: 128 }
 export function hexToRgb(hex) {
   const h = hex.replace('#', '')
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }
+}
+
+/** A palette colour at some opacity, for canvas fills that fade in and out. */
+export function rgba(hex, a) {
+  const { r, g, b } = hexToRgb(hex)
+  return `rgba(${r}, ${g}, ${b}, ${a})`
 }
 
 /** Lighten (f > 0) or darken (f < 0) a hex colour. */

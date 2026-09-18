@@ -10,8 +10,12 @@ function speckle(pc, rand, colors, n) {
 }
 
 export const TILE_VARIANTS = { wild: 4, yard: 3, road: 3, plaza: 2, bed: 2 }
+/** How many looks each decoration has; the renderer picks one by a hash of the tile. */
+export const DECO_VARIANTS = { fenceh: 1, fencev: 1, post: 1, flowers: 4, pebbles: 1 }
+/** How many looks each tall static has. A board's variant is how many notes it shows. */
+export const STATIC_VARIANTS = { tree: 3, lamp: 1, arch: 1, board: 7 }
 
-export function drawTile(kind, variant) {
+export function drawTile(kind, variant, opts = {}) {
   const rand = mulberry32(variant * 131 + kind.length * 17)
   const pc = new PixelCanvas(T, T)
   if (kind === 'wild') {
@@ -57,6 +61,8 @@ export function drawTile(kind, variant) {
       for (let x = off; x < T; x += 4) pc.vline(x, row * 4, row * 4 + 2, P.plazaDark)
       for (let x = off + 1; x < T; x += 4) pc.px(x, row * 4, P.plazaLight)
     }
+    // A few worn stones, or both variants would be the same picture.
+    speckle(pc, rand, [P.plazaLight, P.plazaDark], 4)
   }
   return pc
 }

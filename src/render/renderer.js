@@ -2,9 +2,9 @@
 import { CELL_TILES } from '../sim/constants.js'
 import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
-import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE } from './sprites/palette.js'
+import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
-import { TILE_VARIANTS } from './sprites/tiles.js'
+import { DECO_VARIANTS, TILE_VARIANTS } from './sprites/tiles.js'
 import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
@@ -15,6 +15,10 @@ const DECO_NAME = { [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.PO
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
+/** Width of the shadow each kind of static casts on the ground; the rest cast none. */
+const STATIC_SHADOW = { tree: 16 }
+/** Statics that light up after dark. */
+const LIT_STATICS = new Set(['lamp'])
 
 function villagerFrame(v) {
   switch (v.anim) {
@@ -34,7 +38,8 @@ export class Canvas2dRenderer {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d', { alpha: false })
     this.camera = camera
-    this.chunks = new Map() // "cx,cy" → { version, canvas }
+    this.chunks = new Map() // "cx,cy" → { version, canvas, water, flowers }
+    this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
   }
 
   resize() {
@@ -46,11 +51,16 @@ export class Canvas2dRenderer {
 
   // ---------- ground ----------
 
+  /**
+   * One cell's ground, baked once per map version. Besides the picture it keeps the tiles that
+   * something animates over (water glints, butterflies), so those passes never scan the map.
+   */
   _chunk(map, cx, cy) {
     const k = `${cx},${cy}`
     const hit = this.chunks.get(k)
-    if (hit && hit.version === map.version) return hit.canvas
+    if (hit && hit.version === map.version) return hit
     const canvas = hit?.canvas || document.createElement('canvas')
+    const entry = { version: map.version, canvas, water: [], flowers: [] }
     canvas.width = CHUNK
     canvas.height = CHUNK
     const g = canvas.getContext('2d')
@@ -90,12 +100,14 @@ export class Canvas2dRenderer {
       for (let lx = 0; lx < CELL_TILES; lx++) {
         const d = decoAt(x0 + lx, y0 + ly)
         if (!d) continue
-        const variant = d === DECO.FLOWERS ? hashString(`f${x0 + lx},${y0 + ly}`) % 4 : 0
-        g.drawImage(sprites.get(`deco.${DECO_NAME[d]}.${variant}`), lx * T, ly * T)
+        const name = DECO_NAME[d]
+        const variant = hashString(`f${x0 + lx},${y0 + ly}`) % DECO_VARIANTS[name]
+        g.drawImage(sprites.get(`deco.${name}.${variant}`), lx * T, ly * T)
+        if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly])
       }
     }
-    this.chunks.set(k, { version: map.version, canvas })
-    return canvas
+    this.chunks.set(k, entry)
+    return entry
   }
 
   _drawGround(frame) {
@@ -107,9 +119,12 @@ export class Canvas2dRenderer {
     const c0y = Math.floor(tl.y / CHUNK)
     const c1x = Math.floor(br.x / CHUNK)
     const c1y = Math.floor(br.y / CHUNK)
+    this.inView = []
     for (let cy = c0y; cy <= c1y; cy++) {
       for (let cx = c0x; cx <= c1x; cx++) {
-        ctx.drawImage(this._chunk(frame.map, cx, cy), cam.offX + cx * CHUNK * s, cam.offY + cy * CHUNK * s, CHUNK * s, CHUNK * s)
+        const chunk = this._chunk(frame.map, cx, cy)
+        this.inView.push(chunk)
+        ctx.drawImage(chunk.canvas, cam.offX + cx * CHUNK * s, cam.offY + cy * CHUNK * s, CHUNK * s, CHUNK * s)
       }
     }
   }
@@ -149,15 +164,13 @@ export class Canvas2dRenderer {
     this._blit(img, b.x * T + (b.w * T - BUILDING_W) / 2, (b.y + b.h) * T - H, b.alpha)
   }
 
+  /** Tall scenery stands on the bottom centre of its sprite, so a new kind needs no code here. */
   _drawStatic(st, night) {
-    if (st.sprite === 'tree') {
-      this._blit(sprites.get('fx.shadow.16'), st.x * T - 8, st.y * T - 4)
-      this._blit(sprites.get(`static.tree.${st.variant || 0}`), st.x * T - 12, st.y * T - 34)
-    } else if (st.sprite === 'lamp') {
-      this._blit(sprites.get('static.lamp.0', 0, { lit: night > 0.35 }), st.x * T - 4, st.y * T - 24)
-    } else if (st.sprite === 'arch') {
-      this._blit(sprites.get('static.arch.0'), st.x * T - 32, st.y * T - 44)
-    }
+    const lit = LIT_STATICS.has(st.sprite) ? { lit: night > 0.35 } : undefined
+    const img = sprites.get(`static.${st.sprite}.${st.variant || 0}`, 0, lit)
+    const shadow = STATIC_SHADOW[st.sprite]
+    if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
+    this._blit(img, st.x * T - img.width / 2, st.y * T - img.height)
   }
 
   /** A notice board: one note pinned up per open issue, up to six. */
@@ -190,7 +203,7 @@ export class Canvas2dRenderer {
     const px = f.x * T
     const py = f.y * T
     if (f.selected || f.hovered) {
-      ctx.fillStyle = f.selected ? 'rgba(255, 216, 115, 0.55)' : 'rgba(255, 255, 255, 0.28)'
+      ctx.fillStyle = f.selected ? rgba(P.windowLit, 0.55) : rgba(P.highlight, 0.28)
       ctx.fillRect(cam.offX + Math.round(px - 4) * s, cam.offY + Math.round(py - 7) * s, 8 * s, 8 * s)
     }
     const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
@@ -216,8 +229,8 @@ export class Canvas2dRenderer {
       const rad = 11 * s
       const pulse = 0.22 + 0.14 * Math.sin(frame.time * 2.4 + (hashString(f.id) % 100) / 16)
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
-      g.addColorStop(0, `rgba(255, 226, 120, ${pulse})`)
-      g.addColorStop(1, 'rgba(255, 226, 120, 0)')
+      g.addColorStop(0, rgba(P.glitterGlow, pulse))
+      g.addColorStop(1, rgba(P.glitterGlow, 0))
       ctx.fillStyle = g
       ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2)
     }
@@ -292,8 +305,8 @@ export class Canvas2dRenderer {
       const p = { x: cam.offX + wx * cam.scale, y: cam.offY + wy * cam.scale }
       const rad = r * cam.scale
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad)
-      g.addColorStop(0, `rgba(255, 200, 110, ${a * night})`)
-      g.addColorStop(1, 'rgba(255, 200, 110, 0)')
+      g.addColorStop(0, rgba(P.lampGlow, a * night))
+      g.addColorStop(1, rgba(P.lampGlow, 0))
       ctx.fillStyle = g
       ctx.fillRect(p.x - rad, p.y - rad, rad * 2, rad * 2)
     }
@@ -327,13 +340,13 @@ export class Canvas2dRenderer {
       const y = cam.offY + p.labelAt.y * T * cam.scale - 6 * dpr
       const w = ctx.measureText(p.name).width
       ctx.lineWidth = 4 * dpr
-      ctx.strokeStyle = 'rgba(28, 22, 36, 0.8)'
+      ctx.strokeStyle = rgba(P.labelInk, 0.8)
       ctx.strokeText(p.name, x + 5 * dpr, y)
       ctx.fillStyle = P.white
       ctx.fillText(p.name, x + 5 * dpr, y)
       ctx.beginPath()
       ctx.arc(x - w / 2 - 3 * dpr, y, 4 * dpr, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(28, 22, 36, 0.8)'
+      ctx.fillStyle = rgba(P.labelInk, 0.8)
       ctx.fill()
       ctx.beginPath()
       ctx.arc(x - w / 2 - 3 * dpr, y, 2.6 * dpr, 0, Math.PI * 2)

@@ -3,10 +3,11 @@
 //
 // Names:  villager.<anim>.<facing>      (params: look)
 //         building.<kind>.<stage>       (params: accent, variant, lit)
-//         tile.<kind>.<variant>   deco.<kind>.<variant>
+//         tile.<kind>.<variant>         (params: tone)
+//         deco.<kind>.<variant>
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)
-//         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>
+//         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawStatic, drawTile } from './tiles.js'
@@ -16,7 +17,8 @@ import { drawFlower } from './flowers.js'
 const memo = new Map()
 const overrides = new Map() // name → canvas[] (one per frame)
 
-function generate(name, frame, p) {
+/** The sprite's pixels, freshly drawn. Exported so tests can look at every sprite without a DOM. */
+export function generate(name, frame, p) {
   const [group, a, b] = name.split('.')
   switch (group) {
     case 'villager':
@@ -24,7 +26,7 @@ function generate(name, frame, p) {
     case 'building':
       return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame })
     case 'tile':
-      return drawTile(a, Number(b))
+      return drawTile(a, Number(b), p)
     case 'deco':
       return drawDeco(a, Number(b || 0))
     case 'flower':
@@ -35,12 +37,16 @@ function generate(name, frame, p) {
       if (a === 'badge') return drawBadge(b)
       if (a === 'z') return drawZ()
       if (a === 'ring') return drawRing(b)
-      if (a === 'shadow') return drawShadow(Number(b), Math.max(3, Math.round(Number(b) / 3)))
+      if (a === 'shadow') {
+        // A bare width gets a shadow a third as deep; a building's is far wider than it is deep.
+        const [w, h] = b.split('x').map(Number)
+        return drawShadow(w, h || Math.max(3, Math.round(w / 3)))
+      }
   }
   throw new Error(`No generator for sprite "${name}"`)
 }
 
-function paramKey(p) {
+export function paramKey(p) {
   if (!p) return ''
   let s = ''
   for (const k of Object.keys(p).sort()) {
