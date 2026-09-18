@@ -9,29 +9,116 @@ function speckle(pc, rand, colors, n) {
   for (let i = 0; i < n; i++) pc.px(Math.floor(rand() * T), Math.floor(rand() * T), colors[Math.floor(rand() * colors.length)])
 }
 
-export const TILE_VARIANTS = { wild: 4, yard: 3, road: 3, plaza: 2, bed: 2 }
+export const TILE_VARIANTS = { wild: 8, yard: 6, road: 6, plaza: 4, bed: 2 }
+/**
+ * How often each variant comes up, by position hash. The plain ones carry the ground; a tile
+ * with something in it (clover, a scuff, a daisy) only reads as a find if it is rare, and a
+ * field of them reads as noise.
+ */
+const TILE_WEIGHTS = {
+  wild: [6, 6, 6, 6, 2, 2, 1, 1],
+  yard: [6, 6, 6, 2, 1, 1],
+  road: [5, 5, 5, 2, 1, 1],
+  plaza: [8, 2, 1, 1],
+}
+const WEIGHT_TOTAL = Object.fromEntries(Object.entries(TILE_WEIGHTS).map(([k, w]) => [k, w.reduce((a, b) => a + b, 0)]))
+
+/** Which variant a tile of `kind` gets from a hash of its position, honouring TILE_WEIGHTS. */
+export function tileVariant(kind, hash) {
+  const w = TILE_WEIGHTS[kind]
+  if (!w) return hash % (TILE_VARIANTS[kind] || 1)
+  let r = hash % WEIGHT_TOTAL[kind]
+  for (let i = 0; i < w.length; i++) {
+    if (r < w[i]) return i
+    r -= w[i]
+  }
+  return 0
+}
+
 /** How many looks each decoration has; the renderer picks one by a hash of the tile. */
-export const DECO_VARIANTS = { fenceh: 1, fencev: 1, post: 1, flowers: 4, pebbles: 1 }
+export const DECO_VARIANTS = { fenceh: 1, fencev: 1, post: 1, flowers: 4, pebbles: 1, fringe: 8 }
 /** How many looks each tall static has. A board's variant is how many notes it shows. */
 export const STATIC_VARIANTS = { tree: 3, lamp: 1, arch: 1, board: 7 }
 
+/** Seeds per kind. Not the name's length: 'plaza', 'trail' and 'water' would share one. */
+const KIND_SEED = { wild: 1, yard: 2, road: 3, plaza: 4, bed: 5, trail: 6, water: 7 }
+
+/** A little clump of blades, dark at the root with one light tip. */
+function tuft(pc, x, y, dark, light) {
+  pc.px(x, y, dark)
+  pc.px(x, y - 1, dark)
+  pc.px(x + 1, y, dark)
+  pc.px(x + 1, y - 2, light)
+}
+
+/** Three-leaved clovers, a shade lighter than the grass they grow in. */
+function clovers(pc, rand, n, color, stem) {
+  for (let i = 0; i < n; i++) {
+    const x = 3 + Math.floor(rand() * 10)
+    const y = 3 + Math.floor(rand() * 10)
+    pc.px(x, y - 1, color)
+    pc.px(x - 1, y, color)
+    pc.px(x + 1, y, color)
+    pc.px(x, y, stem)
+  }
+}
+
+/** One daisy, face up in the grass. */
+function daisy(pc, x, y) {
+  pc.px(x, y - 1, P.petalWhite)
+  pc.px(x - 1, y, P.petalWhite)
+  pc.px(x + 1, y, P.petalWhite)
+  pc.px(x, y + 1, P.petalWhite)
+  pc.px(x, y, P.pollen)
+}
+
+/** A stone pressed into the ground: lit from the top left. */
+function stone(pc, x, y) {
+  pc.hline(x, x + 1, y, P.stoneLight)
+  pc.hline(x, x + 1, y + 1, P.stone)
+  pc.px(x + 2, y + 1, P.stoneDark)
+  pc.hline(x, x + 1, y + 2, P.stoneDark)
+}
+
 export function drawTile(kind, variant, opts = {}) {
-  const rand = mulberry32(variant * 131 + kind.length * 17)
+  const rand = mulberry32(variant * 131 + (KIND_SEED[kind] || 0) * 7919)
   const pc = new PixelCanvas(T, T)
   if (kind === 'wild') {
-    pc.rect(0, 0, T, T, P.grass[0])
-    speckle(pc, rand, [P.grass[1], P.grass[2]], 18)
-    for (let i = 0; i < 3; i++) {
-      const x = 1 + Math.floor(rand() * 14)
-      const y = 2 + Math.floor(rand() * 12)
-      pc.px(x, y, P.grass[3])
-      pc.px(x, y - 1, P.grass[3])
-      pc.px(x + 1, y, P.grass[3])
-      pc.px(x + 1, y - 2, P.grass[2])
+    // Plain greens only (see src/render/ground.js): the meadow's tone is painted over these.
+    const g = P.grass
+    pc.rect(0, 0, T, T, g[0])
+    speckle(pc, rand, [g[1], g[2]], 16)
+    const tufts = variant < 4 ? 2 + (variant % 2) : 1
+    for (let i = 0; i < tufts; i++) tuft(pc, 1 + Math.floor(rand() * 13), 3 + Math.floor(rand() * 11), g[3], g[2])
+    if (variant === 4) clovers(pc, rand, 3, shade(g[2], 0.12), g[3])
+    if (variant === 5) {
+      // A tall tuft: five blades fanning out of one root.
+      const x = 4 + Math.floor(rand() * 7)
+      const y = 7 + Math.floor(rand() * 6)
+      for (const [dx, h] of [[-2, 2], [-1, 3], [0, 4], [1, 3], [2, 2]]) pc.vline(x + dx, y - h + 1, y, g[3])
+      for (const dx of [-2, 0, 2]) pc.px(x + dx, y - [2, 4, 2][dx / 2 + 1] + 1, g[2])
+    }
+    if (variant === 6) {
+      // A scuffed bare spot with a stone in it.
+      const x = 4 + Math.floor(rand() * 6)
+      const y = 5 + Math.floor(rand() * 6)
+      pc.hline(x, x + 3, y, P.dirt)
+      pc.hline(x - 1, x + 4, y + 1, P.dirt)
+      pc.hline(x, x + 2, y + 2, P.dirtDark)
+      pc.px(x + 1, y + 1, P.dirtDark)
+      stone(pc, x + 2, y - 1)
+    }
+    if (variant === 7) {
+      daisy(pc, 4 + Math.floor(rand() * 8), 4 + Math.floor(rand() * 8))
+      pc.px(10, 11, g[3])
     }
   } else if (kind === 'yard') {
-    pc.rect(0, 0, T, T, P.yard[0])
-    speckle(pc, rand, [P.yard[1], P.yard[2]], 12)
+    const y = P.yard
+    pc.rect(0, 0, T, T, y[0])
+    speckle(pc, rand, [y[1], y[2]], 12)
+    if (variant === 3) clovers(pc, rand, 2, shade(y[2], 0.1), y[1])
+    if (variant === 4) daisy(pc, 4 + Math.floor(rand() * 8), 4 + Math.floor(rand() * 8))
+    if (variant === 5) for (let i = 0; i < 2; i++) tuft(pc, 2 + Math.floor(rand() * 11), 4 + Math.floor(rand() * 10), y[1], y[2])
   } else if (kind === 'road') {
     pc.rect(0, 0, T, T, P.path)
     speckle(pc, rand, [P.pathLight], 10)
@@ -40,6 +127,20 @@ export function drawTile(kind, variant, opts = {}) {
       const y = Math.floor(rand() * 15)
       pc.hline(x, x + 1, y, P.pathDark)
     }
+    if (variant === 3) {
+      stone(pc, 2 + Math.floor(rand() * 4), 2 + Math.floor(rand() * 4))
+      stone(pc, 8 + Math.floor(rand() * 4), 8 + Math.floor(rand() * 4))
+    }
+    if (variant === 4) {
+      // Loose gravel.
+      for (let i = 0; i < 4; i++) {
+        const x = 2 + Math.floor(rand() * 12)
+        const y = 2 + Math.floor(rand() * 12)
+        pc.px(x, y, P.pebble)
+        pc.px(x, y + 1, shade(P.pebble, -0.3))
+      }
+    }
+    if (variant === 5) tuft(pc, 5 + Math.floor(rand() * 6), 6 + Math.floor(rand() * 6), P.grass[3], P.grass[0])
   } else if (kind === 'bed') {
     // Ploughed soil. The empty dimples mark where flowers will go, 8 px apart, the way a
     // contribution graph shows empty days. Variant 0 is a field's top row, whose first row of
@@ -54,6 +155,7 @@ export function drawTile(kind, variant, opts = {}) {
       }
     }
   } else if (kind === 'plaza') {
+    // Running-bond paving: courses 3 px high, stones 4 px long, 1 px joints.
     pc.rect(0, 0, T, T, P.plaza)
     for (let row = 0; row < 4; row++) {
       const off = row % 2 ? 2 : 0
@@ -61,15 +163,66 @@ export function drawTile(kind, variant, opts = {}) {
       for (let x = off; x < T; x += 4) pc.vline(x, row * 4, row * 4 + 2, P.plazaDark)
       for (let x = off + 1; x < T; x += 4) pc.px(x, row * 4, P.plazaLight)
     }
-    // A few worn stones, or both variants would be the same picture.
-    speckle(pc, rand, [P.plazaLight, P.plazaDark], 4)
+    speckle(pc, rand, [P.plazaLight, P.plazaDark], 3)
+    // The top-left corner of the stone in course `row` that starts at column `col`.
+    const at = (row, col) => [((row % 2 ? 2 : 0) + col * 4 + 1) % T, row * 4]
+    if (variant === 1) {
+      // A cracked stone.
+      const [x, y] = at(1 + Math.floor(rand() * 2), Math.floor(rand() * 3))
+      pc.px(x, y, P.plazaDark)
+      pc.px(x + 1, y + 1, P.plazaDark)
+      pc.px(x + 1, y + 2, P.plazaDark)
+    }
+    if (variant === 2) {
+      // Moss in the joints.
+      for (let i = 0; i < 5; i++) {
+        const row = Math.floor(rand() * 4)
+        const x = Math.floor(rand() * T)
+        pc.px(x, row * 4 + 3, i % 2 ? P.leaf : P.leafDark)
+      }
+    }
+    if (variant === 3) {
+      // One stone newer than the rest, one older.
+      const [x, y] = at(Math.floor(rand() * 4), Math.floor(rand() * 3))
+      pc.rect(x, y, 3, 3, P.plazaLight)
+      const [u, v] = at((y / 4 + 2) % 4, Math.floor(rand() * 3))
+      pc.rect(u, v, 3, 3, shade(P.plaza, -0.08))
+    }
   }
   return pc
 }
 
-export function drawDeco(kind, variant = 0) {
+/**
+ * Blades of grass hanging over the edge of a path. Variant `side * 2 + k`: side 0 top, 1 right,
+ * 2 bottom, 3 left of the path tile; k picks one of two scatters. `ground` is the grass they
+ * belong to, so a lawn's edge is lawn-coloured.
+ */
+function fringe(pc, variant, ground) {
+  const side = variant >> 1
+  const rand = mulberry32(variant * 613 + 29)
+  const g = ground === 'yard' ? P.yard : P.grass
+  const set = (i, d, c) => {
+    if (side === 0) pc.px(i, d, c)
+    else if (side === 1) pc.px(T - 1 - d, i, c)
+    else if (side === 2) pc.px(i, T - 1 - d, c)
+    else pc.px(d, i, c)
+  }
+  for (let i = 0; i < T; i++) {
+    const r = rand()
+    if (r < 0.35) continue
+    const len = r < 0.8 ? 1 : 2
+    set(i, 0, g[0])
+    if (len === 2) set(i, 1, g[1])
+  }
+}
+
+export function drawDeco(kind, variant = 0, opts = {}) {
   const pc = new PixelCanvas(T, T)
   const rand = mulberry32(variant * 977 + 3)
+  if (kind === 'fringe') {
+    fringe(pc, variant, opts.ground)
+    return pc
+  }
   const post = (x, y0, y1) => {
     pc.rect(x, y0, 3, y1 - y0 + 1, P.fence)
     pc.vline(x + 2, y0 + 1, y1, P.fenceDark)

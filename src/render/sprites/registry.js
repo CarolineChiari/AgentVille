@@ -4,7 +4,7 @@
 // Names:  villager.<anim>.<facing>      (params: look)
 //         building.<kind>.<stage>       (params: accent, variant, lit)
 //         tile.<kind>.<variant>         (params: tone)
-//         deco.<kind>.<variant>
+//         deco.<kind>.<variant>         (params: ground, for a path's grass fringe)
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
@@ -28,7 +28,7 @@ export function generate(name, frame, p) {
     case 'tile':
       return drawTile(a, Number(b), p)
     case 'deco':
-      return drawDeco(a, Number(b || 0))
+      return drawDeco(a, Number(b || 0), p)
     case 'flower':
       return drawFlower(Number(a), Number(b), p.color)
     case 'static':

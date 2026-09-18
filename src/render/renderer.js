@@ -4,7 +4,8 @@ import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
-import { DECO_VARIANTS, TILE_VARIANTS } from './sprites/tiles.js'
+import { DECO_VARIANTS, tileVariant } from './sprites/tiles.js'
+import { tintMeadow } from './ground.js'
 import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
@@ -13,6 +14,11 @@ const CHUNK = CELL_TILES * T
 const TILE_NAME = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed' }
 const DECO_NAME = { [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers', [DECO.PEBBLES]: 'pebbles' }
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
+/** Ground a path's grass fringe grows from, and whose greens it wears. */
+const FRINGE_FROM = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard' }
+/** Neighbour offsets for the four sides of a tile, in the fringe sprite's side order. */
+const SIDES = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+const MEADOW = [P.grass, P.grassSunny, P.grassLush]
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
@@ -63,7 +69,7 @@ export class Canvas2dRenderer {
     const entry = { version: map.version, canvas, water: [], flowers: [] }
     canvas.width = CHUNK
     canvas.height = CHUNK
-    const g = canvas.getContext('2d')
+    const g = canvas.getContext('2d', { willReadFrequently: true })
     g.imageSmoothingEnabled = false
     const x0 = cx * CELL_TILES
     const y0 = cy * CELL_TILES
@@ -76,15 +82,20 @@ export class Canvas2dRenderer {
         const kind = tileAt(x, y)
         const name = TILE_NAME[kind]
         // Soil under more soil carries the flower grid on; a field's top row starts it.
-        const variant = kind === TILE.BED ? (tileAt(x, y - 1) === TILE.BED ? 1 : 0) : hashString(`${x},${y}`) % TILE_VARIANTS[name]
+        const variant = kind === TILE.BED ? (tileAt(x, y - 1) === TILE.BED ? 1 : 0) : tileVariant(name, hashString(`${x},${y}`))
         g.drawImage(sprites.get(`tile.${name}.${variant}`), lx * T, ly * T)
-        // Cheap autotiling: a darker lip where paving meets grass.
+        // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it.
         if (PAVED.has(kind)) {
           g.fillStyle = kind === TILE.ROAD ? P.pathDark : P.plazaDark
-          if (!PAVED.has(tileAt(x, y - 1))) g.fillRect(lx * T, ly * T, T, 1)
-          if (!PAVED.has(tileAt(x, y + 1))) g.fillRect(lx * T, ly * T + T - 1, T, 1)
-          if (!PAVED.has(tileAt(x - 1, y))) g.fillRect(lx * T, ly * T, 1, T)
-          if (!PAVED.has(tileAt(x + 1, y))) g.fillRect(lx * T + T - 1, ly * T, 1, T)
+          SIDES.forEach(([dx, dy], side) => {
+            const next = tileAt(x + dx, y + dy)
+            if (PAVED.has(next)) return
+            g.fillRect(lx * T + (dx > 0 ? T - 1 : 0), ly * T + (dy > 0 ? T - 1 : 0), dx ? 1 : T, dy ? 1 : T)
+            const ground = FRINGE_FROM[next]
+            if (!ground) return
+            const k = hashString(`e${x},${y},${side}`) & 1
+            g.drawImage(sprites.get(`deco.fringe.${side * 2 + k}`, 0, { ground }), lx * T, ly * T)
+          })
         }
         // A plank edging round each garden bed.
         if (kind === TILE.BED) {
@@ -106,6 +117,10 @@ export class Canvas2dRenderer {
         if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly])
       }
     }
+    // Sunny and lush patches across the countryside, pixel by pixel (see ground.js).
+    const img = g.getImageData(0, 0, CHUNK, CHUNK)
+    tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, MEADOW)
+    g.putImageData(img, 0, 0)
     this.chunks.set(k, entry)
     return entry
   }

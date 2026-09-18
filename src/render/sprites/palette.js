@@ -41,6 +41,9 @@ export const PALETTE = {
   white: '#fbf8ef',
 
   grass: ['#78b857', '#6daf4f', '#83c262', '#62a347'],
+  // The same four greens in a sunny patch and a lush one; see src/render/ground.js.
+  grassSunny: ['#88c05a', '#7eb752', '#95ca68', '#70a94a'],
+  grassLush: ['#68aa52', '#5ea04a', '#73b65d', '#529442'],
   yard: ['#86c264', '#7dba5c', '#90ca6d'],
   path: '#d4b483',
   pathDark: '#b4925f',
