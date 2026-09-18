@@ -34,7 +34,16 @@ export const PALETTE = {
   stoneLight: '#c8c4bb',
   thatch: '#d4ac52',
   thatchDark: '#a07a30',
-  roof: ['#c0503f', '#5d73a8', '#6f9450', '#8c6848', '#6a6570'],
+  // Red, blue, green, brown, slate grey, terracotta, teal, plum. A plot's houses share a family
+  // of three of them (ROOF_FAMILIES in buildings.js).
+  roof: ['#c0503f', '#5d73a8', '#6f9450', '#8c6848', '#6a6570', '#c9773f', '#4f8a86', '#8a4d6b'],
+  brick: '#b35a42',
+  brickDark: '#8e4330',
+  mortar: '#d6c2a2',
+  slate: '#5d6574',
+  glass: '#a8d8e0',
+  glassLight: '#e0f4f6',
+  barnGreen: '#6d8a5e',
   window: '#3d4e72',
   windowShine: '#8fa4c9',
   windowLit: '#ffd873',

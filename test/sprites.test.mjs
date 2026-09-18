@@ -29,7 +29,7 @@ const grounded = (pc, rows = 3) => {
 const same = (a, b) => a.w === b.w && a.h === b.h && a.data.every((v, i) => v === b.data[i])
 
 const LOOKS = ['a', 'b', 'c', 'demo:1', 'demo:7'].map(lookFor)
-const VARIANTS = [0, 1, 2, 3, 4, 5, 6, 7, 500, 996]
+const VARIANTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 500, 996]
 
 test('every ground tile is a full, opaque 16×16 square, and each variant is its own picture', () => {
   for (const [kind, n] of Object.entries(TILE_VARIANTS)) {
@@ -97,9 +97,11 @@ test('every building, at every stage, is as tall as heightOf says and stands on 
         for (const lit of [false, true]) {
           for (let frame = 0; frame < buildingFrames(kind, stage); frame++) {
             const name = `building.${kind}.${stage}`
-            const pc = generate(name, frame, { accent: ACCENTS[variant % ACCENTS.length], variant, lit })
+            // Every wall material and roof family comes up across the variants.
+            const style = { wall: variant % 5, roofs: variant % 4 }
+            const pc = generate(name, frame, { accent: ACCENTS[variant % ACCENTS.length], variant, lit, ...style })
             assert.equal(pc.w, BUILDING_W, name)
-            assert.equal(pc.h, heightOf(kind), name)
+            assert.equal(pc.h, heightOf(kind, variant), name)
             assert.ok(opaque(pc) > 100, `${name} v${variant} is nearly empty`)
             assert.ok(grounded(pc), `${name} v${variant} floats`)
           }

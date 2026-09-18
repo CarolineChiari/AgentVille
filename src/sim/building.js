@@ -3,15 +3,24 @@
 import { BUILDING_H, BUILDING_W, BUILD_SECONDS } from './constants.js'
 import { hashString, pick, rngFor } from './rng.js'
 
-export const KINDS = ['house', 'cottage', 'shop', 'barn', 'windmill', 'workshop', 'well', 'farm']
-// Weighted: homes are the common case, oddities are a pleasant surprise.
+export const KINDS = ['house', 'cottage', 'shop', 'barn', 'windmill', 'workshop', 'well', 'farm', 'tower', 'greenhouse', 'stall']
+// Weighted: homes are the common case, oddities are a pleasant surprise. Never reorder or extend
+// this: the pick from it is every existing thread's building.
 const KIND_BAG = ['house', 'house', 'house', 'cottage', 'cottage', 'shop', 'shop', 'barn', 'windmill', 'workshop', 'workshop', 'well', 'farm']
+/**
+ * Kinds that came later, handed out by a second roll of their own, so adding them only changed
+ * the few threads that roll one and left every other building standing as it was.
+ */
+export const NEW_KINDS = ['tower', 'greenhouse', 'stall']
+export const NEW_KIND_CHANCE = 0.15
 
 export class Building {
   constructor(id, { built = true } = {}) {
     const rand = rngFor(`building:${id}`)
     this.id = id
     this.kind = pick(rand, KIND_BAG)
+    const again = rngFor(`kind2:${id}`)
+    if (again() < NEW_KIND_CHANCE) this.kind = pick(again, NEW_KINDS)
     this.variant = hashString(`variant:${id}`) % 997
     this.x = 0
     this.y = 0

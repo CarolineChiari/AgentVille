@@ -7,7 +7,7 @@ import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
 import { tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
-import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
+import { buildingFrames, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
@@ -237,8 +237,13 @@ export class Canvas2dRenderer {
     const lit = b.lit && night > 0.35
     const frames = buildingFrames(b.kind, b.stage)
     const frame = frames > 1 ? Math.floor(time * 1.6) % frames : 0
-    const img = sprites.get(`building.${b.kind}.${b.stage}`, frame, { accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit })
-    const H = heightOf(b.kind)
+    const style = b.style || PLAIN_STYLE
+    const img = sprites.get(`building.${b.kind}.${b.stage}`, frame, {
+      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs,
+    })
+    const H = heightOf(b.kind, b.variant)
+    const shadow = b.stage >= 2 ? shadowOf(b.kind) : 0
+    if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
     this._blit(img, b.x * T + (b.w * T - BUILDING_W) / 2, (b.y + b.h) * T - H, b.alpha)
   }
 
@@ -503,7 +508,7 @@ export class Canvas2dRenderer {
       if (b.alpha < 1) continue
       const x0 = b.x * T
       const y1 = (b.y + b.h) * T
-      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - heightOf(b.kind) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
+      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - heightOf(b.kind, b.variant) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
     }
     const tx = Math.floor(w.x / T)
     const ty = Math.floor(w.y / T)

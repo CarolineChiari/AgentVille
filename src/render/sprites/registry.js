@@ -2,7 +2,7 @@
 // first use and kept; a hand-drawn PNG named in public/sprites/manifest.json replaces it.
 //
 // Names:  villager.<anim>.<facing>      (params: look)
-//         building.<kind>.<stage>       (params: accent, variant, lit)
+//         building.<kind>.<stage>       (params: accent, variant, lit; wall and roofs from the plot's style)
 //         tile.<kind>.<variant>         (params: tone, a lawn's green; links, a footpath's joins)
 //         deco.<kind>.<variant>         (params: ground and tone, for a path's grass fringe)
 //         fence.<style>.<mask>          (style into FENCES; mask: 1 N, 2 E, 4 S, 8 W carry on)
@@ -25,7 +25,7 @@ export function generate(name, frame, p) {
     case 'villager':
       return drawVillager(p.look, a, b, frame)
     case 'building':
-      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame })
+      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs })
     case 'tile':
       return drawTile(a, Number(b), p)
     case 'deco':
