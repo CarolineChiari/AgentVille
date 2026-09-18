@@ -15,10 +15,12 @@ export const PALETTE = {
   eye: '#221c2b',
   blush: '#f09a92',
   shoe: '#4a3428',
+  shoes: ['#4a3428', '#2b2730', '#9a6f45'], // brown, black, tan
   skin: ['#f6d2b0', '#e2aa7c', '#b97a4f', '#7d4f33'],
-  hair: ['#3a2618', '#7a4424', '#d19b47', '#e8e0d0', '#b8433f'],
-  cloth: ['#4f7fbf', '#c3524a', '#5a9c52', '#d7b440', '#8a5cb4', '#dd7d45'],
-  pants: ['#3f4a6b', '#5b4636', '#4b5a3c'],
+  // The first five of each are the originals; the rest came later (see lookFor).
+  hair: ['#3a2618', '#7a4424', '#d19b47', '#e8e0d0', '#b8433f', '#231c1f', '#d0763a', '#8a6fc0'],
+  cloth: ['#4f7fbf', '#c3524a', '#5a9c52', '#d7b440', '#8a5cb4', '#dd7d45', '#3fa7a0', '#e07aa0', '#ece6d6', '#5b5f6b'],
+  pants: ['#3f4a6b', '#5b4636', '#4b5a3c', '#8a7a62', '#2f3340'],
   hat: '#e6c36d',
   hatBand: '#b3453b',
   metal: '#a8aeb8',

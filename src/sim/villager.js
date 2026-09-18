@@ -10,9 +10,34 @@ const STUCK_REPATH = 1.2
 const STUCK_GHOST = 3
 const STUCK_TELEPORT = 6
 
+/** Hats, by `look.hat`: 0 is none. */
+export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow']
+/** What a villager wears over its shirt, by `look.top`. */
+export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest']
+/** One more thing about a villager, by `look.extra`. */
+export const EXTRAS = ['none', 'glasses', 'beard', 'scarf', 'satchel']
+
+/** Picks `options[i]` with weight `weights[i]`, from one draw `u` in [0, 1). */
+function weighted(u, weights) {
+  const total = weights.reduce((a, b) => a + b, 0)
+  let t = u * total
+  for (let i = 0; i < weights.length; i++) {
+    if (t < weights[i]) return i
+    t -= weights[i]
+  }
+  return weights.length - 1
+}
+
+/**
+ * A villager's look, from its thread id alone. Indices, not colours: the renderer picks those.
+ *
+ * The first six draws are the original look and must stay first and in this order, so every
+ * villager kept its face, hair, clothes and hat when the rest came along. Everything after is
+ * drawn whether it is used or not, so one choice never shifts the next.
+ */
 export function lookFor(id) {
   const r = rngFor(`look:${id}`)
-  return {
+  const look = {
     skin: Math.floor(r() * 4),
     hair: Math.floor(r() * 5),
     shirt: Math.floor(r() * 6),
@@ -20,6 +45,20 @@ export function lookFor(id) {
     style: Math.floor(r() * 3),
     hat: r() < 0.22 ? 1 : 0,
   }
+  const [hatKind, bareHead, hatColor, shoe, top, extra, tall, hair, shirt, pants] = Array.from({ length: 10 }, r)
+  // Whoever wore the straw hat wears a hat still, of any kind; a few more put one on.
+  if (look.hat) look.hat = 1 + Math.floor(hatKind * (HATS.length - 1))
+  else if (bareHead < 0.15) look.hat = 2 + Math.floor(hatKind * (HATS.length - 2))
+  look.hatColor = Math.floor(hatColor * 10)
+  look.shoe = Math.floor(shoe * 3)
+  look.top = weighted(top, [8, 3, 3, 2, 4])
+  look.extra = weighted(extra, [11, 3, 2, 2, 2])
+  look.tall = tall < 0.3 ? 1 : 0
+  // Some villagers take the colours that came later: a single draw both decides and picks.
+  if (hair < 0.3) look.hair = 5 + Math.floor((hair / 0.3) * 3)
+  if (shirt < 0.35) look.shirt = 6 + Math.floor((shirt / 0.35) * 4)
+  if (pants < 0.3) look.pants = 3 + Math.floor((pants / 0.3) * 2)
+  return look
 }
 
 export function facingFrom(dx, dy, fallback = 's') {
