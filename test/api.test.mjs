@@ -7,6 +7,7 @@ import { tmpHome } from './helpers/fixtures.mjs'
 
 let server, base, home, cleanup
 const launched = []
+const terminals = []
 const fakeHarness = {
   id: 'fake',
   name: 'Fake',
@@ -24,7 +25,8 @@ before(async () => {
     reveal: (d) => (launched.push(d), { ok: true }),
   }
   const prStore = { get: async () => ({ repos: {}, updating: false, available: true, warnings: [] }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore })
+  const terminal = async (spec) => (terminals.push(spec), { ok: true, promptPassed: true })
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, terminal })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -145,9 +147,14 @@ test('transcript endpoint needs the page origin and a harness that can read one'
   assert.equal((await post('/api/transcript', { harness: 'fake', ref: { sid: '1' } }, { 'Content-Type': 'application/json' })).status, 403)
 })
 
-test('new-session passes the prompt through', async () => {
+test('new-session passes the prompt and model through, and runs terminal launches', async () => {
   let seen
   fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, url: 'fake://new' })
   await post('/api/new-session', { folder: os.tmpdir(), target: 'vscode', prompt: 'hello' })
-  assert.deepEqual(seen, { target: 'vscode', prompt: 'hello' })
+  assert.deepEqual(seen, { target: 'vscode', prompt: 'hello', model: '' })
+  fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, terminal: { exe: '/bin/x', args: [], cwd: dir, prompt: '' } })
+  const r = await post('/api/new-session', { folder: os.tmpdir(), target: 'terminal', model: 'opus' })
+  assert.equal(r.status, 200)
+  assert.equal(terminals.length, 1)
+  assert.deepEqual(seen, { target: 'terminal', prompt: '', model: 'opus' })
 })

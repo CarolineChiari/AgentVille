@@ -40,3 +40,21 @@ export async function desktopDataDir({ home, env = {}, platform }) {
 }
 
 export const SESSIONS_SUBDIR = 'claude-code-sessions'
+
+/**
+ * The `claude` executable, looked for where its installers put it, then on PATH. Only ever a
+ * file the person installed under their own profile or a standard bin directory.
+ */
+export async function findClaude({ home, env = {}, platform }) {
+  const win = platform === 'win32'
+  const name = win ? 'claude.exe' : 'claude'
+  const dirs = win
+    ? [path.join(home, '.local', 'bin')]
+    : [path.join(home, '.local', 'bin'), path.join(home, '.claude', 'local'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']
+  for (const d of String(env.PATH || env.Path || '').split(win ? ';' : ':')) if (d && path.isAbsolute(d)) dirs.push(d)
+  for (const d of dirs) {
+    const p = path.join(d, name)
+    if (await exists(p)) return p
+  }
+  return null
+}

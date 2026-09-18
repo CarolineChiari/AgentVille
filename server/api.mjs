@@ -6,6 +6,7 @@ import { createOpener, resolveFolder } from './opener.mjs'
 import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
 import { createPrStore } from './github.mjs'
+import { openInTerminal } from './terminal.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -87,6 +88,7 @@ export function createApiMiddleware(opts = {}) {
   const harnesses = opts.harnesses ?? HARNESSES
   const store = opts.stateStore ?? createStateStore(opts.dataDir ?? DEFAULT_DATA_DIR)
   const opener = opts.opener ?? createOpener()
+  const terminal = opts.terminal ?? ((spec) => openInTerminal(spec, { dataDir: opts.dataDir ?? DEFAULT_DATA_DIR }))
   const extraHosts = new Set(opts.extraHosts ?? [])
   const prStore = opts.prStore ?? createPrStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   // Repo name → folder, from the latest scan: the PR lookup reads each folder's git remote.
@@ -145,13 +147,18 @@ export function createApiMiddleware(opts = {}) {
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const h = body?.harness ? harnessById(body.harness, harnesses) : await defaultHarness({ harnesses })
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
-      const target = body?.target === 'vscode' ? 'vscode' : 'app'
+      const target = ['vscode', 'terminal'].includes(body?.target) ? body.target : 'app'
       const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
-      const result = await h.newSession(dir, { target, prompt })
+      const model = typeof body?.model === 'string' ? body.model : ''
+      const result = await h.newSession(dir, { target, prompt, model })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
+      if (result.terminal) {
+        const t = await terminal(result.terminal)
+        return t.ok ? [200, { ok: true, promptPassed: t.promptPassed }] : [500, { ok: false, error: t.error }]
+      }
       const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
-      return [200, { ok: true, url: result.url }]
+      return [200, { ok: true, url: result.url, promptPassed: target === 'vscode' }]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

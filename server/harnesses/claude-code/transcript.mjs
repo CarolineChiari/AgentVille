@@ -74,6 +74,26 @@ export function readTranscriptMeta(records) {
   return meta
 }
 
+/** Tools that stop and wait for the person: a question dialog, or a plan waiting for approval. */
+export const ASKING_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode'])
+
+/**
+ * Is the model stopped on a question to the person? The last main-thread record is an assistant
+ * turn calling a tool that waits for them, with no answer after it.
+ */
+export function pendingQuestion(records) {
+  for (let i = records.length - 1; i >= 0; i--) {
+    const r = records[i]
+    if (!isMain(r)) continue
+    if (r.type === 'user') return false
+    if (r.type === 'assistant') {
+      const content = r.message?.content
+      return Array.isArray(content) && content.some((b) => b?.type === 'tool_use' && ASKING_TOOLS.has(b.name))
+    }
+  }
+  return false
+}
+
 /**
  * Is the model done and waiting for the user? Read the tail backwards: a user record (which
  * includes tool results) means the model speaks next; the last assistant record means waiting

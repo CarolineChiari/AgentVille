@@ -13,7 +13,8 @@ import { createToasts } from './ui/toast.js'
 import { createTranscript } from './ui/transcript.js'
 import { createNewSession } from './ui/newsession.js'
 
-const POLL_MS = 15_000
+// Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
+const POLL_MS = 8_000
 const DRAG_THRESHOLD = 5 // CSS px before a press becomes a drag rather than a click
 const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send many small ones
 
@@ -31,7 +32,7 @@ let hoverPlot = null
 
 const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed() })
 const transcript = createTranscript(hudRoot, village)
-const newSession = createNewSession(hudRoot, village)
+const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const card = createCard(hudRoot, village, {
   onTranscript: (id) => {
     transcript.toggle(id)

@@ -7,6 +7,8 @@ export const STATUSES = ['blocked', 'working', 'celebrating', 'waiting', 'sleepi
 export function statusFor(t, now = Date.now()) {
   const stale = now - (t.lastActivityAt || 0) > STALE_MS
   if (t.hasError) return 'blocked'
+  // Stopped on a question or a permission prompt: that is waiting, however busy it looked.
+  if (t.needsInput) return 'waiting'
   if (t.running) return 'working'
   // A merge is a moment, not a state: celebrate it for as long as the thread is fresh.
   if (!stale && String(t.prState || '').toUpperCase() === 'MERGED') return 'celebrating'
@@ -23,6 +25,23 @@ export const BADGE_FOR = {
   waiting: 'waiting',
   sleeping: null,
   idle: null,
+}
+
+/** What a thread stopped on the person is waiting for, in words. */
+export function needsInputLabel(needsInput) {
+  switch (needsInput) {
+    case 'dialog open':
+    case 'question':
+      return 'Asking you a question'
+    case 'permission prompt':
+      return 'Needs your permission'
+    case 'sandbox request':
+      return 'Needs a sandbox approval'
+    case 'worker request':
+      return 'A helper needs you'
+    default:
+      return needsInput ? 'Needs your input' : ''
+  }
 }
 
 export const STATUS_LABEL = {
@@ -45,6 +64,7 @@ export function transcriptProgress(sizeBytes) {
 
 /** Hand the client's "I looked at this" back onto a thread: viewed since its last activity → not unread. */
 export function applyViewed(t, viewedAt) {
+  if (t.needsInput) return t // a live question can't be marked as seen; it has to be answered
   const seen = viewedAt?.[t.id]
   return seen && seen >= (t.lastActivityAt || 0) && t.unread ? { ...t, unread: false } : t
 }

@@ -3,7 +3,7 @@
 import { esc, ago } from './dom.js'
 import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
-import { STATUS_LABEL } from '../sim/status.js'
+import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -108,7 +108,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${r.flowers ? `<div class="garden-note">✿ ${r.flowers} finished — click a flower in the garden to look back</div>` : ''}
-      <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
+      <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
     </div>`
   }
 

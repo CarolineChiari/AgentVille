@@ -6,10 +6,10 @@ import os from 'node:os'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readTail, exists } from '../../lib/fsutil.mjs'
-import { HARNESS_ID, isCliId, isDesktopId, threadId } from './ids.mjs'
-import { cliDirs, desktopDataDir, SESSIONS_SUBDIR } from './paths.mjs'
+import { HARNESS_ID, isCliId, isDesktopId, isModel, threadId } from './ids.mjs'
+import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
-import { awaitingReply, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
+import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
 
 const NAME = 'Claude Code'
@@ -22,6 +22,7 @@ const TAIL_BYTES = 64 * 1024
 const ACTIVE_WINDOW_MS = 30 * 60 * 1000
 // A prompt travels inside a URL handed to the OS; Windows' ShellExecute caps those near 2k chars.
 export const PROMPT_MAX = 1800
+const LIVE_STATUSES = new Set(['busy', 'shell', 'idle', 'waiting'])
 
 /**
  * @param {{ home?: string, env?: object, platform?: string, now?: () => number }} [opts]
@@ -84,11 +85,27 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
+  /**
+   * Live processes, and what each says it is doing. Claude Code keeps `status` current in its own
+   * record: `busy` or `shell` while working, `idle` between turns, and `waiting` whenever it needs
+   * the person — a question dialog, a permission prompt — with `waitingFor` saying which. That is
+   * the only reliable way to see a pending question: the transcript just ends in a tool call.
+   * One session can have several records (VS Code and the desktop app); the freshest wins.
+   * @returns {Map<string, { status: string, waitingFor: string, at: number }>}
+   */
   async function scanLive() {
-    const live = new Set()
+    const live = new Map()
     for (const f of await listFiles(cli.sessions, (n) => n.endsWith('.json'))) {
       const r = await readJson(path.join(cli.sessions, f))
-      if (r && isCliId(r.sessionId) && isAlive(num(r.pid))) live.add(r.sessionId)
+      if (!r || !isCliId(r.sessionId) || !isAlive(num(r.pid))) continue
+      const at = num(r.statusUpdatedAt) || num(r.updatedAt)
+      const prev = live.get(r.sessionId)
+      if (prev && prev.at >= at) continue
+      live.set(r.sessionId, {
+        status: LIVE_STATUSES.has(r.status) ? r.status : '',
+        waitingFor: typeof r.waitingFor === 'string' ? r.waitingFor.slice(0, 60) : '',
+        at,
+      })
     }
     return live
   }
@@ -103,7 +120,9 @@ export function createClaudeCodeAdapter(opts = {}) {
       metaCache.set(t.file, hit)
     }
     if (wantTail && hit.waiting === undefined) {
-      hit.waiting = awaitingReply(jsonLines(await readTail(t.file, TAIL_BYTES)))
+      const tail = jsonLines(await readTail(t.file, TAIL_BYTES))
+      hit.waiting = awaitingReply(tail)
+      hit.asking = pendingQuestion(tail)
     }
     return hit
   }
@@ -151,13 +170,15 @@ export function createClaudeCodeAdapter(opts = {}) {
     const out = []
     for (const e of byId.values()) {
       const tr = e.cliSessionId ? transcripts.get(e.cliSessionId) : null
-      e.live = Boolean(e.cliSessionId && live.has(e.cliSessionId))
+      const proc = e.cliSessionId ? live.get(e.cliSessionId) : null
+      e.live = Boolean(proc)
       if (tr) {
         e.hasTranscript = true
         e.sizeBytes = tr.size
         e.lastActivityAt = Math.max(e.lastActivityAt, tr.mtime)
         const fresh = t - e.lastActivityAt < ACTIVE_WINDOW_MS
-        const info = await transcriptInfo(tr, e.live && fresh)
+        // Read the tail for any live session: a question can sit unanswered for hours.
+        const info = await transcriptInfo(tr, e.live)
         const m = info.meta
         e.title = e.title || m.customTitle || m.summary
         e.preview = m.firstPrompt
@@ -169,6 +190,7 @@ export function createClaudeCodeAdapter(opts = {}) {
         e.prNumber = e.prNumber || m.prNumber
         e.prUrl = e.prUrl || m.prUrl
         e.waiting = Boolean(info.waiting) && e.live && fresh
+        e.asking = Boolean(info.asking) && e.live
       }
       if (isBookkeepingOnly(e, t)) continue
       const fresh = t - e.lastActivityAt < ACTIVE_WINDOW_MS
@@ -177,6 +199,16 @@ export function createClaudeCodeAdapter(opts = {}) {
       e.unread = e.desktopSessionIds.length > 0 && e.recordActivityAt > e.lastFocusedAt
       e.running = e.live && fresh && !e.waiting
       if (e.waiting) e.unread = true
+      // The process's own word beats anything guessed from the transcript.
+      if (proc?.status === 'waiting' || e.asking) {
+        e.running = false
+        e.unread = true
+        e.needsInput = proc?.waitingFor || (e.asking ? 'question' : 'input needed')
+      } else if (proc?.status === 'busy' || proc?.status === 'shell') {
+        e.running = true
+      } else if (proc?.status === 'idle') {
+        e.running = false
+      }
       out.push(toThread(e, NAME))
     }
     return out
@@ -240,11 +272,20 @@ export function createClaudeCodeAdapter(opts = {}) {
 
   /**
    * @param {string} dir
-   * @param {{ target?: 'app'|'vscode', prompt?: string }} [opts] `prompt` is prefilled, never sent:
-   *        the person still presses enter in VS Code. The Claude app's link takes no prompt.
+   * @param {{ target?: 'app'|'vscode'|'terminal', prompt?: string, model?: string }} [opts]
+   *        VS Code: `prompt` is prefilled, never sent; the person still presses enter. The Claude
+   *        app's link takes no prompt. Terminal runs the CLI with `--model` and the prompt.
    */
-  function newSession(dir, { target = 'app', prompt = '' } = {}) {
+  async function newSession(dir, { target = 'app', prompt = '', model = '' } = {}) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'Not an absolute folder.' }
+    if (target === 'terminal') {
+      // The one way to choose the model: the CLI's own --model flag, in a terminal window.
+      if (model && !isModel(model)) return { ok: false, error: 'Unknown model.' }
+      const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
+      if (!exe) return { ok: false, error: "Couldn't find the claude command. Install Claude Code's CLI to start sessions in a terminal." }
+      const text = typeof prompt === 'string' ? prompt.trim().slice(0, 20000) : ''
+      return { ok: true, terminal: { exe, args: model ? ['--model', model] : [], cwd: dir, prompt: text } }
+    }
     if (target === 'vscode') {
       const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''
       const open = `vscode://anthropic.claude-code/open${text ? `?${new URLSearchParams({ prompt: text })}` : ''}`

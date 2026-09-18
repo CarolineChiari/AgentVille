@@ -89,3 +89,13 @@ test('tool lines name MCP tools readably', () => {
   assert.deepEqual(summarizeTool({ name: 'mcp__Claude_Browser__computer', input: { action: 'click' } }), { name: 'Claude Browser · computer', detail: 'click' })
   assert.equal(summarizeTool({ name: 'Edit', input: { file_path: '/a/b.js' } }).detail, '/a/b.js')
 })
+
+import { pendingQuestion } from '../server/harnesses/claude-code/transcript.mjs'
+
+test('a question or plan approval with no answer is pending; an answered one is not', () => {
+  const ask = assistantRecord([{ type: 'tool_use', name: 'AskUserQuestion', input: {} }])
+  assert.equal(pendingQuestion([userRecord('go'), ask]), true)
+  assert.equal(pendingQuestion([ask, userRecord([{ type: 'tool_result', content: 'Terminal' }])]), false)
+  assert.equal(pendingQuestion([assistantRecord([{ type: 'tool_use', name: 'ExitPlanMode', input: {} }])]), true)
+  assert.equal(pendingQuestion([assistantRecord(toolUse())]), false)
+})

@@ -1,6 +1,6 @@
 // The thread card: parked beside the selected villager, following it around the screen.
 import { esc, ago, bytes } from './dom.js'
-import { STATUS_LABEL, transcriptProgress } from '../sim/status.js'
+import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 
@@ -43,7 +43,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
           <b title="${esc(t.title)}">${esc(t.title)}</b>
-          <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(STATUS_LABEL[t.status] || '')}</span>
+          <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || '')}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
@@ -155,7 +155,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         return
       }
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? 'f' : t.status}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
+      const key = `${flower ? 'f' : t.status}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
       if (id !== shownId || key !== shownKey) {
         if (flower) fillFinished(t, flower)
         else {

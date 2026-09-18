@@ -34,3 +34,14 @@ test('transcript progress is a clamped log scale', () => {
   assert.ok(transcriptProgress(10_000) < transcriptProgress(1_000_000))
   assert.equal(transcriptProgress(1e12), 1)
 })
+
+import { needsInputLabel } from '../src/sim/status.js'
+
+test('a thread stopped on the person is waiting, above working, and cannot be marked viewed', () => {
+  assert.equal(statusFor({ lastActivityAt: NOW, running: true, needsInput: 'dialog open' }, NOW), 'waiting')
+  const t = { id: 'x', unread: true, needsInput: 'question', lastActivityAt: 100 }
+  assert.equal(applyViewed(t, { x: 999 }).unread, true)
+  assert.equal(needsInputLabel('dialog open'), 'Asking you a question')
+  assert.equal(needsInputLabel('permission prompt'), 'Needs your permission')
+  assert.equal(needsInputLabel(''), '')
+})

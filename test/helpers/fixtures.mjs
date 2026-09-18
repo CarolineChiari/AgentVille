@@ -46,10 +46,11 @@ export function writeTranscript(home, { id, cwd = '/work/repo', records, mtime }
   return file
 }
 
-export function writeLive(home, { pid, sessionId, cwd = '/work/repo' }) {
+/** A live-process record. No `status` by default, like older Claude Code versions wrote. */
+export function writeLive(home, { pid, sessionId, cwd = '/work/repo', status, waitingFor }) {
   const dir = path.join(home, '.claude', 'sessions')
   fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(path.join(dir, `${pid}.json`), JSON.stringify({ pid, sessionId, cwd, status: 'busy' }))
+  fs.writeFileSync(path.join(dir, `${pid}.json`), JSON.stringify({ pid, sessionId, cwd, status, waitingFor, statusUpdatedAt: Date.now() }))
 }
 
 /** A desktop record under the macOS userData layout. */

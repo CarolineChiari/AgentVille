@@ -20,6 +20,7 @@
  * @property {number}  lastFocusedAt   Epoch ms, 0 if unknowable
  * @property {boolean} running         Working right now
  * @property {boolean} unread          Moved on since you last looked
+ * @property {string}  needsInput      Stopped on the person right now: 'dialog open', 'permission prompt', … or ''
  * @property {boolean} hasError
  * @property {string}  prState         `'MERGED'` triggers the celebration
  * @property {number}  prNumber        The PR this thread opened or linked, 0 if none

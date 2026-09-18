@@ -61,10 +61,23 @@ your prompts, Claude's replies, and one line for each tool call. It refreshes ev
 while the thread is working or waiting, and stays at the newest message if that's where you are.
 It's read straight from the transcript file; nothing is sent anywhere.
 
-**+ New session** (or `C`) picks a repo, or any folder, and an optional first prompt. It opens in
-VS Code with the prompt already typed in, so you just press Enter there; the new villager walks
-in from the gate a few seconds later. With Settings → Open threads in → Claude app, the prompt
-is copied to the clipboard instead, since the app's link can't carry one.
+**+ New session** (or `C`) picks a repo, or any folder, where to open it, the model, and an
+optional first prompt. The new villager walks in from the gate a few seconds later.
+
+| Open in | Model | First prompt |
+| --- | --- | --- |
+| VS Code | Your default (change it in VS Code's model menu) | Typed in for you; press Enter to send |
+| Terminal | Any: Fable, Opus, Opus 1M, Sonnet, Haiku | Sent as the opening message (macOS); on the clipboard (Windows) |
+| Claude app | Your default | On the clipboard |
+
+Only the terminal can take a model, because neither the VS Code nor the Claude app link has a
+way to pass one; picking a model switches the form to Terminal. On macOS the terminal is started
+from a one-shot script in `data/launch/` that deletes itself as it runs; the prompt is read from
+a separate file, so nothing you type is ever run as a command.
+
+A villager whose session has stopped on you, with a question, a plan to approve or a permission
+prompt, shows `?` and says what it needs, even while its last transcript entry looks like work.
+AgentVille reads this from the status each running Claude Code process keeps for itself.
 
 ### The gardens
 
