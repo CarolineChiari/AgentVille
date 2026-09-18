@@ -5,7 +5,7 @@ import { PixelCanvas } from './pixel.js'
 
 export const VILLAGER_W = 16
 export const VILLAGER_H = 24
-export const ANIM_FRAMES = { walk: 4, idle: 2, hammer: 2, sit: 1, jump: 2, slump: 1 }
+export const ANIM_FRAMES = { walk: 4, idle: 2, hammer: 2, sit: 1, jump: 2, slump: 1, wave: 2 }
 
 /** Poses per animation frame. `up` moves the whole upper body; `head` moves only the head. */
 const POSES = {
@@ -29,6 +29,10 @@ const POSES = {
     { up: 0, head: 0, legs: 'stand', armL: 'up', armR: 'up', eyes: 'happy' },
   ],
   slump: [{ up: 1, head: 2, legs: 'stand', armL: 'down', armR: 'down', eyes: 'sad' }],
+  wave: [
+    { up: 0, head: 0, legs: 'stand', armL: 'down', armR: 'up', eyes: 'happy' },
+    { up: 0, head: 0, legs: 'stand', armL: 'down', armR: 'upOut', eyes: 'happy' },
+  ],
 }
 
 function colours(look) {
@@ -98,10 +102,8 @@ function armFront(pc, c, side, mode, dy) {
       pc.px(x, 18 + dy, c.skinS)
       break
     case 'up':
-      pc.vline(x + o, 8 + dy, 12 + dy, c.shirt)
-      pc.px(x, 12 + dy, c.shirt)
-      pc.px(x + o, 7 + dy, c.skin)
-      break
+    case 'upOut':
+      break // drawn after the head by raisedArm, or long hair would hide it
     case 'hammerUp':
       pc.vline(x, 9 + dy, 13 + dy, c.shirt)
       pc.px(x, 8 + dy, c.skin)
@@ -120,6 +122,23 @@ function armFront(pc, c, side, mode, dy) {
     default:
       pc.vline(x, 12 + dy, 16 + dy, c.shirt)
       pc.px(x, 17 + dy, c.skin)
+  }
+}
+
+/** A raised arm, clear of the head and hair: shoulder, elbow out, forearm up, hand. */
+function raisedArm(pc, c, side, mode, dy) {
+  if (mode !== 'up' && mode !== 'upOut') return
+  const x = side === 'L' ? 4 : 11
+  const o = side === 'L' ? -1 : 1
+  pc.px(x, 12 + dy, c.shirt)
+  pc.px(x + o, 11 + dy, c.shirt)
+  if (mode === 'up') {
+    pc.vline(x + 2 * o, 6 + dy, 10 + dy, c.shirt)
+    pc.px(x + 2 * o, 5 + dy, c.skin)
+  } else {
+    pc.px(x + 2 * o, 10 + dy, c.shirt)
+    pc.vline(x + 3 * o, 7 + dy, 9 + dy, c.shirt)
+    pc.px(x + 3 * o, 6 + dy, c.skin)
   }
 }
 
@@ -229,6 +248,7 @@ function armSide(pc, c, mode, dy) {
       pc.px(10, 16 + dy, c.skin)
       break
     case 'up':
+    case 'upOut':
       pc.rect(6, 8 + dy, 2, 5, c.shirtS)
       pc.px(6, 7 + dy, c.skin)
       break
@@ -322,6 +342,8 @@ export function drawVillager(look, anim, facing, frame) {
     armFront(pc, c, 'R', pose.armR, dy)
   }
   headFront(pc, c, look, dy + pose.head, pose.eyes, back)
+  raisedArm(pc, c, back ? 'R' : 'L', pose.armL, dy)
+  raisedArm(pc, c, back ? 'L' : 'R', pose.armR, dy)
   pc.outline(P.outline)
   return pc
 }

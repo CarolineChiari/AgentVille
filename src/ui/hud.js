@@ -52,9 +52,10 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
     const foldedNames = [...new Set(folded.map((t) => t.project))]
     const hiddenNames = [...new Set(hidden.map((t) => t.project))]
     const total = village.view.live.length
+    const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
 
     side.innerHTML = `
-      <div class="brand"><h1>AgentVille</h1><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${repos.length} plot${repos.length === 1 ? '' : 's'}</span></div>
+      <div class="brand"><h1>AgentVille</h1><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
       <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k])}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
@@ -88,7 +89,7 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
     return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
       <span class="dot" style="background:${ACCENTS[r.accent % ACCENTS.length]}"></span>
       <span class="name">${esc(r.name)}</span>
-      <span class="badges">${b.join('')}<span>${r.threads.length}</span></span></button>`
+      <span class="badges">${b.join('')}${r.threads.length ? `<span title="Villagers">${r.threads.length}</span>` : ''}${r.flowers ? `<span class="flowers" title="Finished threads in the garden">✿ ${r.flowers}</span>` : ''}</span></button>`
   }
 
   function detail(r) {
@@ -101,6 +102,7 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
         <button class="btn" data-act="copy">Copy path</button>
         <button class="btn" data-act="hide">Hide</button>
       </div>
+      ${r.flowers ? `<div class="garden-note">✿ ${r.flowers} finished — click a flower in the garden to look back</div>` : ''}
       <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
     </div>`
   }

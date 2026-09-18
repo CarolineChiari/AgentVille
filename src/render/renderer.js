@@ -2,7 +2,7 @@
 import { CELL_TILES } from '../sim/constants.js'
 import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
-import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, TILE_PX as T, BADGE } from './sprites/palette.js'
+import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
 import { TILE_VARIANTS } from './sprites/tiles.js'
 import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
@@ -10,7 +10,7 @@ import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
 const CHUNK = CELL_TILES * T
-const TILE_NAME = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza' }
+const TILE_NAME = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed' }
 const DECO_NAME = { [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers', [DECO.PEBBLES]: 'pebbles' }
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
 
@@ -19,6 +19,7 @@ function villagerFrame(v) {
     case 'walk': return Math.floor(v.animTime * 8) % 4
     case 'idle': return Math.floor(v.animTime / 0.7) % 2
     case 'hammer': return Math.floor(v.animTime / 0.25) % 2
+    case 'wave': return Math.floor(v.animTime / 0.18) % 2
     default: return 0
   }
 }
@@ -62,7 +63,8 @@ export class Canvas2dRenderer {
         const y = y0 + ly
         const kind = tileAt(x, y)
         const name = TILE_NAME[kind]
-        const variant = hashString(`${x},${y}`) % TILE_VARIANTS[name]
+        // A bed tile's variant is which of the bed's rows it is, so the flower dimples line up.
+        const variant = kind === TILE.BED ? (((y % CELL_TILES) + CELL_TILES) % CELL_TILES) - 5 : hashString(`${x},${y}`) % TILE_VARIANTS[name]
         g.drawImage(sprites.get(`tile.${name}.${variant}`), lx * T, ly * T)
         // Cheap autotiling: a darker lip where paving meets grass.
         if (PAVED.has(kind)) {
@@ -71,6 +73,14 @@ export class Canvas2dRenderer {
           if (!PAVED.has(tileAt(x, y + 1))) g.fillRect(lx * T, ly * T + T - 1, T, 1)
           if (!PAVED.has(tileAt(x - 1, y))) g.fillRect(lx * T, ly * T, 1, T)
           if (!PAVED.has(tileAt(x + 1, y))) g.fillRect(lx * T + T - 1, ly * T, 1, T)
+        }
+        // A plank edging round each garden bed.
+        if (kind === TILE.BED) {
+          g.fillStyle = P.bedEdge
+          if (tileAt(x, y - 1) !== TILE.BED) g.fillRect(lx * T, ly * T, T, 2)
+          if (tileAt(x, y + 1) !== TILE.BED) g.fillRect(lx * T, ly * T + T - 2, T, 2)
+          if (tileAt(x - 1, y) !== TILE.BED) g.fillRect(lx * T, ly * T, 1, T)
+          if (tileAt(x + 1, y) !== TILE.BED) g.fillRect(lx * T + T - 1, ly * T, 1, T)
         }
       }
     }
@@ -145,6 +155,34 @@ export class Canvas2dRenderer {
       this._blit(sprites.get('static.lamp.0', 0, { lit: night > 0.35 }), st.x * T - 4, st.y * T - 24)
     } else if (st.sprite === 'arch') {
       this._blit(sprites.get('static.arch.0'), st.x * T - 32, st.y * T - 44)
+    }
+  }
+
+  /** Growth stage from age: a sprout, then a bud, then the bloom. */
+  _flowerStage(f, time) {
+    if (f.born === null || f.born === undefined) return 2
+    const age = time - f.born
+    return age < 0.6 ? 0 : age < 1.4 ? 1 : 2
+  }
+
+  _drawFlowers(frame) {
+    const { ctx, camera: cam } = this
+    const tl = cam.toWorld(0, 0)
+    const br = cam.toWorld(cam.width / cam.dpr, cam.height / cam.dpr)
+    const s = cam.scale
+    // Top rows first so a lower flower's bloom overlaps the stem behind it.
+    const list = frame.flowers.filter((f) => f.x * T > tl.x - 8 && f.x * T < br.x + 8 && f.y * T > tl.y - 16 && f.y * T < br.y + 16)
+    list.sort((a, b) => a.y - b.y)
+    for (const f of list) {
+      const px = f.x * T
+      const py = f.y * T
+      if (f.selected || f.hovered) {
+        ctx.fillStyle = f.selected ? 'rgba(255, 216, 115, 0.55)' : 'rgba(255, 255, 255, 0.28)'
+        ctx.fillRect(cam.offX + Math.round(px - 4) * s, cam.offY + Math.round(py - 7) * s, 8 * s, 8 * s)
+      }
+      const img = sprites.get(`flower.${f.kind}.${this._flowerStage(f, frame.time)}`, 0, { color: PETALS[f.color % PETALS.length] })
+      // The stem's base pixel (4, 11) sits on the flower's spot.
+      this._blit(img, px - 4, py - 11)
     }
   }
 
@@ -247,6 +285,7 @@ export class Canvas2dRenderer {
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
     this._drawGround(frame)
+    this._drawFlowers(frame)
 
     const night = ui.night
     const items = []
@@ -275,6 +314,11 @@ export class Canvas2dRenderer {
       const inBody = w.x >= px - 6 && w.x <= px + 6 && w.y >= py - VILLAGER_H + 2 && w.y <= py + 1
       const inBadge = v.badge && w.x >= px - BADGE_W / 2 && w.x <= px + BADGE_W / 2 && w.y >= py - VILLAGER_H - BADGE_H && w.y <= py - VILLAGER_H
       if (inBody || inBadge) return { villager: v.id }
+    }
+    for (const f of frame.flowers) {
+      const px = f.x * T
+      const py = f.y * T
+      if (w.x >= px - 4 && w.x < px + 4 && w.y >= py - 9 && w.y < py + 1) return { flower: f.id }
     }
     const ids = new Set(frame.villagers.map((v) => v.id))
     for (const b of [...frame.buildings].sort((a, c) => c.y - a.y)) {

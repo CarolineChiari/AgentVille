@@ -54,7 +54,7 @@ function sidebarWidth() {
 
 function fly(target) {
   if (target.villager) {
-    const v = world.villager(target.villager)
+    const v = world.villager(target.villager) || world.flower(target.villager)
     if (v) camera.flyTo(v.x * TILE_PX, v.y * TILE_PX - 12)
   } else if (target.plot) {
     const p = world.plots.get(target.plot)
@@ -94,8 +94,8 @@ canvas.addEventListener('pointermove', (e) => {
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
-  hovered = hit?.villager || null
-  hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot : hit?.plot || null
+  hovered = hit?.villager || hit?.flower || null
+  hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot : hit?.flower ? world.flower(hit.flower)?.plot : hit?.plot || null
   canvas.classList.toggle('pointing', Boolean(hovered))
 })
 canvas.addEventListener('pointerup', (e) => {
@@ -105,6 +105,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (!was || was.dragging) return
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
   if (hit?.villager) village.select(hit.villager)
+  else if (hit?.flower) village.select(hit.flower)
   else if (hit?.plot) village.selectPlot(hit.plot)
   else {
     village.select(null)
@@ -206,8 +207,9 @@ function loop(now) {
     selectedPlot: village.selectedPlot,
     allNames: settings.allNames,
   })
-  const v = village.selected && world.villager(village.selected)
-  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - 1) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720)
+  const v = village.selected && (world.villager(village.selected) || world.flower(village.selected))
+  const isFlower = Boolean(v && !v.look)
+  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (isFlower ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, isFlower)
   requestAnimationFrame(loop)
 }
 

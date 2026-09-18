@@ -49,6 +49,7 @@ export class World {
     this.plots = new Map()
     this.buildings = new Map()
     this.villagers = new Map()
+    this.flowers = new Map() // thread id → { kind, color, x, y, plot, born }
     this.statics = []
     this.effects = []
     this.memory = new Map()
@@ -69,9 +70,11 @@ export class World {
   /**
    * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean }[]} threads
    * @param {Map<string, number[][]>} [memory] saved layout; only read on the first call
+   * @param {Map<string, { id: string, kind: number, color: number }[]>} [gardens] finished threads per
+   *        repo, oldest first; each becomes a flower in that plot's garden
    * @returns {Map<string, number[][]>} the layout memory to save
    */
-  setRoster(threads, memory) {
+  setRoster(threads, memory, gardens = new Map()) {
     if (this.first && memory) this.memory = new Map(memory)
     const groups = new Map()
     for (const t of threads) {
@@ -79,7 +82,9 @@ export class World {
       if (!groups.has(t.project)) groups.set(t.project, [])
       groups.get(t.project).push(t)
     }
-    const projects = [...groups].map(([name, list]) => ({ name, size: list.length }))
+    // A repo whose threads are all finished still has its garden, so it keeps its plot.
+    const names = new Set([...groups.keys(), ...[...gardens].filter(([, f]) => f.length).map(([n]) => n)])
+    const projects = [...names].map((name) => ({ name, size: groups.get(name)?.length ?? 0, garden: gardens.get(name)?.length ?? 0 }))
     const { cells, memory: nextMemory } = allocatePlots(projects, this.memory)
     this.memory = nextMemory
 
@@ -98,8 +103,23 @@ export class World {
         this.plots.set(name, plot)
       }
       if (plot.setCells(c)) dirty = true
-      plot.assignSlots(groups.get(name))
+      plot.assignSlots(groups.get(name) || [])
     }
+
+    // Flowers. Positions only depend on each plot's cells, so nothing needs rebuilding for them.
+    const flowers = new Map()
+    for (const [name, list] of gardens) {
+      const plot = this.plots.get(name)
+      if (!plot) continue
+      list.forEach((f, i) => {
+        if (i >= plot.flowerCapacity) return
+        const prev = this.flowers.get(f.id)
+        // Flowers present on the first roster are already in bloom; anything newer grows in.
+        const born = prev ? prev.born : this.first ? null : this.time
+        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, plot: name, born, ...plot.flowerSpot(i) })
+      })
+    }
+    this.flowers = flowers
 
     // Buildings.
     const live = new Set()
@@ -228,7 +248,10 @@ export class World {
     const nav = new Nav({ ox, oy: ox, w: size, h: size })
     nav.version = this.nav.version + 1
     for (let y = map.oy; y < map.oy + map.h; y++) {
-      for (let x = map.ox; x < map.ox + map.w; x++) if (BLOCKING_DECO.has(map.decoAt(x, y))) nav.setBlocked(x, y)
+      for (let x = map.ox; x < map.ox + map.w; x++) {
+        // Nobody walks through the flower beds.
+        if (BLOCKING_DECO.has(map.decoAt(x, y)) || map.tileAt(x, y) === TILE.BED) nav.setBlocked(x, y)
+      }
     }
     for (const s of statics) if (s.blocks) for (const [bx, by] of s.blocks) nav.setBlocked(bx, by)
     for (const b of this.buildings.values()) if (!b.removing) nav.blockRect(b.x, b.y, b.w, b.h)
@@ -408,8 +431,13 @@ export class World {
           id: v.id, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: v.look, status: v.status,
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
         })),
+      flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
       effects: this.effects,
     }
+  }
+
+  flower(id) {
+    return this.flowers.get(id) || null
   }
 
   plotAtTile(tx, ty) {

@@ -1,15 +1,15 @@
 // A plot: one repo's cells, the stable slot each of its threads builds on, and how its ground is
 // painted (yard, road ring, fence with gaps lined up with the walkways).
-import { CELL_TILES, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
+import { BED, CELL_TILES, FLOWER_PITCH, FLOWER_ROWS, FLOWER_TOP, FLOWERS_PER_CELL, SLOTS_PER_CELL, SLOT_LOCAL } from './constants.js'
 import { key } from './grid.js'
 import { signature } from './layout.js'
 
-export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3 }
+export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4 }
 export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, CROPS: 6 }
 
-/** Fence gaps line up with the yard's walkways: columns 4 and 7, rows 4 and 8. */
+/** Fence gaps line up with the yard's walkways: columns 4 and 7, rows 4 and 9. */
 const GAP_X = new Set([4, 7])
-const GAP_Y = new Set([4, 8])
+const GAP_Y = new Set([4, 9])
 
 export class Plot {
   constructor(name, accent) {
@@ -63,6 +63,25 @@ export class Plot {
     return { x: cx * CELL_TILES + lx, y: cy * CELL_TILES + ly }
   }
 
+  get flowerCapacity() {
+    return this.cells.length * FLOWERS_PER_CELL
+  }
+
+  /**
+   * Where flower `i` stands (its base, in tiles). Like a contribution graph: each column fills top
+   * to bottom, columns run left to right, and a full bed carries on in the plot's next cell.
+   */
+  flowerSpot(i) {
+    const [cx, cy] = this.cells[Math.floor(i / FLOWERS_PER_CELL)]
+    const j = i % FLOWERS_PER_CELL
+    const col = Math.floor(j / FLOWER_ROWS)
+    const row = j % FLOWER_ROWS
+    return {
+      x: cx * CELL_TILES + BED.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / 16,
+      y: cy * CELL_TILES + BED.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / 16,
+    }
+  }
+
   /** Where the name plate floats: above the root cell's top row. */
   get labelAt() {
     const [cx, cy] = this.cells[0]
@@ -91,7 +110,8 @@ export class Plot {
           const tx = cx * CELL_TILES + lx
           const ty = cy * CELL_TILES + ly
           const edgeRoad = (ly === 0 && !n) || (ly === CELL_TILES - 1 && !s) || (lx === 0 && !w) || (lx === CELL_TILES - 1 && !e)
-          map.setTile(tx, ty, edgeRoad ? TILE.ROAD : TILE.YARD)
+          const bed = lx >= BED.x && lx < BED.x + BED.w && ly >= BED.y && ly < BED.y + BED.h
+          map.setTile(tx, ty, edgeRoad ? TILE.ROAD : bed ? TILE.BED : TILE.YARD)
           if (edgeRoad) continue
           const lo = w ? 0 : 1
           const hi = e ? CELL_TILES - 1 : CELL_TILES - 2

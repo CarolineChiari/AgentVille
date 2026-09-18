@@ -2,7 +2,7 @@
 import { esc, ago, bytes } from './dom.js'
 import { STATUS_LABEL, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
-import { BADGE } from '../render/sprites/palette.js'
+import { BADGE, PETALS } from '../render/sprites/palette.js'
 
 const GAP = 18
 
@@ -21,6 +21,7 @@ export function createCard(root, village) {
     if (act === 'open') village.open()
     else if (act === 'viewed') village.viewed()
     else if (act === 'archive') village.archive()
+    else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'close') village.select(null)
   })
 
@@ -52,6 +53,40 @@ export function createCard(root, village) {
       </div>`
   }
 
+  /** Looking back at a finished thread: its flower, what kind of work it was, and when. */
+  function fillFinished(t, f) {
+    const color = PETALS[f.color % PETALS.length]
+    const meta = [
+      ['Repo', t.project],
+      t.worktree && ['Worktree', t.worktree],
+      t.gitBranch && ['Branch', t.gitBranch],
+      t.model && ['Model', t.model],
+      t.createdAt && ['Started', ago(t.createdAt)],
+      ['Finished', ago(f.finishedAt)],
+      ['Transcript', bytes(t.sizeBytes)],
+    ].filter(Boolean)
+    // Archived in the Claude app itself can only be undone there.
+    const restorable = !t.archived
+    card.innerHTML = `
+      <div class="head">
+        <canvas class="avatar" width="16" height="24"></canvas>
+        <div style="min-width:0;flex:1">
+          <b title="${esc(t.title)}">${esc(t.title)}</b>
+          <span class="status"><span style="color:${color}">✿</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
+        </div>
+        <button class="btn" data-act="close" title="Close (Esc)">✕</button>
+      </div>
+      ${t.preview && t.preview !== t.title ? `<p class="preview">${esc(t.preview)}</p>` : ''}
+      <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      <div class="actions">
+        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
+        ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : '<span class="note">Archived in Claude</span>'}
+      </div>`
+    const c = card.querySelector('canvas.avatar')
+    const g = c.getContext('2d')
+    g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, { color }), 3, 8)
+  }
+
   function drawAvatar(v) {
     const c = card.querySelector('canvas.avatar')
     if (!c || !v) return
@@ -70,23 +105,37 @@ export function createCard(root, village) {
         shownId = null
         return
       }
-      const key = `${t.status}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
+      const flower = village.isFinished(id) ? village.flower(id) : null
+      const key = `${flower ? 'f' : t.status}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
       if (id !== shownId || key !== shownKey) {
-        fill(t)
+        if (flower) fillFinished(t, flower)
+        else {
+          fill(t)
+          drawAvatar(village.world.villager(id))
+        }
         shownId = id
         shownKey = key
-        drawAvatar(village.world.villager(id))
       }
       card.hidden = false
     },
 
-    /** Position: called every frame. Right of the villager, flipping left rather than under the sidebar. */
-    place(screen, sidebarLeft, mobile) {
+    /**
+     * Position: called every frame. Right of a villager, flipping left rather than under the
+     * sidebar; above a flower, so the card never covers the garden it is about.
+     */
+    place(screen, sidebarLeft, mobile, above = false) {
       if (card.hidden || !screen) return
       const w = card.offsetWidth
       const h = card.offsetHeight
       if (mobile) {
         card.style.transform = `translate(12px, ${window.innerHeight - h - 12 - (window.innerHeight * 0.45)}px)`
+        return
+      }
+      if (above) {
+        const x = Math.max(12, Math.min(screen.x - w / 2, sidebarLeft - w - 12))
+        let y = screen.y - h - GAP * 2
+        if (y < 12) y = screen.y + GAP // no room above: go below instead
+        card.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`
         return
       }
       let x = screen.x + GAP

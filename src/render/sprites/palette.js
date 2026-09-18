@@ -62,6 +62,14 @@ export const PALETTE = {
   lampGlow: '#ffd97a',
   water: '#5a93cf',
 
+  bed: '#8b6445',
+  bedDark: '#74523a',
+  bedHole: '#5e412c',
+  bedEdge: '#a57a4e',
+  pollen: '#f7d64a',
+  seed: '#6b4426',
+  cactus: '#5f9a4c',
+
   shadow: '#18122047', // 28% alpha
   interior: '#3a2a24',
   void: '#4e8a3c', // outside the map: more countryside
@@ -79,6 +87,12 @@ export const BADGE = {
   working: '#5cc4f2',
   done: '#6fdb8a',
 }
+
+/** Petal colours. A flower's colour is a hash of its thread id into this list. */
+export const PETALS = [
+  '#f06a92', '#f5d94e', '#fbf8ef', '#9a7cf0', '#ef5a4a', '#ff9f43', '#5cc4f2',
+  '#e87fd4', '#c93f6b', '#ffd1dc', '#7ad0b0', '#b8e05a', '#6f7cf0', '#ffb3a0',
+]
 
 export const CONFETTI = ['#ef4f4f', '#ffc93c', '#6fdb8a', '#5cc4f2', '#b27cf0', '#ff8fc8']
 

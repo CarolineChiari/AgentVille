@@ -41,5 +41,24 @@ export function demoThreads(now = Date.now()) {
       })
     }
   })
+  // Finished work, so the gardens have something in them.
+  const DONE = [
+    'Fix login redirect bug', 'Add CSV export', 'Refactor the auth module', 'Update the README',
+    'Speed up the render loop', 'Review PR 42', 'Write unit tests for the parser', 'Dark mode styling',
+    'Deploy pipeline for staging', 'Database schema for invoices', 'Why is the build slow?', 'Tidy up',
+  ]
+  REPOS.forEach((repo, r) => {
+    const count = [40, 16, 9, 120, 5, 0][r]
+    for (let i = 0; i < count; i++) {
+      n++
+      out.push({
+        id: `demo:${n}`, harness: 'demo', harnessName: 'Demo', title: DONE[(n * 7) % DONE.length], preview: '',
+        project: repo, projectPath: `/demo/${repo}`, worktree: '', cwd: `/demo/${repo}`, gitBranch: 'main',
+        model: 'claude-opus-5', effort: '', createdAt: now - (400 - i) * 86_400_000, lastActivityAt: now - (300 - i) * 86_400_000,
+        lastFocusedAt: 0, running: false, unread: false, hasError: false, prState: '', archived: true,
+        sizeBytes: 20_000 * (i + 1), canOpen: false, ref: {},
+      })
+    }
+  })
   return out
 }

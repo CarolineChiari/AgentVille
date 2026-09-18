@@ -7,24 +7,26 @@
 //   - only a repo with no memory is placed at all, on the innermost free cell.
 // Cells remembered by repos that are absent right now (hidden, folded, archived away) are avoided
 // while anything else is free, so a repo that comes back usually finds its own ground waiting.
-import { GATE_CELL, MAX_CELLS, MAX_RING, SLOTS_PER_CELL } from './constants.js'
+import { FLOWERS_PER_CELL, GATE_CELL, MAX_CELLS, MAX_RING, SLOTS_PER_CELL } from './constants.js'
 import { N4, chebyshev, key, ringOf, spiralCells } from './grid.js'
 
 export const MEMORY_LIMIT = 80
 
-export const cellsNeeded = (threads) => Math.max(1, Math.min(MAX_CELLS, Math.ceil(threads / SLOTS_PER_CELL)))
+/** Enough cells for every live thread's building and every finished thread's flower. */
+export const cellsNeeded = (threads, flowers = 0) =>
+  Math.max(1, Math.min(MAX_CELLS, Math.max(Math.ceil(threads / SLOTS_PER_CELL), Math.ceil(flowers / FLOWERS_PER_CELL))))
 
 /** Shrinking waits until the repo has lost this many threads past the line, so one archive doesn't flicker a cell. */
-export const SHRINK_SLACK = 3
+export const SHRINK_SLACK = 2
 
-function wantedCells(size, had) {
-  const need = cellsNeeded(size)
-  if (had > need) return Math.max(need, Math.min(had, cellsNeeded(size + SHRINK_SLACK)))
+function wantedCells(p, had) {
+  const need = cellsNeeded(p.size, p.garden)
+  if (had > need) return Math.max(need, Math.min(had, cellsNeeded(p.size + SHRINK_SLACK, p.garden)))
   return need
 }
 
 /**
- * @param {{ name: string, size: number }[]} projects
+ * @param {{ name: string, size: number, garden?: number }[]} projects  size = live threads, garden = flowers
  * @param {Map<string, number[][]>} [previous]  name → cells, cells[0] is the root
  * @returns {{ cells: Map<string, number[][]>, memory: Map<string, number[][]> }}
  */
@@ -52,7 +54,7 @@ export function allocatePlots(projects, previous = new Map()) {
       fresh.push(p)
       continue
     }
-    const want = wantedCells(p.size, before.length)
+    const want = wantedCells(p, before.length)
     for (const c of before) {
       if (result.get(p.name).length >= want) break
       if (isFree(...c)) claim(p.name, ...c)
@@ -70,7 +72,7 @@ export function allocatePlots(projects, previous = new Map()) {
   for (const p of order) {
     const cells = result.get(p.name)
     if (!cells.length) continue
-    const want = wantedCells(p.size, previous.get(p.name)?.length ?? 0)
+    const want = wantedCells(p, previous.get(p.name)?.length ?? 0)
     const [rx, ry] = cells[0]
     while (cells.length < want) {
       let best = null

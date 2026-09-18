@@ -9,7 +9,7 @@ function speckle(pc, rand, colors, n) {
   for (let i = 0; i < n; i++) pc.px(Math.floor(rand() * T), Math.floor(rand() * T), colors[Math.floor(rand() * colors.length)])
 }
 
-export const TILE_VARIANTS = { wild: 4, yard: 3, road: 3, plaza: 2 }
+export const TILE_VARIANTS = { wild: 4, yard: 3, road: 3, plaza: 2, bed: 4 }
 
 export function drawTile(kind, variant) {
   const rand = mulberry32(variant * 131 + kind.length * 17)
@@ -35,6 +35,20 @@ export function drawTile(kind, variant) {
       const x = Math.floor(rand() * 14)
       const y = Math.floor(rand() * 15)
       pc.hline(x, x + 1, y, P.pathDark)
+    }
+  } else if (kind === 'bed') {
+    // Garden soil. `variant` is which of the bed's four tile rows this is; the empty dimples
+    // mark where flowers will go, 8 px apart, the way a contribution graph shows empty days.
+    pc.rect(0, 0, T, T, P.bed)
+    speckle(pc, rand, [P.bedDark], 8)
+    const top = variant * T
+    for (let r = 0; r < 7; r++) {
+      const y0 = 4 + r * 8 - top
+      if (y0 < -7 || y0 >= T) continue
+      for (const x0 of [0, 8]) {
+        pc.hline(x0 + 2, x0 + 5, y0 + 5, P.bedHole)
+        pc.hline(x0 + 3, x0 + 4, y0 + 6, P.bedHole)
+      }
     }
   } else if (kind === 'plaza') {
     pc.rect(0, 0, T, T, P.plaza)

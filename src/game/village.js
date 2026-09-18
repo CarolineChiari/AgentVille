@@ -5,6 +5,7 @@ import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
 import { demoThreads } from './demo.js'
+import { flowerFor, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 
 const SAVE_DELAY = 500
 
@@ -27,6 +28,8 @@ export class Village {
     this.threads = []
     this.byId = new Map()
     this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
+    this.gardens = new Map() // repo → flowers, oldest first
+    this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.selected = null
     this.selectedPlot = null
     this.platform = ''
@@ -82,16 +85,48 @@ export class Village {
         dirty = true
       }
     }
-    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined)
+    this._plantGardens()
+    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens)
     const plots = Object.fromEntries(memory)
     if (JSON.stringify(plots) !== JSON.stringify(this.state.plots)) {
       this.state.plots = plots
       dirty = true
     }
     this.loaded = true
-    if (this.selected && !this.world.villager(this.selected)) this.selected = null
+    if (this.selected && !this.world.villager(this.selected) && !this.world.flower(this.selected)) this.selected = null
     if (dirty) this.queueSave()
     this.onChange()
+  }
+
+  /**
+   * Every finished thread is a flower in its repo's garden, in the order it finished. Hidden and
+   * folded repos keep their gardens off the map along with everything else of theirs.
+   */
+  _plantGardens() {
+    const off = new Set([...this.state.hiddenProjects, ...this.view.dormant])
+    const gardens = new Map()
+    this.flowerInfo = new Map()
+    for (const t of this.view.archived) {
+      if (!t.project || off.has(t.project)) continue
+      const f = flowerFor(t)
+      const finishedAt = this.state.archivedAt[t.id] || t.lastActivityAt || 0
+      this.flowerInfo.set(t.id, { ...f, finishedAt })
+      if (!gardens.has(t.project)) gardens.set(t.project, [])
+      gardens.get(t.project).push({ id: t.id, kind: f.kind, color: f.color, finishedAt })
+    }
+    for (const list of gardens.values()) list.sort((a, b) => a.finishedAt - b.finishedAt || (a.id < b.id ? -1 : 1))
+    this.gardens = gardens
+  }
+
+  /** What a flower is, for the card: its name, the work it stands for, and when it bloomed. */
+  flower(id) {
+    const f = this.flowerInfo.get(id)
+    if (!f) return null
+    return { ...f, name: FLOWER_KINDS[f.kind].name, workLabel: WORK_LABEL[f.work] }
+  }
+
+  isFinished(id) {
+    return this.flowerInfo.has(id)
   }
 
   // ---------- saving ----------
@@ -130,18 +165,20 @@ export class Village {
     return live || t
   }
 
-  /** Repos on the map with their threads, most urgent first. */
+  /** Repos on the map with their threads, most urgent first. A repo with only a garden still counts. */
   repos() {
     const map = new Map()
-    for (const t of this.view.live) {
-      if (!map.has(t.project)) map.set(t.project, { name: t.project, path: t.projectPath, threads: [] })
-      map.get(t.project).threads.push(t)
+    const ensure = (name) => {
+      if (!map.has(name)) map.set(name, { name, path: this.projectPath(name), threads: [], flowers: 0 })
+      return map.get(name)
     }
+    for (const t of this.view.live) ensure(t.project).threads.push(t)
+    for (const [name, list] of this.gardens) ensure(name).flowers = list.length
     const list = [...map.values()]
     for (const r of list) {
       r.threads.sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status] || b.lastActivityAt - a.lastActivityAt)
       r.counts = countStatuses(r.threads)
-      r.last = Math.max(...r.threads.map((t) => t.lastActivityAt || 0))
+      r.last = Math.max(0, ...r.threads.map((t) => t.lastActivityAt || 0), ...(this.gardens.get(r.name) || []).map((f) => f.finishedAt))
       r.accent = this.world.plots.get(r.name)?.accent ?? 0
     }
     const urgency = (r) => (r.counts.blocked || r.counts.waiting ? 0 : r.counts.working ? 1 : 2)

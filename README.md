@@ -51,6 +51,20 @@ Only files under your home directory, and only ever read.
 | Sitting with `z` | Nothing for three days |
 | Walking in from the gate | A session that just appeared |
 | Walking out through the gate | You archived it |
+| A flower in the plot's garden | A finished (archived) thread |
+
+### The gardens
+
+Every finished thread leaves a flower in its repo's garden. Beds fill like a contribution graph:
+each column top to bottom, columns left to right, and a full bed carries on in the plot's next
+cell, so a repo you've done a lot in grows into a big garden. Empty slots show as bare soil.
+
+There are 50 kinds of flower, and the kind says what the work was, read from the thread's title
+and first prompt: daisies for bug fixes, tulips for features, lavender for docs, sunflowers for
+performance, lilies for code review, dandelions for research, and so on. The colour is random,
+but fixed per thread. Click a flower to look back at the thread, open it again, or restore it.
+
+Villagers waiting on you wave and hop every few seconds, so they're easy to spot.
 
 ## Keys
 

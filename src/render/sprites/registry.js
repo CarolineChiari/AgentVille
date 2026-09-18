@@ -5,11 +5,13 @@
 //         building.<kind>.<stage>       (params: accent, variant, lit)
 //         tile.<kind>.<variant>   deco.<kind>.<variant>
 //         static.<sprite>.<variant>     (params: lit)
+//         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawFlower } from './flowers.js'
 
 const memo = new Map()
 const overrides = new Map() // name → canvas[] (one per frame)
@@ -25,6 +27,8 @@ function generate(name, frame, p) {
       return drawTile(a, Number(b))
     case 'deco':
       return drawDeco(a, Number(b || 0))
+    case 'flower':
+      return drawFlower(Number(a), Number(b), p.color)
     case 'static':
       return drawStatic(a, Number(b || 0), p)
     case 'fx':

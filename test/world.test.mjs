@@ -70,7 +70,7 @@ test('a status change at site re-targets', () => {
   const v = w.villager('t1')
   const f = w.buildings.get('t1').front
   assert.ok(Math.hypot(v.x - f.x, v.y - f.y) < 0.7)
-  assert.equal(v.anim, 'idle')
+  assert.ok(['idle', 'wave', 'jump'].includes(v.anim))
   assert.equal(v.badge, 'waiting')
 })
 
@@ -87,4 +87,45 @@ test('nobody ever stands inside a wall over a long busy run', () => {
       assert.ok(!w.nav.isBlocked(Math.floor(v.x), Math.floor(v.y)), `${v.id} inside a wall at ${v.x.toFixed(2)},${v.y.toFixed(2)}`)
     }
   }
+})
+
+test('a waiting villager waves and hops every few seconds', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'waiting')])
+  run(w, 12)
+  const seen = new Set()
+  for (let i = 0; i < 8 * 30; i++) {
+    w.tick(1 / 30)
+    seen.add(w.villager('t1').anim)
+  }
+  assert.ok(seen.has('wave') && seen.has('jump') && seen.has('idle'), [...seen].join(','))
+})
+
+const F = (id, kind = 0) => ({ id, kind, color: 1 })
+
+test('flowers fill each garden column top to bottom, then move right', () => {
+  const w = new World()
+  const flowers = Array.from({ length: 9 }, (_, i) => F(`f${i}`))
+  w.setRoster([T('t1', 'a')], undefined, new Map([['a', flowers]]))
+  const p = (id) => w.flower(id)
+  assert.ok(p('f1').y > p('f0').y && p('f1').x === p('f0').x, 'second flower is below the first')
+  assert.ok(p('f7').x > p('f0').x && p('f7').y === p('f0').y, 'eighth flower starts the next column')
+  for (const f of flowers) assert.ok(w.nav.isBlocked(Math.floor(p(f.id).x), Math.floor(p(f.id).y - 0.2)), 'flowers stand in the bed, which nobody walks on')
+})
+
+test('a repo with only finished threads keeps its plot and garden', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')], undefined, new Map([['b', [F('x')]]]))
+  assert.ok(w.plots.has('b'))
+  assert.equal(w.flower('x').plot, 'b')
+})
+
+test('flowers present at load are in bloom; one finished later grows in', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a'), T('t2', 'a')], undefined, new Map([['a', [F('old')]]]))
+  assert.equal(w.flower('old').born, null)
+  run(w, 2)
+  w.setRoster([T('t1', 'a')], undefined, new Map([['a', [F('old'), F('t2')]]]))
+  assert.equal(typeof w.flower('t2').born, 'number')
+  assert.equal(w.snapshot().flowers.length, 2)
 })

@@ -4,6 +4,8 @@ import { ARRIVE, STROLL_SPEED, WALK_SPEED } from './constants.js'
 import { BADGE_FOR } from './status.js'
 import { hashString, mulberry32, range, rngFor } from './rng.js'
 
+/** How often a villager waiting on you waves and hops, in seconds. */
+export const ATTENTION_EVERY = 6
 const STUCK_REPATH = 1.2
 const STUCK_GHOST = 3
 const STUCK_TELEPORT = 6
@@ -36,6 +38,7 @@ export class Villager {
     this.facing = 's'
     this.anim = 'idle'
     this.animTime = (hashString(id) % 1000) / 1000 // nobody moves in unison
+    this.phase = (hashString(`phase:${id}`) % 6000) / 1000
     this.status = status
     this.loco = loco // queued | entering | site | leaving | gone
     this.building = null
@@ -208,10 +211,13 @@ export class Villager {
         this.facing = 's'
         this._every(dt, 2.5, () => world.emit('z', this.x + 0.3, this.y - 1.4))
         break
-      case 'waiting':
-        this.anim = 'idle'
+      case 'waiting': {
+        // Every few seconds: wave, then hop, then wait politely again. Each villager on its own clock.
         this.facing = 's'
+        const t = (this.animTime + this.phase) % ATTENTION_EVERY
+        this.anim = t < 1.4 ? 'wave' : t < 2.1 ? 'jump' : 'idle'
         break
+      }
       default:
         this.anim = 'idle'
     }
