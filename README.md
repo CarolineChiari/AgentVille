@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Then open the URL Vite prints (default `http://127.0.0.1:5274`). Needs Node 22 or newer.
+Then open the URL Vite prints (default `http://127.0.0.1:5274`). Add `?demo=1` for a made-up village that needs no sessions. Needs Node 22 or newer.
 `npm test` runs the suite. `npm start` builds and serves the built app; `PORT=5300 npm start`
 binds elsewhere.
 
@@ -42,7 +42,7 @@ Only files under your home directory, and only ever read.
 | Hammering, sparks | Working right now |
 | Standing still with `?` | Waiting on you |
 | Slumped with `!` | Errored |
-| Jumping with `✓` | PR merged |
+| Jumping with `✓` | PR merged, in the last three days |
 | Sitting with `z` | Nothing for three days |
 | Walking in from the gate | A session that just appeared |
 | Walking out through the gate | You archived it |

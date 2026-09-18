@@ -5,11 +5,13 @@ import { STALE_MS } from './constants.js'
 export const STATUSES = ['blocked', 'working', 'celebrating', 'waiting', 'sleeping', 'idle']
 
 export function statusFor(t, now = Date.now()) {
+  const stale = now - (t.lastActivityAt || 0) > STALE_MS
   if (t.hasError) return 'blocked'
   if (t.running) return 'working'
-  if (String(t.prState || '').toUpperCase() === 'MERGED') return 'celebrating'
+  // A merge is a moment, not a state: celebrate it for as long as the thread is fresh.
+  if (!stale && String(t.prState || '').toUpperCase() === 'MERGED') return 'celebrating'
   if (t.unread) return 'waiting'
-  if (now - (t.lastActivityAt || 0) > STALE_MS) return 'sleeping'
+  if (stale) return 'sleeping'
   return 'idle'
 }
 

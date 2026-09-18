@@ -183,7 +183,8 @@ export class World {
         }
       }
     }
-    if (this.first && this.queue.length) this.releaseEvery = Math.min(0.8, Math.max(0.35, 40 / this.queue.length))
+    // The whole crowd is out in about twenty seconds, however many there are.
+    if (this.first && this.queue.length) this.releaseEvery = Math.min(0.8, Math.max(0.2, 20 / this.queue.length))
     this.first = false
     return this.memory
   }
@@ -316,7 +317,7 @@ export class World {
     if (!this.queue.length) return
     this.releaseTimer -= dt
     const last = this.lastReleased && this.villagers.get(this.lastReleased)
-    const clear = !last || Math.hypot(last.x - this.gate.x, last.y - this.gate.y) > 1.2
+    const clear = !last || Math.hypot(last.x - this.gate.x, last.y - this.gate.y) > 0.8
     if (this.releaseTimer > 0 || !clear) return
     const id = this.queue.shift()
     const v = this.villagers.get(id)

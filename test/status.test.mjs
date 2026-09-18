@@ -12,6 +12,7 @@ test('status precedence: first match wins', () => {
   assert.equal(statusFor({ ...base, prState: 'merged', unread: true }, NOW), 'celebrating')
   assert.equal(statusFor({ ...base, unread: true }, NOW), 'waiting')
   assert.equal(statusFor({ lastActivityAt: NOW - STALE_MS - 1 }, NOW), 'sleeping')
+  assert.equal(statusFor({ lastActivityAt: NOW - STALE_MS - 1, prState: 'MERGED' }, NOW), 'sleeping', 'an old merge stops celebrating')
   assert.equal(statusFor(base, NOW), 'idle')
 })
 

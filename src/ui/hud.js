@@ -9,6 +9,7 @@ const COUNT_KEYS = [
   ['working', 'Working'],
   ['waiting', 'Waiting'],
   ['blocked', 'Stuck'],
+  ['celebrating', 'Merged'],
   ['idle', 'Idle'],
   ['sleeping', 'Asleep'],
 ]
