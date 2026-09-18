@@ -61,17 +61,17 @@ your prompts, Claude's replies, and one line for each tool call. It refreshes ev
 while the thread is working or waiting, and stays at the newest message if that's where you are.
 It's read straight from the transcript file; nothing is sent anywhere.
 
-**+ New session** (or `C`) picks a repo, or any folder, where to open it, the model, and an
-optional first prompt. The new villager walks in from the gate a few seconds later.
+**+ New session** (or `C`) picks a repo, or any folder, where to open it, the model, the effort
+level, and an optional first prompt. The new villager walks in from the gate a few seconds later.
 
-| Open in | Model | First prompt |
+| Open in | Model and effort | First prompt |
 | --- | --- | --- |
-| VS Code | Your default (change it in VS Code's model menu) | Typed in for you; press Enter to send |
-| Terminal | Any: Fable, Opus, Opus 1M, Sonnet, Haiku | Sent as the opening message (macOS); on the clipboard (Windows) |
-| Claude app | Your default | On the clipboard |
+| VS Code | Your defaults (change them in VS Code's menus) | Typed in for you; press Enter to send |
+| Terminal | Any model (Fable, Opus, Opus 1M, Sonnet, Haiku) and effort (low to max) | Sent as the opening message (macOS); on the clipboard (Windows) |
+| Claude app | Your defaults | On the clipboard |
 
-Only the terminal can take a model, because neither the VS Code nor the Claude app link has a
-way to pass one; picking a model switches the form to Terminal. On macOS the terminal is started
+Only the terminal can take a model or an effort level, because neither the VS Code nor the
+Claude app link has a way to pass them; picking either switches the form to Terminal. On macOS the terminal is started
 from a one-shot script in `data/launch/` that deletes itself as it runs; the prompt is read from
 a separate file, so nothing you type is ever run as a command.
 

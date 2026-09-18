@@ -150,7 +150,8 @@ export function createApiMiddleware(opts = {}) {
       const target = ['vscode', 'terminal'].includes(body?.target) ? body.target : 'app'
       const prompt = typeof body?.prompt === 'string' ? body.prompt : ''
       const model = typeof body?.model === 'string' ? body.model : ''
-      const result = await h.newSession(dir, { target, prompt, model })
+      const effort = typeof body?.effort === 'string' ? body.effort : ''
+      const result = await h.newSession(dir, { target, prompt, model, effort })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
       if (result.terminal) {
         const t = await terminal(result.terminal)

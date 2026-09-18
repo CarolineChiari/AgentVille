@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
 import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readTail, exists } from '../../lib/fsutil.mjs'
-import { HARNESS_ID, isCliId, isDesktopId, isModel, threadId } from './ids.mjs'
+import { HARNESS_ID, isCliId, isDesktopId, isEffort, isModel, threadId } from './ids.mjs'
 import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
 import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
@@ -272,19 +272,21 @@ export function createClaudeCodeAdapter(opts = {}) {
 
   /**
    * @param {string} dir
-   * @param {{ target?: 'app'|'vscode'|'terminal', prompt?: string, model?: string }} [opts]
+   * @param {{ target?: 'app'|'vscode'|'terminal', prompt?: string, model?: string, effort?: string }} [opts]
    *        VS Code: `prompt` is prefilled, never sent; the person still presses enter. The Claude
-   *        app's link takes no prompt. Terminal runs the CLI with `--model` and the prompt.
+   *        app's link takes no prompt. Terminal runs the CLI with `--model`, `--effort` and the prompt.
    */
-  async function newSession(dir, { target = 'app', prompt = '', model = '' } = {}) {
+  async function newSession(dir, { target = 'app', prompt = '', model = '', effort = '' } = {}) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'Not an absolute folder.' }
     if (target === 'terminal') {
       // The one way to choose the model: the CLI's own --model flag, in a terminal window.
       if (model && !isModel(model)) return { ok: false, error: 'Unknown model.' }
+      if (effort && !isEffort(effort)) return { ok: false, error: 'Unknown effort level.' }
       const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
       if (!exe) return { ok: false, error: "Couldn't find the claude command. Install Claude Code's CLI to start sessions in a terminal." }
       const text = typeof prompt === 'string' ? prompt.trim().slice(0, 20000) : ''
-      return { ok: true, terminal: { exe, args: model ? ['--model', model] : [], cwd: dir, prompt: text } }
+      const args = [...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])]
+      return { ok: true, terminal: { exe, args, cwd: dir, prompt: text } }
     }
     if (target === 'vscode') {
       const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''

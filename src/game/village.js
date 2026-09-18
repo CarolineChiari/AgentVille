@@ -367,7 +367,7 @@ export class Village {
    * the clipboard for the Claude app, whose link can't carry one). The new villager walks in from
    * the gate once the session writes its transcript, so look again a few times soon after.
    */
-  async startSession(folder, prompt = '', { target = this.settings.openIn, model = '' } = {}) {
+  async startSession(folder, prompt = '', { target = this.settings.openIn, model = '', effort = '' } = {}) {
     if (!folder) return false
     if (this.demo) {
       this.toast('Demo mode: nothing to start.')
@@ -375,10 +375,11 @@ export class Village {
     }
     const where = { vscode: 'VS Code', terminal: 'a terminal', app: 'the Claude app' }[target] || 'Claude'
     try {
-      const r = await api.newSession(folder, target, prompt, model)
+      const r = await api.newSession(folder, target, prompt, model, effort)
       // Wherever the prompt couldn't travel with the session, it goes to the clipboard instead.
       const copied = prompt && !r.promptPassed && (await navigator.clipboard.writeText(prompt).then(() => true, () => false))
-      this.toast(`Starting a new session in ${where}${model ? ` with ${model}` : ''}${copied ? ' — your prompt is on the clipboard' : ''}`)
+      const how = [model, effort && `${effort} effort`].filter(Boolean).join(', ')
+      this.toast(`Starting a new session in ${where}${how ? ` with ${how}` : ''}${copied ? ' — your prompt is on the clipboard' : ''}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
       return true
     } catch (err) {

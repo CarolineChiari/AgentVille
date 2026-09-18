@@ -151,10 +151,10 @@ test('new-session passes the prompt and model through, and runs terminal launche
   let seen
   fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, url: 'fake://new' })
   await post('/api/new-session', { folder: os.tmpdir(), target: 'vscode', prompt: 'hello' })
-  assert.deepEqual(seen, { target: 'vscode', prompt: 'hello', model: '' })
+  assert.deepEqual(seen, { target: 'vscode', prompt: 'hello', model: '', effort: '' })
   fakeHarness.newSession = (dir, opts) => ((seen = opts), { ok: true, terminal: { exe: '/bin/x', args: [], cwd: dir, prompt: '' } })
-  const r = await post('/api/new-session', { folder: os.tmpdir(), target: 'terminal', model: 'opus' })
+  const r = await post('/api/new-session', { folder: os.tmpdir(), target: 'terminal', model: 'opus', effort: 'high' })
   assert.equal(r.status, 200)
   assert.equal(terminals.length, 1)
-  assert.deepEqual(seen, { target: 'terminal', prompt: '', model: 'opus' })
+  assert.deepEqual(seen, { target: 'terminal', prompt: '', model: 'opus', effort: 'high' })
 })

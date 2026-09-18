@@ -165,6 +165,12 @@ test('terminal new session passes an allowed model to the CLI, and refuses anyth
   for (const bad of ['opus; rm -rf ~', '--dangerously-skip-permissions', 'gpt-4', 'opus[1m] x']) {
     assert.equal((await a.newSession('/work/app', { target: 'terminal', model: bad })).ok, false, bad)
   }
+  const both = await a.newSession('/work/app', { target: 'terminal', model: 'sonnet', effort: 'xhigh' })
+  assert.deepEqual(both.terminal.args, ['--model', 'sonnet', '--effort', 'xhigh'])
+  assert.deepEqual((await a.newSession('/work/app', { target: 'terminal', effort: 'max' })).terminal.args, ['--effort', 'max'])
+  for (const bad of ['extreme', 'high; ls', ['high']]) {
+    assert.equal((await a.newSession('/work/app', { target: 'terminal', effort: bad })).ok, false, String(bad))
+  }
 })
 
 test('the process saying it is waiting wins over a transcript that looks busy', async (t) => {

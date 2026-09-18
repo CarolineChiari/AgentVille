@@ -16,3 +16,7 @@ export const threadId = (sessionId) => `${HARNESS_ID}:${sessionId}`
  */
 export const MODEL_RE = /^(fable|opus|sonnet|haiku|opusplan|claude-[a-z0-9.-]{2,60})(\[1m\])?$/
 export const isModel = (v) => typeof v === 'string' && MODEL_RE.test(v)
+
+/** Effort levels the CLI's --effort flag accepts. */
+export const EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max'])
+export const isEffort = (v) => typeof v === 'string' && EFFORTS.has(v)

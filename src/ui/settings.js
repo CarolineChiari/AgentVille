@@ -8,6 +8,7 @@ export const DEFAULTS = {
   openIn: 'vscode', // 'vscode' | 'app' — where Open sends you, and New session by default
   newTarget: '', // last 'Open in' chosen in the new-session form ('' = follow openIn)
   newModel: '', // last model chosen there ('' = your Claude Code default)
+  newEffort: '', // last effort chosen there ('' = your default)
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,
   allNames: false,

@@ -45,7 +45,8 @@ export async function saveState(local, base) {
 }
 
 export const openThread = (harness, ref, target) => post('/api/open', { harness, ref, target }).then((r) => r.body)
-export const newSession = (folder, target, prompt = '', model = '') => post('/api/new-session', { folder, target, prompt, model }).then((r) => r.body)
+export const newSession = (folder, target, prompt = '', model = '', effort = '') =>
+  post('/api/new-session', { folder, target, prompt, model, effort }).then((r) => r.body)
 export const fetchTranscript = (harness, ref, limit = 300) => post('/api/transcript', { harness, ref, limit }).then((r) => r.body)
 export const fetchPrs = async () => (await json(await fetch('/api/prs'))).body
 export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.body)
