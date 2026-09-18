@@ -88,6 +88,12 @@ export function createApiMiddleware(opts = {}) {
   const opener = opts.opener ?? createOpener()
   const extraHosts = new Set(opts.extraHosts ?? [])
 
+  // An adapter may hand back several URLs to open in order (folder first, then session).
+  const launch = (result) =>
+    Array.isArray(result.urls) && result.urls.length > 1 && opener.launchAll
+      ? opener.launchAll(result.urls)
+      : opener.launch(result.urls?.[0] ?? result.url)
+
   const routes = {
     'GET /api/threads': async () => {
       const [{ threads, warnings }, state] = await Promise.all([scanAll({ harnesses }), store.read()])
@@ -117,9 +123,10 @@ export function createApiMiddleware(opts = {}) {
     'POST /api/open': async (body) => {
       const h = harnessById(body?.harness, harnesses)
       if (!h) return [400, { ok: false, error: 'Unknown harness.' }]
-      const result = await h.openThread(body?.ref)
+      const target = body?.target === 'vscode' ? 'vscode' : 'app'
+      const result = await h.openThread(body?.ref, { target })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot open this thread.' }]
-      const launched = opener.launch(result.url)
+      const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
       return [200, { ok: true, url: result.url, note: result.note }]
     },
@@ -129,9 +136,10 @@ export function createApiMiddleware(opts = {}) {
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const h = body?.harness ? harnessById(body.harness, harnesses) : await defaultHarness({ harnesses })
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
-      const result = await h.newSession(dir)
+      const target = body?.target === 'vscode' ? 'vscode' : 'app'
+      const result = await h.newSession(dir, { target })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot start a session here.' }]
-      const launched = opener.launch(result.url)
+      const launched = await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
       return [200, { ok: true, url: result.url }]
     },

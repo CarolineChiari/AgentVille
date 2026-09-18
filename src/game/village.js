@@ -194,9 +194,10 @@ export class Village {
     if (!t) return
     if (this.demo) return this.toast('Demo mode: nothing to open.')
     if (!t.canOpen) return this.toast('This thread has nothing Claude can open.', 'error')
+    const target = this.settings.openIn
     try {
-      const r = await api.openThread(t.harness, t.ref)
-      this.toast(r.note || `Opening “${t.title}”`)
+      const r = await api.openThread(t.harness, t.ref, target)
+      this.toast(r.note || `Opening “${t.title}” in ${target === 'vscode' ? 'VS Code' : 'the Claude app'}`)
     } catch (err) {
       this.toast(err.message, 'error')
     }
@@ -250,8 +251,8 @@ export class Village {
     if (!path) return
     if (this.demo) return this.toast('Demo mode: nothing to start.')
     try {
-      await api.newSession(path)
-      this.toast(`Starting a new session in ${name}`)
+      await api.newSession(path, this.settings.openIn)
+      this.toast(`Starting a new session in ${name}${this.settings.openIn === 'vscode' ? ' in VS Code' : ''}`)
     } catch (err) {
       this.toast(err.message, 'error')
     }

@@ -173,8 +173,20 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  function openThread(ref) {
+  /**
+   * @param {object} ref
+   * @param {{ target?: 'app' | 'vscode' }} [opts]
+   */
+  function openThread(ref, { target = 'app' } = {}) {
     const r = ref && typeof ref === 'object' ? ref : {}
+    if (target === 'vscode') {
+      // The VS Code extension resumes by CLI session id, and only in the window that receives the
+      // link — so the repo folder is opened (or focused) first, then the session.
+      if (!isCliId(r.cliSessionId)) return { ok: false, error: 'This thread only exists in the Claude app, so VS Code cannot open it.' }
+      const folder = typeof r.cwd === 'string' && path.isAbsolute(r.cwd) ? r.cwd : ''
+      const session = `vscode://anthropic.claude-code/open?${new URLSearchParams({ session: r.cliSessionId })}`
+      return { ok: true, url: session, urls: folder ? [vscodeFolderUrl(folder), session] : [session] }
+    }
     // Navigating the desktop app to a thread it already has is preferred. `resume` imports the
     // transcript as a second session, so it is only for threads that exist only as a CLI file.
     if (isDesktopId(r.desktopSessionId)) {
@@ -186,12 +198,26 @@ export function createClaudeCodeAdapter(opts = {}) {
     return { ok: false, error: 'This thread has no id Claude can open.' }
   }
 
-  function newSession(dir) {
+  function newSession(dir, { target = 'app' } = {}) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'Not an absolute folder.' }
+    if (target === 'vscode') {
+      const open = 'vscode://anthropic.claude-code/open'
+      return { ok: true, url: open, urls: [vscodeFolderUrl(dir), open] }
+    }
     return { ok: true, url: `claude://code/new?${new URLSearchParams({ folder: dir })}` }
   }
 
   return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, paths: { ...cli } }
+}
+
+/**
+ * `vscode://file/<path>` opens a folder in VS Code, or focuses the window that already has it.
+ * Windows paths go forward-slashed (`vscode://file/C:/code/app`); each segment is escaped.
+ */
+export function vscodeFolderUrl(dir) {
+  const parts = String(dir).split(/[\\/]/).filter(Boolean)
+  const drive = /^[A-Za-z]:$/.test(parts[0] || '') ? parts.shift() + '/' : ''
+  return `vscode://file/${drive}${parts.map(encodeURIComponent).join('/')}/`
 }
 
 export default createClaudeCodeAdapter()

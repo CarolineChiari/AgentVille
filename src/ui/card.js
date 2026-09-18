@@ -46,7 +46,7 @@ export function createCard(root, village) {
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
-        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>Open<kbd>↵</kbd></button>
+        <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
         ${t.status === 'waiting' ? '<button class="btn" data-act="viewed">Viewed<kbd>V</kbd></button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
       </div>`
@@ -70,7 +70,7 @@ export function createCard(root, village) {
         shownId = null
         return
       }
-      const key = `${t.status}|${t.title}|${t.lastActivityAt}|${t.canOpen}`
+      const key = `${t.status}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
       if (id !== shownId || key !== shownKey) {
         fill(t)
         shownId = id

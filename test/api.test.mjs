@@ -111,3 +111,12 @@ test('archive recorded under a ref id is recognised', async () => {
   const body = await (await fetch(`${base}/api/threads`)).json()
   assert.equal(body.threads[0].archivedHere, true)
 })
+
+test('open passes the target through to the adapter', async () => {
+  let seen
+  fakeHarness.openThread = (ref, opts) => ((seen = opts), { ok: true, url: 'fake://x' })
+  await post('/api/open', { harness: 'fake', ref: {}, target: 'vscode' })
+  assert.deepEqual(seen, { target: 'vscode' })
+  await post('/api/open', { harness: 'fake', ref: {}, target: 'rm -rf' })
+  assert.deepEqual(seen, { target: 'app' }, 'unknown targets fall back to the app')
+})

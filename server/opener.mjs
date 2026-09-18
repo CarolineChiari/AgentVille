@@ -44,9 +44,22 @@ export function createOpener({ spawn = nodeSpawn, platform = process.platform } 
       return { ok: false, error: String(err?.message || err) }
     }
   }
+  /**
+   * Several URLs in order, a pause between each: the second link must land in the window the
+   * first one opened, and a cold VS Code takes a moment to become the focused window.
+   */
+  async function launchAll(urls, gapMs = 1800) {
+    for (let i = 0; i < urls.length; i++) {
+      if (i) await new Promise((r) => setTimeout(r, gapMs))
+      const r = run('url', urls[i])
+      if (!r.ok) return r
+    }
+    return { ok: true }
+  }
   return {
     platform,
     launch: (url) => run('url', url),
+    launchAll,
     reveal: (dir) => run('folder', dir),
   }
 }

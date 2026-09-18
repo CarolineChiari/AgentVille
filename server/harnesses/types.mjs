@@ -33,10 +33,11 @@
  * @property {string} name                                 Shown in the UI
  * @property {() => Promise<boolean>} detect               Cheap: runs on every scan
  * @property {() => Promise<Thread[]>} scanThreads         Throwing costs only this harness's threads
- * @property {(ref: object) => OpenResult | Promise<OpenResult>} openThread
- * @property {(dir: string) => OpenResult | Promise<OpenResult>} newSession
+ * @property {(ref: object, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} openThread
+ * @property {(dir: string, opts?: { target?: 'app' | 'vscode' }) => OpenResult | Promise<OpenResult>} newSession
  *
- * @typedef {{ ok: true, url: string, note?: string } | { ok: false, error: string }} OpenResult
+ * `urls`, when present, are opened in order with a short pause between them.
+ * @typedef {{ ok: true, url: string, urls?: string[], note?: string } | { ok: false, error: string }} OpenResult
  */
 
 export const THREAD_FIELDS = [

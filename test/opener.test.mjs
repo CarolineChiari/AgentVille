@@ -31,3 +31,12 @@ test('resolveFolder rejects relative, missing and non-string folders', async () 
   assert.equal(await resolveFolder(['/tmp']), null)
   assert.ok(await resolveFolder(os.tmpdir()))
 })
+
+test('launchAll opens each URL in order with a pause between', async () => {
+  const opened = []
+  const spawn = (cmd, args) => (opened.push([args.at(-1), Date.now()]), { on() {}, unref() {} })
+  const r = await createOpener({ spawn, platform: 'darwin' }).launchAll(['a://1', 'b://2'], 50)
+  assert.deepEqual(r, { ok: true })
+  assert.deepEqual(opened.map((o) => o[0]), ['a://1', 'b://2'])
+  assert.ok(opened[1][1] - opened[0][1] >= 45)
+})

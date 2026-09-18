@@ -112,6 +112,8 @@ export function createHud(root, { village, settings, onSettings, onFly }) {
     } else {
       const s = settings
       sheet.innerHTML = `<h2>Settings</h2>
+        <label>Open threads in
+          <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label>Show every plot's name <input type="checkbox" data-set="allNames" ${s.allNames ? 'checked' : ''}></label>
         <label>Time of day

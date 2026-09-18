@@ -21,7 +21,12 @@ Then open the URL Vite prints (default `http://127.0.0.1:5274`). Add `?demo=1` f
 binds elsewhere.
 
 macOS and Windows are both supported. Opening a thread, starting a new session and revealing
-a folder go through a `claude://` deep link handed to the OS opener.
+a folder go through a deep link handed to the OS opener.
+
+**Open in VS Code** is the default. AgentVille opens the repo folder in VS Code first, then hands
+the session to the Claude Code extension (`vscode://anthropic.claude-code/open?session=…`), so it
+lands in the right window. Threads that exist only in the Claude desktop app can't be opened
+this way. Switch to the Claude app under Settings → Open threads in.
 
 ## What it reads
 

@@ -107,3 +107,26 @@ test('newSession URL-encodes the folder and refuses relative paths', () => {
   assert.equal(a.newSession('/a b/c&d').url, 'claude://code/new?folder=%2Fa+b%2Fc%26d')
   assert.equal(a.newSession('relative').ok, false)
 })
+
+test('VS Code: the repo folder opens first, then the session', () => {
+  const a = adapterFor('/nowhere')
+  const r = a.openThread({ cliSessionId: uuid(9), cwd: '/work/my repo' }, { target: 'vscode' })
+  assert.equal(r.ok, true)
+  assert.deepEqual(r.urls, ['vscode://file/work/my%20repo/', `vscode://anthropic.claude-code/open?session=${uuid(9)}`])
+})
+
+test('VS Code refuses a thread that exists only in the desktop app', () => {
+  const a = adapterFor('/nowhere')
+  assert.equal(a.openThread({ desktopSessionId: `local_${uuid(9)}` }, { target: 'vscode' }).ok, false)
+  assert.equal(a.openThread({ cliSessionId: [uuid(9)] }, { target: 'vscode' }).ok, false)
+})
+
+test('VS Code new session opens the folder, then a fresh conversation', () => {
+  const r = adapterFor('/nowhere').newSession('/work/app', { target: 'vscode' })
+  assert.deepEqual(r.urls, ['vscode://file/work/app/', 'vscode://anthropic.claude-code/open'])
+})
+
+test('vscodeFolderUrl forward-slashes Windows paths', async () => {
+  const { vscodeFolderUrl } = await import('../server/harnesses/claude-code/index.mjs')
+  assert.equal(vscodeFolderUrl('C:\\code\\my app'), 'vscode://file/C:/code/my%20app/')
+})
