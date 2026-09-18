@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  ARCH_H, ARCH_W, CENTER, GARDEN, PILLAR, SIZE, archTop, arrivalSparkles, blossomCrowns, buntingStrings, crystalAt, fairyLights, gemAt,
-  lampTop, makePigeons, motes, pennants, petals, pigeonCanStand, portalOpening, runePixels, squarePixel, stepPigeons, veilColor,
+  ARCH_H, ARCH_W, CENTER, GARDEN, PILLAR, SIZE, SPILL, archShoulder, arrivalSparkles, blossomCrowns, buntingStrings, crystalAt, fairyLights, gemAt,
+  lampTop, makePigeons, motes, pennants, petals, pigeonCanStand, portalOpening, runePixels, spillColor, squarePixel, stepPigeons, veilColor,
 } from '../src/render/square.js'
 import { mulberry32 } from '../src/sim/rng.js'
 import { PALETTE as P } from '../src/render/sprites/palette.js'
@@ -75,7 +75,10 @@ test('the bunting hangs between the lampposts and up to the arch, inside the squ
   const strings = buntingStrings()
   const ends = strings.map((pts) => [pts[0], pts[pts.length - 1]])
   const [tl, tr, bl, br] = SQUARE_LAMPS.map(lampTop)
-  assert.deepEqual(ends, [[bl, br], [tl, archTop()], [tr, archTop()]])
+  assert.deepEqual(ends, [[bl, br], [tl, archShoulder(-1)], [tr, archShoulder(1)]])
+  // Clear of the keystone, whose gem the crystals' beams meet at.
+  const [gx, gy] = gemAt()
+  for (const pts of strings) for (const [x, y] of pts) assert.ok(Math.hypot(x - gx, y - gy) > 12, `bunting over the keystone at ${x},${y}`)
   for (const pts of strings) {
     for (const [x, y] of pts) assert.ok(x >= 0 && y >= 0 && x < SIZE && y < SIZE)
     // It sags: its middle hangs below the straight line between its ends.
@@ -153,4 +156,44 @@ test('pigeons keep to open paving, and take off from anybody who comes near', ()
   assert.ok(Math.hypot(b.x - walker[0], b.y - walker[1]) > 18)
   // Nothing stands in the portal itself.
   assert.ok(!pigeonCanStand(CENTER.x, CENTER.y - 8))
+})
+
+test('the vortex fills its doorway: a bright seam all round the stone, darker just inside it', () => {
+  const rows = portalOpening()
+  const inside = new Set(rows.flatMap(([y, x0, x1]) => Array.from({ length: x1 - x0 + 1 }, (_, i) => `${x0 + i},${y}`)))
+  const light = ([r, g, b]) => r + g + b
+  let seam = 0
+  let seamLight = 0
+  let innerLight = 0
+  let inner = 0
+  for (const [y, x0, x1] of rows) {
+    if (y < 24 || y >= ARCH_H - 1) continue // under the name board, and the threshold
+    // The pixel beside the stone on each side is the seam; three in from it is the dark.
+    for (const [sx, ix] of [[x0, x0 + 3], [x1, x1 - 3]]) {
+      seam++
+      seamLight += light(veilColor(sx, y, 2, 0))
+      if (inside.has(`${ix},${y}`)) {
+        inner++
+        innerLight += light(veilColor(ix, y, 2, 0))
+      }
+    }
+  }
+  assert.ok(seamLight / seam > innerLight / inner, 'no seam of light round the vortex')
+  // Both bottom corners are seam too: the vortex runs square into them, not round like a balloon.
+  const [, x0, x1] = rows.at(-2)
+  for (const x of [x0, x1]) assert.ok(light(veilColor(x, ARCH_H - 2, 2, 0)) >= seamLight / seam * 0.8)
+})
+
+test('the portal spills light onto the ground in front of it, fading away from it', () => {
+  const [, x0, x1] = portalOpening().at(-1)
+  const mid = Math.round((x0 + x1) / 2)
+  const near = spillColor(mid, 0, 1, 0)
+  const far = spillColor(mid, SPILL - 2, 1, 0)
+  assert.ok(near && far && near[3] > far[3])
+  assert.equal(spillColor(0, 0, 1, 0), null, 'light spilling past the pillars')
+  assert.equal(spillColor(mid, SPILL, 1, 0), null)
+  // A pool, not a slab: it narrows as it reaches out from the threshold.
+  const width = (row) => Array.from({ length: ARCH_W }, (_, x) => spillColor(x, row, 1, 0)).filter(Boolean).length
+  assert.ok(width(0) > width(SPILL - 2))
+  assert.ok(spillColor(mid, 0, 1, 1)[3] > near[3], 'a flare throws more light')
 })

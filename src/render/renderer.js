@@ -10,8 +10,8 @@ import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
 import {
-  ARCH_H, ARCH_W, CENTER, SIZE, arrivalSparkles, beam, crystalAt, fairyLights, gemAt, makePigeons, motes, petals, portalOpening, runePixels,
-  stepPigeons, veilColor, vortexMotes,
+  ARCH_H, ARCH_W, CENTER, SIZE, SPILL, arrivalSparkles, beam, crystalAt, fairyLights, gemAt, makePigeons, motes, petals, portalOpening,
+  runePixels, spillColor, stepPigeons, veilColor, vortexMotes,
 } from './square.js'
 import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
@@ -343,13 +343,26 @@ export class Canvas2dRenderer {
   /** The shimmering veil in the portal's opening, painted afresh into a small canvas each frame. */
   _drawVeil(wx, wy) {
     if (!this.veil) {
+      // The arch's size, and SPILL rows under it for the light the portal throws on the ground.
       this.veil = document.createElement('canvas')
       this.veil.width = ARCH_W
-      this.veil.height = ARCH_H
+      this.veil.height = ARCH_H + SPILL
       this.veilCtx = this.veil.getContext('2d')
-      this.veilImg = this.veilCtx.createImageData(ARCH_W, ARCH_H)
+      this.veilImg = this.veilCtx.createImageData(ARCH_W, ARCH_H + SPILL)
     }
     const d = this.veilImg.data
+    for (let row = 0; row < SPILL; row++) {
+      for (let x = 0; x < ARCH_W; x++) {
+        const c = spillColor(x, row, this.time, this.flare)
+        const i = ((ARCH_H + row) * ARCH_W + x) * 4
+        d[i + 3] = 0
+        if (!c) continue
+        d[i] = c[0]
+        d[i + 1] = c[1]
+        d[i + 2] = c[2]
+        d[i + 3] = Math.round(c[3] * 255)
+      }
+    }
     for (const [y, x0, x1] of OPENING) {
       for (let x = x0; x <= x1; x++) {
         const [r, g, b, a] = veilColor(x, y, this.time, this.flare)

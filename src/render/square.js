@@ -235,8 +235,39 @@ export function portalOpening() {
   return rows
 }
 
-/** The middle of the opening, and how far it reaches across and up, for the vortex's shape. */
-const EYE = { x: ARCH_W / 2, y: 38, rx: ARCH_W / 2 - PILLAR - SOFFIT - 1, ry: 27 }
+/**
+ * The vortex's eye: in the middle of the part of the opening you can see, below the name board,
+ * and the radius its spiral is measured in.
+ */
+const EYE = { x: ARCH_W / 2, y: 43, r: ARCH_W / 2 - PILLAR - SOFFIT - 1 }
+
+let edges = null
+/**
+ * How far each pixel of the opening is from the stone round it, in px (1 right beside it), keyed
+ * y * ARCH_W + x. The vortex's bright seam and its darkening towards the sides follow this, so they
+ * follow the opening's own shape: measured from an oval instead, the vortex came out balloon-shaped.
+ */
+function edgeDistances() {
+  if (edges) return edges
+  const inside = new Set()
+  for (const [y, x0, x1] of portalOpening()) for (let x = x0; x <= x1; x++) inside.add(y * ARCH_W + x)
+  edges = new Map()
+  const R = 8
+  for (const k of inside) {
+    const x = k % ARCH_W
+    const y = Math.floor(k / ARCH_W)
+    let best = R
+    for (let dy = -R; dy <= R; dy++) {
+      for (let dx = -R; dx <= R; dx++) {
+        // Below the arch is the ground, not stone: the vortex runs right down to it.
+        if (y + dy >= ARCH_H) continue
+        if (!inside.has((y + dy) * ARCH_W + x + dx)) best = Math.min(best, Math.hypot(dx, dy))
+      }
+    }
+    edges.set(k, best)
+  }
+  return edges
+}
 
 const rgb = (hex) => {
   const { r, g, b } = hexToRgb(hex)
@@ -256,32 +287,60 @@ function ramp(light) {
 
 /**
  * The vortex in the portal at arch-sprite pixel (x, y), time `t` in seconds: [r, g, b, alpha 0..1].
- * Three arms of light wheel round a bright eye, the dark between them falling away into the deep;
- * a rim of light runs round its edge, and a few specks glint. `flare` (0..1, somebody arriving or
+ * Three arms of light wheel round a bright eye, fading into the deep towards the stone; a seam of
+ * light runs round its edge, and a star glints now and then. `flare` (0..1, somebody arriving or
  * leaving) spins it faster and floods it from the eye out.
  */
 export function veilColor(x, y, t, flare = 0) {
-  const ex = (x + 0.5 - EYE.x) / EYE.rx
-  const ey = (y + 0.5 - EYE.y) / EYE.ry
-  const r = Math.min(1.2, Math.hypot(ex, ey))
-  const th = Math.atan2(ey, ex)
+  const edge = edgeDistances().get(y * ARCH_W + x) ?? 1
+  const dx = (x + 0.5 - EYE.x) / EYE.r
+  const dy = (y + 0.5 - EYE.y) / EYE.r
+  const r = Math.hypot(dx, dy)
+  const th = Math.atan2(dy, dx)
   const spin = t * (1.4 + flare * 2.6)
-  const arms = 0.5 + 0.5 * Math.sin(3 * th + 7 * r - spin * 2.2)
-  const depth = Math.max(0, 1 - r)
-  let light = 0.08 + 0.55 * depth ** 1.4 + 0.42 * arms * (0.35 + 0.65 * Math.min(1, r))
-  let alpha = 0.78 + 0.2 * depth
-  if (r > 0.88) {
-    // The rim: where the vortex meets the stone it burns brightest.
-    light = Math.max(light, 0.62 + 0.25 * Math.sin(th * 5 - t * 4))
-    alpha = 0.95
+  const arms = 0.5 + 0.5 * Math.sin(3 * th + 6 * r - spin * 2.2)
+  const eye = Math.exp(-r * r * 3.2)
+  const inward = Math.min(1, edge / 7) // the arms fade into the deep near the stone
+  let light = 0.1 + 0.6 * eye + 0.42 * arms * (0.3 + 0.7 * Math.min(1, r)) * inward
+  // Nearly opaque: see-through, the floor's star showed in it like glass. A villager arriving
+  // behind it is a ghost until it steps out.
+  let alpha = 0.95 + 0.05 * eye
+  if (edge <= 1.5) {
+    // The seam where the vortex meets the stone, a pulse of light running round it.
+    light = Math.max(light, 0.68 + 0.22 * Math.sin(th * 5 - t * 4))
+    alpha = 1
+  } else if (edge <= 2.5) {
+    light = Math.max(light, 0.42)
+    alpha = Math.max(alpha, 0.92)
   }
-  if (lattice(x, y * 131 + Math.floor(t * 5), 97) > 0.992) {
+  if (lattice(x, y * 131 + Math.floor(t * 4), 97) > 0.996) {
     light = 1
     alpha = 1
   }
   light = Math.min(1, light + flare * 0.4 * (1 - 0.5 * Math.min(1, r)))
   alpha = Math.min(1, alpha + flare * 0.1)
   return [...ramp(light), alpha]
+}
+
+/** Rows of light the portal spills onto the floor in front of it. */
+export const SPILL = 8
+
+/**
+ * The light spilling from the portal onto the ground in front of it, `row` rows below the arch's
+ * foot, at arch-sprite column x: [r, g, b, alpha], or null past its reach. A half-oval pool a
+ * little wider than the doorway, brightest at the threshold, its rim dithered so it fades out
+ * rather than stopping at a hard edge; it flickers with the vortex, and a flare throws it further.
+ */
+export function spillColor(x, row, t, flare = 0) {
+  const [, x0, x1] = portalOpening().at(-1)
+  const cx = (x0 + x1 + 1) / 2
+  const hw = ((x1 - x0 + 1) / 2) * 1.25
+  const e = ((x + 0.5 - cx) / hw) ** 2 + ((row + 0.5) / SPILL) ** 2
+  if (e >= 1) return null
+  const flicker = 0.85 + 0.15 * Math.sin(t * 5 + x * 0.7)
+  const a = (0.55 + 0.3 * flare) * (1 - e) ** 1.2 * flicker
+  if (a < 0.03 || (a < 0.14 && (x + row) % 2)) return null
+  return [...ramp(0.62 + 0.3 * flare), a]
 }
 
 /**
@@ -295,7 +354,7 @@ export function vortexMotes(t, flare, n = 10) {
     const life = (t * 0.32 + phase) % 1
     const r = flare > 0.3 ? life : 1 - life
     const th = lattice(k, 2, 64) * TAU + (flare > 0.3 ? -1 : 1) * life * 4.5
-    out.push([Math.round(EYE.x + Math.cos(th) * r * EYE.rx * 0.95), Math.round(EYE.y + Math.sin(th) * r * EYE.ry * 0.95), Math.sin(life * Math.PI)])
+    out.push([Math.round(EYE.x + Math.cos(th) * r * EYE.r * 0.95), Math.round(EYE.y + Math.sin(th) * r * EYE.r * 1.1), Math.sin(life * Math.PI)])
   }
   return out
 }
@@ -356,18 +415,25 @@ const PENNANT_GAP = 6
 
 /** Where a lamppost's lantern is, for the bunting to hang from: [px, py] in the square's pixels. */
 export const lampTop = ([lx, ly]) => [lx * T + T / 2, (ly + 1) * T - 26]
-/** The arch's keystone, where the strings meet. */
+/** The arch's keystone. */
 export const archTop = () => [CENTER.x, CENTER.y - ARCH_H + 2]
+/**
+ * Where a string of bunting is tied to the arch: on its shoulder, 45° down either side of the
+ * keystone, so the keystone and its gem stay clear (the crystals' beams meet there).
+ */
+export const archShoulder = (side) => [
+  Math.round(CENTER.x + side * (ARCH_W / 2) * Math.SQRT1_2),
+  Math.round(CENTER.y - ARCH_H + ARCH_RISE - (ARCH_W / 2) * Math.SQRT1_2),
+]
 
 /**
  * The strings of bunting: along the bottom edge between the lampposts, and from the two top
- * lampposts to the arch's keystone. Each is a list of [px, py] a pixel apart, sagging. None runs
+ * lampposts to the arch's shoulders. Each is a list of [px, py] a pixel apart, sagging. None runs
  * along the top edge: it cut straight across the fountain and the carts.
  */
 export function buntingStrings() {
   const [tl, tr, bl, br] = SQUARE_LAMPS.map(lampTop)
-  const top = archTop()
-  return [[bl, br], [tl, top], [tr, top]].map(([a, b]) => {
+  return [[bl, br], [tl, archShoulder(-1)], [tr, archShoulder(1)]].map(([a, b]) => {
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
     const n = Math.ceil(len)
     const pts = []
