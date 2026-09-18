@@ -7,6 +7,7 @@ const GLYPHS = {
   blocked: ['..#..', '..#..', '..#..', '..#..', '..#..', '.....', '..#..'],
   done: ['.....', '....#', '...##', '#.##.', '###..', '.#...', '.....'],
   working: ['####.', '####.', '.##..', '..#..', '..#..', '..#..', '..#..'],
+  party: ['..#..', '..#..', '#####', '.###.', '.###.', '##.##', '#...#'],
 }
 
 export const BADGE_W = 13
@@ -20,7 +21,7 @@ export function drawBadge(kind) {
   pc.hline(5, 7, 12, color)
   pc.px(6, 13, color)
   const g = GLYPHS[kind] || GLYPHS.waiting
-  const ink = kind === 'waiting' || kind === 'done' ? P.outline : P.white
+  const ink = kind === 'waiting' || kind === 'party' ? P.outline : P.white
   g.forEach((row, y) => [...row].forEach((ch, x) => ch === '#' && pc.px(4 + x, 3 + y, ink)))
   return pc.outline(P.outline)
 }

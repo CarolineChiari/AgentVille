@@ -87,7 +87,8 @@ export const BADGE = {
   waiting: '#ffc93c',
   blocked: '#ef4f4f',
   working: '#5cc4f2',
-  done: '#6fdb8a',
+  done: '#4fcf6f', // finished, ready for review
+  party: '#f7b733', // a merged PR
 }
 
 /**

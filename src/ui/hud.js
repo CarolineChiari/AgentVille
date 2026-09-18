@@ -7,19 +7,20 @@ import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
-  ['waiting', 'Waiting'],
+  ['waiting', 'Needs you'],
   ['blocked', 'Stuck'],
-  ['celebrating', 'Merged'],
+  ['done', 'Done'],
   ['openPrs', 'PRs'],
   ['idle', 'Idle'],
   ['sleeping', 'Asleep'],
 ]
 
 const HELP = [
-  ['N', 'Next villager waiting on you'],
+  ['N', 'Next villager who needs you (?)'],
+  ['R', 'Next finished thread to review (✓)'],
+  ['V', 'Mark it reviewed'],
   ['P', 'Next open PR'],
   ['Enter', 'Open the selected thread'],
-  ['V', 'Mark it viewed'],
   ['A', 'Archive it'],
   ['C', 'New session (optionally with a first prompt)'],
   ['T', 'Transcript of the selected thread'],
@@ -76,7 +77,11 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <span>${village.demo ? 'Demo' : village.harnesses.filter((h) => h.detected).map((h) => esc(h.name)).join(', ') || 'No harness found'}</span>
       </div>`
     hint.hidden = Boolean(village.selected || village.selectedPlot)
-    hint.textContent = counts.waiting || counts.blocked ? `Press N to visit whoever is waiting on you` : `Drag to look around · scroll to zoom · click a villager`
+    hint.textContent = counts.waiting || counts.blocked
+      ? 'Press N to visit whoever needs you'
+      : counts.done
+        ? 'Press R to review finished work'
+        : 'Drag to look around · scroll to zoom · click a villager'
     if (sheetMode) renderSheet()
   }
 
@@ -89,6 +94,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const b = []
     if (r.counts.blocked) b.push(`<span class="blocked">${r.counts.blocked} !</span>`)
     if (r.counts.waiting) b.push(`<span class="waiting">${r.counts.waiting} ?</span>`)
+    if (r.counts.done) b.push(`<span class="done" title="Done, ready for review">${r.counts.done} ✓</span>`)
     if (r.counts.working) b.push(`<span class="working">${r.counts.working}</span>`)
     if (r.openPrs) b.push(`<span class="open-pr" title="Open PRs">✦ ${r.openPrs}</span>`)
     return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
@@ -157,6 +163,11 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'help': showSheet('help'); break
       case 'status': {
+        if (status === 'done') {
+          const id = village.nextDone()
+          if (id) onFly({ villager: id })
+          break
+        }
         if (status === 'openPrs') {
           const id = village.nextOpenPr()
           if (id) onFly({ villager: id })

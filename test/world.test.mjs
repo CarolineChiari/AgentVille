@@ -129,3 +129,19 @@ test('flowers present at load are in bloom; one finished later grows in', () => 
   assert.equal(typeof w.flower('t2').born, 'number')
   assert.equal(w.snapshot().flowers.length, 2)
 })
+
+test('a done villager stands at its door with a checkmark and does not wave', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'done')])
+  run(w, 12)
+  const seen = new Set()
+  for (let i = 0; i < 8 * 30; i++) {
+    w.tick(1 / 30)
+    seen.add(w.villager('t1').anim)
+  }
+  const v = w.villager('t1')
+  const f = w.buildings.get('t1').front
+  assert.ok(Math.hypot(v.x - f.x, v.y - f.y) < 0.7)
+  assert.equal(v.badge, 'done')
+  assert.deepEqual([...seen], ['idle'])
+})

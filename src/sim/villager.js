@@ -211,6 +211,11 @@ export class Villager {
         this.facing = 's'
         this._every(dt, 2.5, () => world.emit('z', this.x + 0.3, this.y - 1.4))
         break
+      case 'done':
+        // Finished and pleased about it: stands at the door, no fuss, until you've had a look.
+        this.anim = 'idle'
+        this.facing = 's'
+        break
       case 'waiting': {
         // Every few seconds: wave, then hop, then wait politely again. Each villager on its own clock.
         this.facing = 's'

@@ -9,6 +9,7 @@
   --ok: #7cf29a;
   --info: #7bd7ff;
   --glitter: #fff3b0;
+  --done: #4fcf6f;
   --sidebar: 300px;
   --radius: 10px;
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -81,11 +82,12 @@ body.hud-hidden #hud { display: none; }
 }
 .counts button:hover { background: rgba(255, 255, 255, 0.08); }
 .counts .n { display: block; font-size: 16px; font-weight: 600; }
+.counts .l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .counts .l { display: block; font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .counts .working .n { color: var(--info); }
 .counts .waiting .n { color: var(--accent); }
 .counts .blocked .n { color: var(--danger); }
-.counts .celebrating .n { color: var(--ok); }
+.counts .done .n { color: var(--done); }
 .counts .openPrs .n { color: var(--glitter); text-shadow: 0 0 6px rgba(255, 243, 176, 0.7); }
 .repo .badges .open-pr { color: #1b1a2e; background: var(--glitter); }
 
@@ -114,6 +116,7 @@ body.hud-hidden #hud { display: none; }
 .repo .badges .blocked { color: #fff; background: var(--danger); }
 .repo .badges .flowers { color: #f7a8c4; }
 .detail .garden-note { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.repo .badges .done { color: #1b1a2e; background: var(--done); }
 .repo .badges .working { color: #1b1a2e; background: var(--info); }
 
 .detail { border-top: 1px solid var(--panel-border); padding-top: 10px; }

@@ -117,11 +117,12 @@ export class Village {
   }
 
   /**
-   * Every finished thread is a flower in its repo's garden, in the order it finished. Hidden and
-   * folded repos keep their gardens off the map along with everything else of theirs.
+   * Every finished thread is a flower in its repo's garden, in the order it finished. A resting
+   * repo (every thread asleep) folds its villagers away but keeps its garden: that's history you
+   * come back to look at. Only hiding a repo takes its garden off the map too.
    */
   _plantGardens() {
-    const off = new Set([...this.state.hiddenProjects, ...this.view.dormant])
+    const off = new Set(this.state.hiddenProjects)
     const gardens = new Map()
     const add = (project, f) => {
       if (!gardens.has(project)) gardens.set(project, [])
@@ -293,13 +294,25 @@ export class Village {
       .filter((t) => t.status === 'waiting' || t.status === 'blocked')
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
     if (!asking.length) {
-      this.toast('Nobody is waiting on you.')
+      this.toast('Nobody needs you right now.')
       return null
     }
     this._nextIndex = (this._nextIndex + 1) % asking.length
     const t = asking[this._nextIndex]
     this.select(t.id)
     return t.id
+  }
+
+  /** The next finished thread to review, most recent first. */
+  nextDone() {
+    const done = this.view.live.filter((t) => t.status === 'done').sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+    if (!done.length) {
+      this.toast('Nothing waiting for review.')
+      return null
+    }
+    this._doneIndex = ((this._doneIndex ?? -1) + 1) % done.length
+    this.select(done[this._doneIndex].id)
+    return done[this._doneIndex].id
   }
 
   // ---------- actions ----------
@@ -431,7 +444,7 @@ export class Village {
 }
 
 export function countStatuses(threads) {
-  const c = { working: 0, waiting: 0, blocked: 0, celebrating: 0, idle: 0, sleeping: 0 }
+  const c = { working: 0, waiting: 0, blocked: 0, done: 0, celebrating: 0, idle: 0, sleeping: 0 }
   for (const t of threads) c[t.status] = (c[t.status] || 0) + 1
   return c
 }

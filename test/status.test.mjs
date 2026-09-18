@@ -10,7 +10,9 @@ test('status precedence: first match wins', () => {
   assert.equal(statusFor({ ...base, hasError: true, running: true, unread: true }, NOW), 'blocked')
   assert.equal(statusFor({ ...base, running: true, unread: true, prState: 'MERGED' }, NOW), 'working')
   assert.equal(statusFor({ ...base, prState: 'merged', unread: true }, NOW), 'celebrating')
-  assert.equal(statusFor({ ...base, unread: true }, NOW), 'waiting')
+  assert.equal(statusFor({ ...base, unread: true, needsInput: 'dialog open' }, NOW), 'waiting')
+  assert.equal(statusFor({ ...base, unread: true }, NOW), 'done', 'a finished turn is done, not a question')
+  assert.equal(statusFor({ lastActivityAt: NOW - STALE_MS - 1, unread: true }, NOW), 'sleeping', 'unreviewed but quiet for days: asleep')
   assert.equal(statusFor({ lastActivityAt: NOW - STALE_MS - 1 }, NOW), 'sleeping')
   assert.equal(statusFor({ lastActivityAt: NOW - STALE_MS - 1, prState: 'MERGED' }, NOW), 'sleeping', 'an old merge stops celebrating')
   assert.equal(statusFor(base, NOW), 'idle')
@@ -20,6 +22,8 @@ test('only the states that want something get a badge', () => {
   assert.equal(BADGE_FOR.sleeping, null)
   assert.equal(BADGE_FOR.idle, null)
   assert.equal(BADGE_FOR.waiting, 'waiting')
+  assert.equal(BADGE_FOR.done, 'done')
+  assert.notEqual(BADGE_FOR.celebrating, BADGE_FOR.done, 'a merged PR looks different from finished work')
 })
 
 test('viewing a thread puts its hand down until it does something newer', () => {

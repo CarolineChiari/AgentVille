@@ -2,7 +2,7 @@
 // so a thread can only ever be doing one thing and the badge, card and counts always agree.
 import { STALE_MS } from './constants.js'
 
-export const STATUSES = ['blocked', 'working', 'celebrating', 'waiting', 'sleeping', 'idle']
+export const STATUSES = ['blocked', 'waiting', 'working', 'celebrating', 'done', 'sleeping', 'idle']
 
 export function statusFor(t, now = Date.now()) {
   const stale = now - (t.lastActivityAt || 0) > STALE_MS
@@ -12,7 +12,9 @@ export function statusFor(t, now = Date.now()) {
   if (t.running) return 'working'
   // A merge is a moment, not a state: celebrate it for as long as the thread is fresh.
   if (!stale && String(t.prState || '').toUpperCase() === 'MERGED') return 'celebrating'
-  if (t.unread) return 'waiting'
+  // Finished its turn and you haven't looked yet: done, ready for review. Not a question — only
+  // `needsInput` above means Claude is actually stopped on you. After three quiet days it sleeps.
+  if (t.unread && !stale) return 'done'
   if (stale) return 'sleeping'
   return 'idle'
 }
@@ -21,7 +23,8 @@ export function statusFor(t, now = Date.now()) {
 export const BADGE_FOR = {
   blocked: 'blocked',
   working: 'working',
-  celebrating: 'done',
+  celebrating: 'party',
+  done: 'done',
   waiting: 'waiting',
   sleeping: null,
   idle: null,
@@ -48,13 +51,14 @@ export const STATUS_LABEL = {
   blocked: 'Stuck on an error',
   working: 'Working',
   celebrating: 'PR merged',
-  waiting: 'Waiting on you',
+  done: 'Done — ready for review',
+  waiting: 'Needs you',
   sleeping: 'Asleep',
   idle: 'Pottering about',
 }
 
 /** Who comes out of the gate first, and who is cut first if the village is full. */
-export const STATUS_RANK = { blocked: 0, waiting: 1, working: 2, celebrating: 3, idle: 4, sleeping: 5 }
+export const STATUS_RANK = { blocked: 0, waiting: 1, done: 2, working: 3, celebrating: 4, idle: 5, sleeping: 6 }
 
 /** Transcript size on a log scale, 1 KB → 0, ~3 MB → 1. Shown on the thread card only. */
 export function transcriptProgress(sizeBytes) {

@@ -161,6 +161,7 @@ addEventListener('keydown', (e) => {
   const centerY = camera.height / 2 / camera.dpr
   switch (e.key) {
     case 'n': case 'N': { const id = village.nextWaiting(); if (id) fly({ villager: id }); break }
+    case 'r': case 'R': { const id = village.nextDone(); if (id) fly({ villager: id }); break }
     case 'p': case 'P': { const id = village.nextOpenPr(); if (id) fly({ villager: id }); break }
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break

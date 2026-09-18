@@ -46,9 +46,10 @@ Only files under your home directory, and only ever read.
 | One plot | One repo. Bigger repos claim more tiles, and a plot stays where it is between reloads |
 | One villager + one building | One session |
 | Hammering, sparks | Working right now |
-| Standing still with `?` | Waiting on you |
+| Waving and hopping with `?` | Needs you: a question, a plan to approve, or a permission prompt |
+| Standing at the door with a green ✓ | Done: finished its turn, ready for you to review (`R` visits each, `V` marks it reviewed) |
 | Slumped with `!` | Errored |
-| Jumping with `✓` | PR merged, in the last three days |
+| Jumping with a gold ★ | PR merged, in the last three days |
 | Sitting with `z` | Nothing for three days |
 | Walking in from the gate | A session that just appeared |
 | Walking out through the gate | You archived it |
@@ -90,7 +91,8 @@ and first prompt: daisies for bug fixes, tulips for features, lavender for docs,
 performance, lilies for code review, dandelions for research, and so on. The colour is random,
 but fixed per thread. Click a flower to look back at the thread, open it again, or restore it.
 
-Villagers waiting on you wave and hop every few seconds, so they're easy to spot.
+Villagers who need you wave and hop every few seconds, so they're easy to spot. A repo whose
+threads are all asleep rests: its villagers fold away, but its garden stays on the map.
 
 ### Pull requests
 
@@ -114,9 +116,10 @@ nothing.
 
 | Key | Does |
 | --- | --- |
-| `N` | Fly to the next villager waiting on you |
+| `N` | Fly to the next villager who needs you |
+| `R` | Fly to the next finished thread to review |
 | `P` | Fly to the next open PR |
-| `Enter` / `A` / `V` | Open / archive / mark viewed the selected thread |
+| `Enter` / `A` / `V` | Open / archive / mark reviewed the selected thread |
 | `C` | New session, with an optional first prompt |
 | `T` | Transcript of the selected thread |
 | `H` | Hide the panels |

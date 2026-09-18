@@ -29,7 +29,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
   })
 
   function fill(t) {
-    const statusColor = { waiting: BADGE.waiting, blocked: BADGE.blocked, working: BADGE.working, celebrating: BADGE.done }[t.status]
+    const statusColor = { waiting: BADGE.waiting, blocked: BADGE.blocked, working: BADGE.working, done: BADGE.done, celebrating: BADGE.party }[t.status]
     const meta = [
       ['Repo', t.project],
       t.worktree && ['Worktree', t.worktree],
@@ -52,7 +52,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
-        ${t.status === 'waiting' ? '<button class="btn" data-act="viewed">Viewed<kbd>V</kbd></button>' : ''}
+        ${t.status === 'done' ? '<button class="btn" data-act="viewed" title="Clear the checkmark until Claude does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
       </div>`
   }
