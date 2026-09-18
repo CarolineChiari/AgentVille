@@ -160,7 +160,8 @@ canvas.addEventListener(
 
 addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, select, textarea')) return
-  if (e.metaKey && e.key === '\\') {
+  // Ctrl on Windows, where the OS keeps the Windows key's shortcuts for itself.
+  if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
     settings.uiVisible = !settings.uiVisible
     saveSettings(settings)
     applyUiVisible()

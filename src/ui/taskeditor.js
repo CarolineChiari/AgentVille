@@ -1,6 +1,6 @@
 // A repo's own tasks: add, edit and delete the ready-made jobs its villagers can be sent, on top
 // of the built-in ones every repo has.
-import { esc } from './dom.js'
+import { esc, submitKey } from './dom.js'
 import { LABEL_MAX, PROMPT_MAX, TASKS } from '../game/tasks.js'
 
 export function createTaskEditor(root, village) {
@@ -27,7 +27,7 @@ export function createTaskEditor(root, village) {
       <label class="stack">Prompt
         <textarea data-f="prompt" rows="5" maxlength="${PROMPT_MAX}" placeholder="What the agent should do, and when to stop and ask you.">${esc(t?.prompt || '')}</textarea></label>
       <div class="actions">
-        <button class="btn primary" data-act="save">${t ? 'Save' : 'Add task'}<kbd>⌘↵</kbd></button>
+        <button class="btn primary" data-act="save">${t ? 'Save' : 'Add task'}<kbd>${submitKey()}</kbd></button>
         ${t ? '<button class="btn" data-act="new">Cancel edit</button>' : ''}
         <button class="btn" data-act="close">Done</button>
       </div>`

@@ -30,6 +30,10 @@ html, body {
   user-select: none;
 }
 
+/* Windows draws a select's open menu with its options' own colours, on white when they have
+   none — and the light text they inherit vanished into it. A Mac draws a native menu instead. */
+option, optgroup { background-color: var(--bg); color: var(--text); }
+
 #world {
   position: fixed;
   inset: 0;

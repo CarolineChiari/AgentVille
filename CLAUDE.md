@@ -32,3 +32,5 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 - Non-obvious constants get a comment saying *why*, especially why the obvious value was wrong.
 - Pure logic lives in modules that import nothing from the DOM so it can be unit-tested.
 - Run `npm test` before finishing a change.
+- Every commit bumps the minor version: `npm version --no-git-tag-version minor`, and commit
+  `package.json` and `package-lock.json` with it. CI releases each new version pushed to main.

@@ -2,6 +2,9 @@
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c])
 
+/** The submit shortcut as this keyboard writes it. Either modifier works; only the label differs. */
+export const submitKey = (platform = globalThis.navigator?.platform || '') => (/Mac|iPhone|iPad/.test(platform) ? '⌘↵' : 'Ctrl+Enter')
+
 export function el(html) {
   const t = document.createElement('template')
   t.innerHTML = html.trim()

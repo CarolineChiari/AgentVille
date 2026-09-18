@@ -1,5 +1,5 @@
 // The new-session form: pick a repo (or type any folder), optionally write the first prompt, go.
-import { agentName, esc } from './dom.js'
+import { agentName, esc, submitKey } from './dom.js'
 
 const OTHER = '__other__'
 
@@ -53,7 +53,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <label class="stack">First prompt <span class="hint-inline">optional</span>
         <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>
       <p class="note" data-f="note"></p>
-      <div class="actions"><button class="btn primary" data-act="start">Start<kbd>⌘↵</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
+      <div class="actions"><button class="btn primary" data-act="start">Start<kbd>${submitKey()}</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
     renderTargets()
     renderChips()
   }

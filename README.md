@@ -26,8 +26,9 @@ binds elsewhere.
 `npm run app` builds and opens AgentVille in its own window. `npm run dist` packages it for the
 machine you're on into `release/`. Every push to `main` builds the Mac (`.dmg`, Apple silicon
 and Intel) and Windows (installer and portable `.exe`) apps in GitHub Actions; they're on the
-run's page under **Artifacts**. Pushing a `v*` tag (`git tag v0.2.0 && git push --tags`)
-publishes them as a release, with the version taken from the tag.
+run's page under **Artifacts**. Every commit bumps the minor version in `package.json`
+(`npm version --no-git-tag-version minor`), and a push whose version has no `v<version>` tag yet
+publishes the apps as that release and tags the commit.
 
 The app is the same server and page as `npm start`, on port 5275 so it can run alongside
 `npm run dev`. Its `data/` lives in `~/Library/Application Support/AgentVille/` (macOS) or
