@@ -73,6 +73,13 @@ Only files under your home directory, and only ever read.
 | Walking out through the gate | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
 | A notice board below the garden | The repo's open GitHub issues, one pinned note each |
+| Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
+
+Everything else is decoration, fixed per repo and per session so each stays recognisable: a
+repo's fence, lawn, building materials and roof colours; each session's house or other building
+and its villager's clothes; and the countryside of meadows, groves, rocks, orchards and ponds
+between the plots. Butterflies, birds, cloud shadows and the golden light at sunrise and sunset
+come and go on their own.
 
 ### Transcripts and new sessions
 

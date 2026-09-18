@@ -8,7 +8,7 @@ import { DECO_VARIANTS, STATIC_VARIANTS, TILE_VARIANTS } from '../src/render/spr
 import { BUILDING_W, buildingFrames, heightOf } from '../src/render/sprites/buildings.js'
 import { ANIM_FRAMES, VILLAGER_H, VILLAGER_W } from '../src/render/sprites/villagers.js'
 import { FLOWER_H, FLOWER_W } from '../src/render/sprites/flowers.js'
-import { ACCENTS, BADGE, PETALS } from '../src/render/sprites/palette.js'
+import { ACCENTS, BADGE, BUTTERFLIES, PETALS } from '../src/render/sprites/palette.js'
 import { KINDS } from '../src/sim/building.js'
 import { FLOWER_KINDS } from '../src/sim/flowers.js'
 import { lookFor } from '../src/sim/villager.js'
@@ -146,6 +146,15 @@ test('badges, rings and shadows draw', () => {
   assert.deepEqual([narrow.w, narrow.h], [10, 3])
   const wide = generate('fx.shadow.36x6', 0, {})
   assert.deepEqual([wide.w, wide.h], [36, 6])
+})
+
+test('butterflies and birds beat their wings', () => {
+  for (let c = 0; c < BUTTERFLIES.length; c++) {
+    const [up, down] = [0, 1].map((f) => generate(`fx.butterfly.${c}`, f, {}))
+    assert.ok(opaque(up) > 4 && opaque(down) > 2 && !same(up, down), `butterfly ${c}`)
+  }
+  const [up, down] = [0, 1].map((f) => generate('fx.bird', f, {}))
+  assert.ok(opaque(up) > 4 && !same(up, down))
 })
 
 test('drawing a sprite twice gives the same pixels', () => {

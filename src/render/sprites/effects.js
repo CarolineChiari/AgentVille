@@ -1,5 +1,5 @@
 // Badges over heads and the little bits of weather villagers make: sparks, confetti, z's.
-import { BADGE, PALETTE as P, shade } from './palette.js'
+import { BADGE, BUTTERFLIES, PALETTE as P, shade } from './palette.js'
 import { PixelCanvas } from './pixel.js'
 
 const GLYPHS = {
@@ -52,5 +52,45 @@ export function drawRing(color) {
 export function drawShadow(w = 12, h = 4) {
   const pc = new PixelCanvas(w, h)
   pc.ellipse(w / 2, h / 2, w / 2, h / 2, P.shadow)
+  return pc
+}
+
+/** A butterfly seen from above, 5×3: frame 0 wings open, frame 1 wings up and narrow. */
+export function drawButterfly(color, frame) {
+  const pc = new PixelCanvas(5, 3)
+  const c = BUTTERFLIES[color % BUTTERFLIES.length]
+  const edge = shade(c, -0.3)
+  if (frame % 2 === 0) {
+    for (const x of [0, 1, 3, 4]) {
+      pc.px(x, 0, x === 0 || x === 4 ? edge : c)
+      pc.px(x, 1, c)
+    }
+    pc.px(1, 2, edge)
+    pc.px(3, 2, edge)
+  } else {
+    pc.px(1, 0, c)
+    pc.px(3, 0, c)
+    pc.px(1, 1, edge)
+    pc.px(3, 1, edge)
+  }
+  pc.vline(2, 1, 2, P.outline)
+  return pc
+}
+
+/** A bird in flight, 7×3: frame 0 wings raised, frame 1 wings down. */
+export function drawBird(frame) {
+  const pc = new PixelCanvas(7, 3)
+  if (frame % 2 === 0) {
+    pc.px(0, 0, P.bird)
+    pc.px(6, 0, P.bird)
+    pc.px(1, 1, P.bird)
+    pc.px(5, 1, P.bird)
+    pc.hline(2, 4, 2, P.bird)
+  } else {
+    pc.hline(1, 5, 1, P.bird)
+    pc.px(0, 2, P.bird)
+    pc.px(6, 2, P.bird)
+    pc.px(3, 2, P.bird)
+  }
   return pc
 }

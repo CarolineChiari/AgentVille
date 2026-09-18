@@ -122,6 +122,12 @@ export const PALETTE = {
   interior: '#3a2a24',
   void: '#4e8a3c', // outside the map: more countryside
 
+  bird: '#3b3645',
+  smoke: '#f2eff5',
+  smokeShade: '#aaa5b4', // the underside of a puff, so smoke shows against pale paths too
+  cloudShadow: '#6f86a8', // multiplied over the ground, so a blue-grey shade rather than grey
+  dusk: '#ff9a5a', // the warm light at sunrise and sunset, multiplied over everything
+
   // Drawn straight onto the canvas by the renderer rather than into a sprite.
   highlight: '#ffffff', // under a hovered flower
   glitterGlow: '#ffe278', // the pulse under an open PR's bud
@@ -152,6 +158,9 @@ export const PETALS = [
 ]
 
 export const CONFETTI = ['#ef4f4f', '#ffc93c', '#6fdb8a', '#5cc4f2', '#b27cf0', '#ff8fc8']
+
+/** Butterfly wings: brimstone, cabbage white, orange tip, blue, pink. */
+export const BUTTERFLIES = ['#f5d94e', '#fbf8ef', '#f09a3a', '#8fd0f5', '#e87fd4']
 
 /** Night is a multiply towards this colour; lights are then added back on top. */
 // The desktop window's backdrop before the page paints; the same as `--bg` in styles.css.

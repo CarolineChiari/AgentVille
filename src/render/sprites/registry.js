@@ -9,10 +9,11 @@
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
+//         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
-import { drawBadge, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawBadge, drawBird, drawButterfly, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 
 const memo = new Map()
@@ -40,6 +41,8 @@ export function generate(name, frame, p) {
       if (a === 'badge') return drawBadge(b)
       if (a === 'z') return drawZ()
       if (a === 'ring') return drawRing(b)
+      if (a === 'butterfly') return drawButterfly(Number(b), frame)
+      if (a === 'bird') return drawBird(frame)
       if (a === 'shadow') {
         // A bare width gets a shadow a third as deep; a building's is far wider than it is deep.
         const [w, h] = b.split('x').map(Number)

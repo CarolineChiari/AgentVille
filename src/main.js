@@ -5,7 +5,7 @@ import { Camera } from './render/camera.js'
 import { Canvas2dRenderer } from './render/renderer.js'
 import { sprites } from './render/sprites/registry.js'
 import { TILE_PX } from './render/sprites/palette.js'
-import { dayFactor, hourNow } from './render/daynight.js'
+import { dayFactor, duskFactor, hourNow } from './render/daynight.js'
 import { Village } from './game/village.js'
 import { loadSettings, saveSettings } from './ui/settings.js'
 import { createHud } from './ui/hud.js'
@@ -244,6 +244,7 @@ function loop(now) {
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()
   renderer.render(lastFrame, {
     night: 1 - dayFactor(hour),
+    dusk: duskFactor(hour),
     hoverPlot,
     selectedPlot: village.selectedPlot,
     allNames: !settings.quietNames,

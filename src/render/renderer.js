@@ -2,12 +2,13 @@
 import { CELL_TILES } from '../sim/constants.js'
 import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
-import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, rgba } from './sprites/palette.js'
+import { ACCENTS, BUTTERFLIES, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, hexToRgb, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
 import { tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
-import { buildingFrames, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
+import { buildingFrames, chimneyOf, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
+import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
@@ -38,6 +39,22 @@ const BOARD_NOTES = 6
 const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8 }
 /** Statics that light up after dark. */
 const LIT_STATICS = new Set(['lamp'])
+/** How dark a cloud's shadow is at noon; see ambient.js for where clouds are. */
+const CLOUD_SHADE = 0.3
+/** How strongly the warm light of sunrise and sunset colours everything (soft-light alpha). */
+const DUSK_STRENGTH = 0.6
+/** Birds fly this high: their shadows fall this far below them, in world px. */
+const BIRD_HEIGHT = 44
+/** One in this many garden flowers, and one in this many wildflower tiles, has a butterfly. */
+const BUTTERFLY_GARDEN = 6
+const BUTTERFLY_WILD = 4
+
+/** A full-screen multiply towards `color`, `k` of the way from white: 0 leaves the picture be. */
+function tint(color, k) {
+  const { r, g, b } = typeof color === 'string' ? hexToRgb(color) : color
+  const mix = (c) => Math.round(255 + (c - 255) * k)
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
+}
 
 function villagerFrame(v) {
   switch (v.anim) {
@@ -57,10 +74,27 @@ export class Canvas2dRenderer {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d', { alpha: false })
     this.camera = camera
-    this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y][] }
+    this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y, hash][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
     this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
     this.styleVersion = -1
+    this.flock = null // the birds crossing now, if any; see ambient.js
+    this.hashes = new Map() // id → hashString(id), so per-frame passes don't rehash every id
+    this.chimneys = new Map() // building look → where its chimney is, or null
+  }
+
+  _hash(id) {
+    let h = this.hashes.get(id)
+    if (h === undefined) this.hashes.set(id, (h = hashString(id)))
+    return h
+  }
+
+  /** The world rectangle on screen, in world px. */
+  _view() {
+    const cam = this.camera
+    const tl = cam.toWorld(0, 0)
+    const br = cam.toWorld(cam.width / cam.dpr, cam.height / cam.dpr)
+    return { x0: tl.x, y0: tl.y, x1: br.x, y1: br.y }
   }
 
   resize() {
@@ -159,7 +193,7 @@ export class Canvas2dRenderer {
         const name = DECO_NAME[d]
         const variant = hashString(`f${x0 + lx},${y0 + ly}`) % DECO_VARIANTS[name]
         g.drawImage(sprites.get(`deco.${name}.${variant}`), lx * T, ly * T)
-        if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly])
+        if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly, hashString(`b${x0 + lx},${y0 + ly}`)])
       }
     }
     // Sunny and lush patches across the countryside, pixel by pixel (see ground.js).
@@ -373,15 +407,111 @@ export class Canvas2dRenderer {
     ctx.globalAlpha = 1
   }
 
+  // ---------- ambient life ----------
+
+  /** Smoke from the chimney of every finished building someone is busy in. */
+  _drawSmoke(frame, view) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    // A puff is a square of `n` world px with its corners off: a pale body over a grey underside.
+    const puff = (x, y, n, color) => {
+      ctx.fillStyle = color
+      ctx.fillRect(cam.offX + x * s, cam.offY + (y + 1) * s, n * s, (n - 2) * s)
+      ctx.fillRect(cam.offX + (x + 1) * s, cam.offY + y * s, (n - 2) * s, n * s)
+    }
+    for (const b of frame.buildings) {
+      if (b.stage < 3 || !b.lit || b.alpha < 1) continue
+      const style = b.style || PLAIN_STYLE
+      const key = `${b.kind}:${b.variant}:${style.wall}:${style.roofs}`
+      if (!this.chimneys.has(key)) this.chimneys.set(key, chimneyOf(b.kind, b.variant, style.wall, style.roofs))
+      const c = this.chimneys.get(key)
+      if (!c) continue
+      const x = b.x * T + (b.w * T - BUILDING_W) / 2 + c.x
+      const y = (b.y + b.h) * T - heightOf(b.kind, b.variant) + c.y
+      if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 30 || y > view.y1 + 10) continue
+      for (const p of smokePuffs(x, y, this._hash(b.id), frame.time)) {
+        ctx.globalAlpha = p.alpha
+        const px = Math.round(p.x - p.size / 2)
+        const py = Math.round(p.y - p.size / 2)
+        puff(px, py + 1, p.size + 1, P.smokeShade)
+        puff(px, py, p.size + 1, P.smoke)
+      }
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** Soft shadows of clouds drifting over, fading out as night comes. */
+  _drawClouds(frame, view, night) {
+    const a = CLOUD_SHADE * (1 - night)
+    if (a < 0.01) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.globalCompositeOperation = 'multiply'
+    for (const c of cloudsIn(view, frame.time)) {
+      const x = cam.offX + c.x * s
+      const y = cam.offY + c.y * s
+      const r = c.r * s
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+      g.addColorStop(0, rgba(P.cloudShadow, a))
+      g.addColorStop(1, rgba(P.cloudShadow, 0))
+      ctx.fillStyle = g
+      ctx.fillRect(x - r, y - r, r * 2, r * 2)
+    }
+    ctx.globalCompositeOperation = 'source-over'
+  }
+
+  /** A few butterflies over the flowers on screen, garden and wild. Not after dark. */
+  _drawButterflies(frame, flowers, night) {
+    if (night > 0.6) return
+    const sources = []
+    for (const f of flowers) {
+      const h = this._hash(f.id)
+      if (h % BUTTERFLY_GARDEN === 0) sources.push([f.x * T, f.y * T - 6, h])
+    }
+    for (const chunk of this.inView) for (const [x, y, h] of chunk.flowers) if (h % BUTTERFLY_WILD === 0) sources.push([x * T + 8, y * T + 8, h])
+    for (const [ax, ay, h] of sources.slice(0, MAX_BUTTERFLIES)) {
+      const b = butterflyAt(ax, ay, h, frame.time)
+      this._blit(sprites.get(`fx.butterfly.${h % BUTTERFLIES.length}`, b.frame), b.x - 2, b.y - 1, 1 - night)
+    }
+  }
+
+  /** Now and then a few birds cross the screen, their shadows on the ground far below. */
+  _drawBirds(frame, view, night) {
+    if (night > 0.5) {
+      this.flock = null
+      return
+    }
+    const cycle = Math.floor(frame.time / FLOCK_EVERY)
+    if (!this.flock || this.flock.cycle !== cycle) {
+      this.flock = flockFor(cycle, view)
+      this.flock.start = cycle * FLOCK_EVERY
+    }
+    for (const b of birdsAt(this.flock, frame.time - this.flock.start)) {
+      this._blit(sprites.get('fx.shadow.6'), b.x - 3, b.y + BIRD_HEIGHT, 0.5 * (1 - night))
+      this._blit(sprites.get('fx.bird', b.frame), b.x - 3, b.y - 1, 1 - night)
+    }
+  }
+
   // ---------- light ----------
+
+  /**
+   * Sunrise and sunset: everything warms towards orange before night's blue comes in. Soft light
+   * rather than a multiply: multiplying by orange muddied the greens to olive instead of gilding them.
+   */
+  _drawDusk(dusk) {
+    if (dusk <= 0.01) return
+    const { ctx, camera: cam } = this
+    ctx.globalCompositeOperation = 'soft-light'
+    ctx.fillStyle = rgba(P.dusk, DUSK_STRENGTH * dusk)
+    ctx.fillRect(0, 0, cam.width, cam.height)
+    ctx.globalCompositeOperation = 'source-over'
+  }
 
   _drawNight(frame, night) {
     if (night <= 0.01) return
     const { ctx, camera: cam } = this
-    const k = 0.62 * night
-    const mix = (c) => Math.round(255 + (c - 255) * k)
     ctx.globalCompositeOperation = 'multiply'
-    ctx.fillStyle = `rgb(${mix(NIGHT.r)},${mix(NIGHT.g)},${mix(NIGHT.b)})`
+    ctx.fillStyle = tint(NIGHT, 0.62 * night)
     ctx.fillRect(0, 0, cam.width, cam.height)
     ctx.globalCompositeOperation = 'lighter'
     const glow = (wx, wy, r, a) => {
@@ -440,7 +570,8 @@ export class Canvas2dRenderer {
 
   /**
    * @param {import('../sim/frame.js').Frame} frame
-   * @param {{ night: number, hoverPlot?: string, selectedPlot?: string, allNames?: boolean }} ui
+   * @param {{ night: number, dusk?: number, hoverPlot?: string, selectedPlot?: string, allNames?: boolean }} ui
+   *        `night` 0 by day to 1 at night; `dusk` how golden the light is round sunrise and sunset
    */
   render(frame, ui) {
     const { ctx, camera: cam } = this
@@ -461,7 +592,8 @@ export class Canvas2dRenderer {
     // Everything that stands up is drawn back to front by the y of its base, so a lower flower's
     // bloom overlaps the stem behind it and a villager in the bed hides behind the row in front.
     const items = []
-    for (const f of this._flowersInView(frame)) items.push([f.y, 3, f])
+    const flowers = this._flowersInView(frame)
+    for (const f of flowers) items.push([f.y, 3, f])
     for (const st of frame.statics) items.push([st.y, 0, st])
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
@@ -474,7 +606,13 @@ export class Canvas2dRenderer {
       else if (kind === 3) this._drawFlower(it, frame.time)
       else this._drawBoard(it)
     }
+    const view = this._view()
+    this._drawSmoke(frame, view)
+    this._drawClouds(frame, view, night)
+    this._drawButterflies(frame, flowers, night)
+    this._drawBirds(frame, view, night)
     this._drawEffects(frame)
+    this._drawDusk(ui.dusk || 0)
     this._drawNight(frame, night)
     this._drawGlitter(frame)
     this._drawBadges(frame)
