@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { capacityOf, flowerAt, isFenceGap, isRect, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
+import { capacityOf, flowerAt, isFenceGap, isRect, isTrail, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
 import { BUILDING_H, BUILDING_W } from '../src/sim/constants.js'
 import { key } from '../src/sim/grid.js'
 
@@ -26,6 +26,50 @@ test('the first houses gather round the field: top middle, then either side, the
 })
 
 for (const [w, h] of SHAPES) {
+  test(`${w}×${h}: trails run along both walkways and out through every gap, and never under a house or the field`, () => {
+    const s = at(w, h, 2, 1)
+    const houses = new Set()
+    for (const slot of s.slots) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) houses.add(key(slot.x + dx, slot.y + dy))
+    const trail = new Set()
+    for (let ly = 0; ly < s.h; ly++) {
+      for (let lx = 0; lx < s.w; lx++) {
+        const x = s.x0 + lx
+        const y = s.y0 + ly
+        const ring = Math.min(lx, ly, s.w - 1 - lx, s.h - 1 - ly)
+        if (ring === 1 && isFenceGap(s, lx, ly)) assert.ok(isTrail(s, lx, ly), `the gap at ${lx},${ly} has no trail`)
+        if (!isTrail(s, lx, ly)) continue
+        trail.add(key(x, y))
+        assert.ok(ring > 0, 'a trail on the road')
+        assert.ok(ring > 1 || isFenceGap(s, lx, ly), `a trail under the fence at ${lx},${ly}`)
+        assert.ok(!houses.has(key(x, y)), `a trail under a house at ${x},${y}`)
+        assert.ok(!inRect(s.bed, x, y), `a trail in the field at ${x},${y}`)
+      }
+    }
+    for (let x = s.yard.x; x < s.yard.x + s.yard.w; x++) {
+      assert.ok(trail.has(key(x, s.walkTop)) && trail.has(key(x, s.walkBottom)), `the walkways are broken at x=${x}`)
+    }
+    // Every stretch of trail leads out through a gap in the fence to the road.
+    const gaps = [...trail].filter((k) => {
+      const [x, y] = k.split(',').map(Number)
+      const lx = x - s.x0
+      const ly = y - s.y0
+      return Math.min(lx, ly, s.w - 1 - lx, s.h - 1 - ly) === 1
+    })
+    const seen = new Set(gaps)
+    const queue = gaps.map((k) => k.split(',').map(Number))
+    while (queue.length) {
+      const [x, y] = queue.pop()
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const k = key(x + dx, y + dy)
+        if (trail.has(k) && !seen.has(k)) {
+          seen.add(k)
+          queue.push([x + dx, y + dy])
+        }
+      }
+    }
+    assert.equal(seen.size, trail.size, 'a stretch of trail leads nowhere')
+  })
+
   test(`${w}×${h}: houses stand in the yard, clear of each other, the field and the board`, () => {
     const s = at(w, h, -1, 2)
     const taken = new Set()

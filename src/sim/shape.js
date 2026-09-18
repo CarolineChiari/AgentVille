@@ -127,6 +127,21 @@ export function tilledRows(shape, n) {
   return Math.min(bed.h, Math.floor((FLOWER_TOP + last * FLOWER_PITCH + FLOWER_PITCH - 1) / PX) + 1)
 }
 
+/**
+ * Is the tile at plot-local (lx, ly) worn into a trail? The two walkways, from side gap to side
+ * gap, and the paths from the top and bottom fence gaps to them: everywhere feet go. Never the
+ * field, whose top row sits right under the top walkway.
+ */
+export function isTrail(shape, lx, ly) {
+  const { w: W, h: H, y0, walkTop, walkBottom } = shape
+  const ring = Math.min(lx, ly, W - 1 - lx, H - 1 - ly)
+  if (ring === 0) return false
+  const y = y0 + ly
+  if (y === walkTop || y === walkBottom) return ring > 1 || isFenceGap(shape, lx, ly)
+  if (!FENCE_GAPS.has(lx % CELL_TILES)) return false
+  return y < walkTop || ly === H - 2
+}
+
 /** Is the ring-1 tile at plot-local (lx, ly) left open in the fence? */
 export function isFenceGap(shape, lx, ly) {
   const { w: W, h: H, y0, walkTop, walkBottom } = shape

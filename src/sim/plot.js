@@ -2,11 +2,13 @@
 // is painted. Where anything goes inside it comes from shape.js.
 import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
-import { flowerAt, isFenceGap, rectOf, shapeOf, tilledRows } from './shape.js'
+import { flowerAt, isFenceGap, isTrail, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
 
-export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4 }
-export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, CROPS: 6 }
+/** Ground kinds. None is saved anywhere, so the numbers are free to change. */
+export const TILE = { WILD: 0, YARD: 1, ROAD: 2, PLAZA: 3, BED: 4, TRAIL: 5, WATER: 6 }
+/** What lies on the ground. Fences block; the rest is underfoot. */
+export const DECO = { NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, TALLGRASS: 6, CLOVER: 7, MUSHROOMS: 8, REEDS: 9 }
 
 export class Plot {
   constructor(name, accent) {
@@ -126,7 +128,7 @@ export class Plot {
     return out
   }
 
-  /** Paint this plot into the map arrays: road ring, fence ring with its gaps, yard, ploughed field. */
+  /** Paint this plot into the map arrays: road ring, fence ring with its gaps, yard, trails, ploughed field. */
   paint(map) {
     const s = this.shape
     const { x0, y0, w: W, h: H, bed } = s
@@ -140,7 +142,7 @@ export class Plot {
           continue
         }
         const tilled = tx >= bed.x && tx < bed.x + bed.w && ty >= bed.y && ty < bed.y + this.tilled
-        map.setTile(tx, ty, tilled ? TILE.BED : TILE.YARD)
+        map.setTile(tx, ty, tilled ? TILE.BED : isTrail(s, lx, ly) ? TILE.TRAIL : TILE.YARD)
         if (ring !== 1 || isFenceGap(s, lx, ly)) continue
         const across = ly === 1 || ly === H - 2
         const down = lx === 1 || lx === W - 2

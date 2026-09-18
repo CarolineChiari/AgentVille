@@ -8,7 +8,7 @@ import { DECO, Plot, TILE } from './plot.js'
 import { Building } from './building.js'
 import { Villager } from './villager.js'
 import { STATUS_RANK } from './status.js'
-import { hashString, rngFor } from './rng.js'
+import { hashString, pick, rngFor } from './rng.js'
 
 export const ACCENT_COUNT = 10
 /** A villager sprite is one tile wide; at 0.6 two bodies at rest still overlapped by 6 px. */
@@ -44,6 +44,10 @@ export class TileMap {
 }
 
 const BLOCKING_DECO = new Set([DECO.FENCE_H, DECO.FENCE_V, DECO.POST])
+/** Trees of the open countryside, weighted: broadleaf, pine, fruit, birch, autumn. Willows grow by water. */
+const WILD_TREES = [0, 0, 0, 1, 1, 2, 3, 3, 4]
+/** What is scattered on the grass between them, weighted. */
+const WILD_DECO = [DECO.FLOWERS, DECO.FLOWERS, DECO.FLOWERS, DECO.TALLGRASS, DECO.TALLGRASS, DECO.CLOVER, DECO.PEBBLES, DECO.MUSHROOMS]
 
 export class World {
   constructor() {
@@ -317,7 +321,7 @@ export class World {
       if (used.has(key(lx, ly))) continue
       used.add(key(lx, ly))
       statics.push({
-        id: `tree:${x0 + lx},${y0 + ly}`, sprite: 'tree', variant: Math.floor(rand() * 3),
+        id: `tree:${x0 + lx},${y0 + ly}`, sprite: 'tree', variant: pick(rand, WILD_TREES),
         x: x0 + lx + 0.5, y: y0 + ly + 1, blocks: [[x0 + lx, y0 + ly]],
       })
     }
@@ -325,7 +329,7 @@ export class World {
     for (let i = 0; i < flowers; i++) {
       const lx = Math.floor(rand() * CELL_TILES)
       const ly = Math.floor(rand() * CELL_TILES)
-      if (!used.has(key(lx, ly))) map.setDeco(x0 + lx, y0 + ly, rand() < 0.7 ? DECO.FLOWERS : DECO.PEBBLES)
+      if (!used.has(key(lx, ly))) map.setDeco(x0 + lx, y0 + ly, pick(rand, WILD_DECO))
     }
   }
 

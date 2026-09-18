@@ -60,8 +60,24 @@ export const PALETTE = {
   pineDark: '#1f5139',
   fruit: '#e0503f',
   trunk: '#6f4a2d',
-  flower: ['#f06a92', '#f5d94e', '#ffffff', '#9a7cf0'],
+  flower: ['#f06a92', '#f5d94e', '#ffffff', '#9a7cf0', '#ff9f43', '#7fc8f0'],
   pebble: '#b8b2a6',
+  trail: '#c4a06c', // earth worn bare by feet: softer and darker than the road
+  trailDark: '#a88556',
+  trailLight: '#d3b280',
+  birch: '#ece6d6',
+  birchMark: '#4a4545',
+  birchLeaf: '#a3cf5c',
+  birchLeafDark: '#7fb046',
+  autumn: ['#e8913a', '#c7612c', '#f4b84c'], // leaf, shade, highlight
+  willow: '#7cad49',
+  willowDark: '#5a8a36',
+  willowLight: '#9dc764',
+  moss: '#6f9a3e',
+  mushroom: ['#d9463b', '#b07a4a'], // a red cap, a brown one
+  reed: '#7a9a3e',
+  reedHead: '#6e4a2c',
+  berry: '#5b6fd6',
   lampGlow: '#ffc86e', // the warm pool a lit window or lamp throws at night
   water: '#5a93cf',
 

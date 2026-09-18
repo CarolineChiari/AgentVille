@@ -4,25 +4,37 @@ import { DECO, TILE } from '../sim/plot.js'
 import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
-import { DECO_VARIANTS, tileVariant } from './sprites/tiles.js'
+import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
 import { tintMeadow } from './ground.js'
 import { buildingFrames, heightOf, BUILDING_W } from './sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W } from './sprites/effects.js'
 
 const CHUNK = CELL_TILES * T
-const TILE_NAME = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed' }
-const DECO_NAME = { [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers', [DECO.PEBBLES]: 'pebbles' }
+const TILE_NAME = {
+  [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
+  [TILE.TRAIL]: 'trail',
+}
+const DECO_NAME = {
+  [DECO.FENCE_H]: 'fenceh', [DECO.FENCE_V]: 'fencev', [DECO.POST]: 'post', [DECO.FLOWERS]: 'flowers',
+  [DECO.PEBBLES]: 'pebbles', [DECO.TALLGRASS]: 'tallgrass', [DECO.CLOVER]: 'clover', [DECO.MUSHROOMS]: 'mushrooms',
+  [DECO.REEDS]: 'reeds',
+}
 const PAVED = new Set([TILE.ROAD, TILE.PLAZA])
-/** Ground a path's grass fringe grows from, and whose greens it wears. */
-const FRINGE_FROM = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard' }
+/** Ground a path's grass fringe grows from, and whose greens it wears. A footpath runs through lawn. */
+const FRINGE_FROM = { [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.TRAIL]: 'yard' }
 /** Neighbour offsets for the four sides of a tile, in the fringe sprite's side order. */
 const SIDES = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+const SIDE_LINK = [LINK.N, LINK.E, LINK.S, LINK.W]
+/** What a footpath joins up with. */
+const PATHS = new Set([TILE.TRAIL, TILE.ROAD, TILE.PLAZA])
+/** The span of a tile edge a footpath's mouth takes up, in px; see the footpath sprite. */
+const MOUTH = [4, 11]
 const MEADOW = [P.grass, P.grassSunny, P.grassLush]
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
-const STATIC_SHADOW = { tree: 16 }
+const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8 }
 /** Statics that light up after dark. */
 const LIT_STATICS = new Set(['lamp'])
 
@@ -83,18 +95,32 @@ export class Canvas2dRenderer {
         const name = TILE_NAME[kind]
         // Soil under more soil carries the flower grid on; a field's top row starts it.
         const variant = kind === TILE.BED ? (tileAt(x, y - 1) === TILE.BED ? 1 : 0) : tileVariant(name, hashString(`${x},${y}`))
-        g.drawImage(sprites.get(`tile.${name}.${variant}`), lx * T, ly * T)
-        // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it.
+        // A footpath runs out of each side where another path carries on.
+        let params
+        if (kind === TILE.TRAIL) {
+          let links = 0
+          SIDES.forEach(([dx, dy], side) => PATHS.has(tileAt(x + dx, y + dy)) && (links |= SIDE_LINK[side]))
+          params = { links }
+        }
+        g.drawImage(sprites.get(`tile.${name}.${variant}`, 0, params), lx * T, ly * T)
+        // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it,
+        // leaving a gap where a footpath comes in.
         if (PAVED.has(kind)) {
           g.fillStyle = kind === TILE.ROAD ? P.pathDark : P.plazaDark
           SIDES.forEach(([dx, dy], side) => {
             const next = tileAt(x + dx, y + dy)
             if (PAVED.has(next)) return
-            g.fillRect(lx * T + (dx > 0 ? T - 1 : 0), ly * T + (dy > 0 ? T - 1 : 0), dx ? 1 : T, dy ? 1 : T)
+            const mouth = next === TILE.TRAIL
+            const ex = lx * T + (dx > 0 ? T - 1 : 0)
+            const ey = ly * T + (dy > 0 ? T - 1 : 0)
+            for (const [a, b] of mouth ? [[0, MOUTH[0] - 1], [MOUTH[1] + 1, T - 1]] : [[0, T - 1]]) {
+              if (dx) g.fillRect(ex, ly * T + a, 1, b - a + 1)
+              else g.fillRect(lx * T + a, ey, b - a + 1, 1)
+            }
             const ground = FRINGE_FROM[next]
             if (!ground) return
             const k = hashString(`e${x},${y},${side}`) & 1
-            g.drawImage(sprites.get(`deco.fringe.${side * 2 + k}`, 0, { ground }), lx * T, ly * T)
+            g.drawImage(sprites.get(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, { ground }), lx * T, ly * T)
           })
         }
         // A plank edging round each garden bed.

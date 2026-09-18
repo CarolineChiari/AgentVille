@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Plot } from '../src/sim/plot.js'
+import { DECO, Plot, TILE } from '../src/sim/plot.js'
+import { TileMap } from '../src/sim/world.js'
 import { BUILDING_H, BUILDING_W, CELL_TILES } from '../src/sim/constants.js'
 import { isFenceGap } from '../src/sim/shape.js'
 
@@ -88,4 +89,27 @@ test('the field is ploughed as flowers arrive, one row ahead, and no further tha
   assert.equal(p.setPlanted(4), false, 'another flower in the same row changes nothing')
   p.setPlanted(10_000)
   assert.equal(p.tilled, p.shape.bed.h)
+})
+
+test('painting a plot wears trails along its walkways and leaves the fence and its gaps as they were', () => {
+  const p = new Plot('a', 0)
+  p.setCells([[1, 1], [2, 1]])
+  const map = new TileMap(0, 0, 48, 36)
+  p.paint(map)
+  const s = p.shape
+  for (let x = s.yard.x; x < s.yard.x + s.yard.w; x++) {
+    assert.equal(map.tileAt(x, s.walkTop), TILE.TRAIL)
+    assert.equal(map.tileAt(x, s.walkBottom), TILE.TRAIL)
+  }
+  const FENCES = [DECO.FENCE_H, DECO.FENCE_V, DECO.POST]
+  for (let ly = 0; ly < s.h; ly++) {
+    for (let lx = 0; lx < s.w; lx++) {
+      if (Math.min(lx, ly, s.w - 1 - lx, s.h - 1 - ly) !== 1) continue
+      const d = map.decoAt(s.x0 + lx, s.y0 + ly)
+      if (isFenceGap(s, lx, ly)) {
+        assert.equal(d, DECO.NONE, `the gap at ${lx},${ly} is fenced`)
+        assert.equal(map.tileAt(s.x0 + lx, s.y0 + ly), TILE.TRAIL, `the gap at ${lx},${ly} has no trail`)
+      } else assert.ok(FENCES.includes(d), `the fence is missing at ${lx},${ly}`)
+    }
+  }
 })
