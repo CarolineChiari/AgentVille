@@ -52,7 +52,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${village.settings.openIn === 'vscode' ? 'Open in VS Code' : 'Open'}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
-        ${t.status === 'done' ? '<button class="btn" data-act="viewed" title="Clear the checkmark until Claude does something new">Reviewed<kbd>V</kbd></button>' : ''}
+        ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until Claude does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
       </div>`
   }
@@ -155,7 +155,7 @@ export function createCard(root, village, { onTranscript = () => {} } = {}) {
         return
       }
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? 'f' : t.status}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
+      const key = `${flower ? 'f' : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}`
       if (id !== shownId || key !== shownKey) {
         if (flower) fillFinished(t, flower)
         else {

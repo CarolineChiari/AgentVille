@@ -12,8 +12,10 @@ export function unhideProject(state, name) {
 
 /**
  * Sort the scan into what stands on the map and what does not.
- * A repo where every thread is asleep folds away when `hideDormant` is on — but never every
- * repo, because an empty village with a count of forty is worse than a sleepy one.
+ * A repo rests (folds its villagers away) when `hideDormant` is on and every thread is asleep
+ * *and reviewed*: work you haven't looked at yet keeps its repo on the map, so nothing
+ * disappears before you've seen it. Never every repo, because an empty village with a count of
+ * forty is worse than a sleepy one.
  */
 export function classify(threads, state, { hideDormant = true, now = Date.now() } = {}) {
   const hidden = new Set(state.hiddenProjects)
@@ -36,7 +38,7 @@ export function classify(threads, state, { hideDormant = true, now = Date.now() 
   }
   const dormant = new Set()
   if (hideDormant) {
-    for (const [name, list] of byProject) if (list.every((t) => t.status === 'sleeping')) dormant.add(name)
+    for (const [name, list] of byProject) if (list.every((t) => t.status === 'sleeping' && !t.unread)) dormant.add(name)
     if (dormant.size === byProject.size) dormant.clear()
   }
   const live = []

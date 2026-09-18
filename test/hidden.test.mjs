@@ -32,6 +32,15 @@ test('an all-asleep repo folds away, but never every repo', () => {
   assert.equal(off.live.length, 2)
 })
 
+test('a sleeping repo with work you have not reviewed stays on the map until you review it', () => {
+  const unread = { ...old, unread: true }
+  const r = classify([T('1', 'a', unread), T('2', 'b', old), T('3', 'c')], S(), { now: NOW })
+  assert.deepEqual(r.dormant, ['b'])
+  assert.ok(r.live.some((t) => t.id === '1'))
+  const reviewed = classify([T('1', 'a', unread), T('2', 'b', old), T('3', 'c')], S({ viewedAt: { 1: NOW } }), { now: NOW })
+  assert.deepEqual(reviewed.dormant.sort(), ['a', 'b'])
+})
+
 test('each live thread carries its status, with viewedAt applied', () => {
   const r = classify([T('1', 'a', { unread: true, lastActivityAt: 50 })], S({ viewedAt: { 1: 60 } }), { now: 100 })
   assert.equal(r.live[0].status, 'idle')
