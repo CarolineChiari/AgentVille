@@ -9,6 +9,17 @@ const YARD_TONES = [
   ['#7cbe6c', '#73b564', '#88c878'],
   ['#9cc463', '#93bb5b', '#a7cc6e'],
 ]
+/** Each lawn's greens in a sunny patch and a lush one, one for one; see src/render/ground.js. */
+const YARD_SUNNY = [
+  ['#92c860', '#89c058', '#9cd069'],
+  ['#88c468', '#7fbb60', '#94ce74'],
+  ['#a8ca5f', '#9fc157', '#b3d26a'],
+]
+const YARD_LUSH = [
+  ['#78b662', '#6fae5a', '#82be6b'],
+  ['#6eb26a', '#65a962', '#7abc76'],
+  ['#8eb861', '#85af59', '#99c06c'],
+]
 
 export const PALETTE = {
   outline: '#2a2233',
@@ -64,6 +75,8 @@ export const PALETTE = {
   grassLush: ['#68aa52', '#5ea04a', '#73b65d', '#529442'],
   yard: YARD_TONES[0],
   yardTones: YARD_TONES,
+  yardSunny: YARD_SUNNY,
+  yardLush: YARD_LUSH,
   path: '#d4b483',
   pathDark: '#b4925f',
   pathLight: '#e2c697',

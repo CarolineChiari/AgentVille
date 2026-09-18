@@ -40,7 +40,11 @@ export function tileVariant(kind, hash) {
 /** How many looks each decoration has; the renderer picks one by a hash of the tile. */
 export const DECO_VARIANTS = {
   flowers: 6, pebbles: 3, fringe: 16,
-  tallgrass: 3, clover: 2, mushrooms: 2, reeds: 2, lilypad: 2,
+  // Clover: four scatters of leaves, then the same four in flower.
+  tallgrass: 3, clover: 8, mushrooms: 2, reeds: 2, lilypad: 2,
+  // A lawn's: four scatters of each of its five flowers (two sparse, two dense), and three
+  // clumps of longer grass. See LAYOUTS in src/render/ground.js.
+  lawnflowers: 20, tuft: 3,
 }
 /**
  * How many looks each tall static has. Trees: 0 broadleaf, 1 pine, 2 fruit, 3 birch, 4 autumn,
@@ -338,6 +342,77 @@ function fringe(pc, variant, ground, tone) {
   }
 }
 
+// ---------- a lawn's cover ----------
+
+/**
+ * A few of one kind of lawn flower, low in the grass: variant `kind * 4 + layout`, kinds in the
+ * order of LAWN_FLOWERS (daisy, buttercup, dandelion, speedwell, pink clover), layouts 0 and 1
+ * sparse and 2 and 3 dense.
+ */
+function lawnFlowers(pc, rand, variant, g) {
+  const kind = variant >> 2
+  const n = variant & 2 ? 5 : 2 + (variant & 1)
+  const leaf = shade(g[1], -0.22)
+  for (let i = 0; i < n; i++) {
+    const x = 2 + Math.floor(rand() * 12)
+    const y = 3 + Math.floor(rand() * 11)
+    pc.px(x - 1, y + 1, leaf)
+    pc.px(x + 1, y + 2, leaf)
+    if (kind === 0) {
+      for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) pc.px(x + dx, y + dy, P.petalWhite)
+      pc.px(x, y, P.pollen)
+    } else if (kind === 1) {
+      pc.rect(x, y, 2, 2, P.pollen)
+      pc.px(x, y, shade(P.pollen, 0.5))
+      pc.px(x + 1, y + 1, shade(P.pollen, -0.2))
+    } else if (kind === 2) {
+      // A dandelion, or now and then one gone to seed.
+      if (rand() < 0.25) {
+        for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1], [-1, -1], [1, 1]]) pc.px(x + dx, y + dy, P.petalWhite)
+        pc.px(x, y, P.plasterShade)
+      } else {
+        pc.hline(x - 1, x + 1, y, P.pollen)
+        pc.px(x, y - 1, P.pollen)
+        pc.px(x, y, shade(P.pollen, -0.25))
+      }
+    } else if (kind === 3) {
+      pc.px(x, y, P.flower[5])
+      pc.px(x + 1, y, P.flower[5])
+      pc.px(x, y + 1, shade(P.flower[5], -0.2))
+    } else {
+      pc.rect(x, y, 2, 2, P.flower[0])
+      pc.px(x, y, shade(P.flower[0], 0.35))
+      pc.px(x + 1, y + 2, leaf)
+    }
+  }
+}
+
+/**
+ * Long grass at the foot of a fence, where a mower can't reach. `mask` is the fence's joins
+ * (1 N, 2 E, 4 S, 8 W): a run across grows grass along its base, a run down grows it on both
+ * sides, and a post on its own has a clump round it. Drawn over the fence, so it hides the feet
+ * of the posts the way real grass does.
+ */
+function verge(pc, rand, mask, g) {
+  const root = shade(g[1], -0.2)
+  const blade = (x, base, h) => {
+    pc.vline(x, base - h + 1, base, rand() < 0.5 ? g[1] : root)
+    pc.px(x, base - h + 1, g[2])
+  }
+  const across = mask & (2 | 8)
+  const down = mask & (1 | 4)
+  if (across) {
+    for (let x = mask & 8 ? 0 : 4; x <= (mask & 2 ? 15 : 11); x++) if (rand() < 0.7) blade(x, 15, 2 + Math.floor(rand() * 3))
+  }
+  if (down) {
+    for (let y = mask & 1 ? 2 : 6; y <= (mask & 4 ? 15 : 10); y += 2) {
+      if (rand() < 0.8) blade(2 + Math.floor(rand() * 2), y, 2 + Math.floor(rand() * 2))
+      if (rand() < 0.8) blade(12 + Math.floor(rand() * 2), y, 2 + Math.floor(rand() * 2))
+    }
+  }
+  if (!across && !down) for (let x = 4; x <= 11; x++) if (rand() < 0.7) blade(x, 15, 2 + Math.floor(rand() * 2))
+}
+
 // ---------- fences ----------
 
 /**
@@ -553,17 +628,24 @@ export function drawDeco(kind, variant = 0, opts = {}) {
     }
   }
   if (kind === 'clover') {
-    for (let i = 0; i < 6; i++) {
+    // In a lawn (`tone` given) it is drawn from that lawn's greens; in the wild, from the leaves'.
+    const onLawn = opts.tone !== undefined
+    const g = lawn(opts.tone)
+    const leaf = onLawn ? shade(g[1], -0.14) : P.leaf
+    const dark = onLawn ? shade(g[1], -0.26) : P.leafDark
+    const light = onLawn ? g[2] : P.leafLight
+    const leaves = 3 + (variant % 4)
+    for (let i = 0; i < leaves; i++) {
       const x = 2 + Math.floor(rand() * 12)
       const y = 2 + Math.floor(rand() * 12)
       // A shade darker than the grass: clover in grass is told apart by its depth, not its hue.
-      pc.px(x, y - 1, P.leaf)
-      pc.px(x - 1, y, P.leaf)
-      pc.px(x + 1, y, P.leaf)
-      pc.px(x, y, P.leafDark)
-      pc.px(x - 1, y - 1, P.leafLight)
+      pc.px(x, y - 1, leaf)
+      pc.px(x - 1, y, leaf)
+      pc.px(x + 1, y, leaf)
+      pc.px(x, y, dark)
+      pc.px(x - 1, y - 1, light)
     }
-    if (variant === 1) {
+    if (variant >= 4) {
       // In flower: two round pink-and-white heads.
       for (let i = 0; i < 2; i++) {
         const x = 3 + Math.floor(rand() * 10)
@@ -572,6 +654,30 @@ export function drawDeco(kind, variant = 0, opts = {}) {
         pc.px(x + 1, y + 1, P.flower[0])
       }
     }
+  }
+  if (kind === 'lawnflowers') {
+    lawnFlowers(pc, rand, variant, lawn(opts.tone))
+    return pc
+  }
+  if (kind === 'tuft') {
+    // A clump of grass the mower missed: longer and darker than the lawn round it.
+    const g = lawn(opts.tone)
+    const root = shade(g[1], -0.2)
+    const clumps = variant === 1 ? 2 : 1
+    for (let c = 0; c < clumps; c++) {
+      const x = 4 + Math.floor(rand() * 8)
+      const y = 8 + Math.floor(rand() * 6)
+      const blades = variant === 1 ? [[-1, 2], [0, 4], [1, 3]] : [[-2, 3], [-1, 5], [0, 6], [1, 4], [2, 5], [3, 2]]
+      for (const [dx, h] of blades) {
+        pc.vline(x + dx, y - h + 1, y, dx % 2 ? g[1] : root)
+        pc.px(x + dx, y - h + 1, variant === 2 && h > 3 ? P.thatch : g[2])
+      }
+    }
+    return pc
+  }
+  if (kind === 'verge') {
+    verge(pc, rand, variant, lawn(opts.tone))
+    return pc
   }
   if (kind === 'mushrooms') {
     // A few toadstools: red with white spots, or plain brown.

@@ -5,7 +5,8 @@
 //         building.<kind>.<stage>       (params: accent, variant, lit; wall and roofs from the plot's style;
 //                                        low, down the sides of a courtyard, see `fitted`)
 //         tile.<kind>.<variant>         (params: tone, a lawn's green; links, a footpath's joins)
-//         deco.<kind>.<variant>         (params: ground and tone, for a path's grass fringe)
+//         deco.<kind>.<variant>         (params: tone, a lawn's green, for lawn cover and fence
+//                                        verges; ground too, for a path's grass fringe)
 //         fence.<style>.<mask>          (style into FENCES; mask: 1 N, 2 E, 4 S, 8 W carry on)
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
 //         flower.<kind>.<stage>         (params: color)

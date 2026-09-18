@@ -66,6 +66,15 @@ test('every style of fence draws every join, and a straight run meets the next t
   }
 })
 
+test('every fence join has grass at its foot, and every lawn\'s cover draws in every lawn', () => {
+  for (let mask = 0; mask < 16; mask++) assert.ok(opaque(generate(`deco.verge.${mask}`, 0, { tone: 1 })) > 6, `verge ${mask}`)
+  for (let tone = 0; tone < 3; tone++) {
+    for (const kind of ['clover', 'lawnflowers', 'tuft']) {
+      for (let v = 0; v < DECO_VARIANTS[kind]; v++) assert.ok(opaque(generate(`deco.${kind}.${v}`, 0, { tone })) > 3, `${kind}.${v} on lawn ${tone}`)
+    }
+  }
+})
+
 test('every lawn tone is its own green', () => {
   const tones = [0, 1, 2].map((tone) => generate('tile.yard.0', 0, { tone }))
   assert.ok(!same(tones[0], tones[1]) && !same(tones[1], tones[2]) && !same(tones[0], tones[2]))

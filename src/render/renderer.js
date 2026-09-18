@@ -5,7 +5,7 @@ import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, BUTTERFLIES, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, hexToRgb, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, tileVariant } from './sprites/tiles.js'
-import { tintMeadow } from './ground.js'
+import { lawnCover, lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
@@ -33,6 +33,10 @@ const PATHS = new Set([TILE.TRAIL, TILE.ROAD, TILE.PLAZA])
 /** The span of a tile edge a footpath's mouth takes up, in px; see the footpath sprite. */
 const MOUTH = [4, 11]
 const MEADOW = [P.grass, P.grassSunny, P.grassLush]
+/** A lawn's greens in plain, sunny and lush patches, by its plot's lawn tone. */
+const LAWNS = P.yardTones.map((plain, t) => [plain, P.yardSunny[t], P.yardLush[t]])
+/** Lawn cover drawn in its lawn's own greens; the rest keeps its colours. */
+const LAWN_TONED = new Set(['clover', 'lawnflowers', 'tuft'])
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
@@ -77,6 +81,7 @@ export class Canvas2dRenderer {
     this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y, hash][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
     this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
+    this.underfoot = new Set() // "x,y" of every tile a building or a board stands on: no lawn cover there
     this.styleVersion = -1
     this.flock = null // the birds crossing now, if any; see ambient.js
     this.hashes = new Map() // id → hashString(id), so per-frame passes don't rehash every id
@@ -142,6 +147,10 @@ export class Canvas2dRenderer {
           params = { links, tone }
         } else if (kind === TILE.YARD) params = { tone }
         g.drawImage(sprites.get(`tile.${name}.${variant}`, 0, params), lx * T, ly * T)
+        if (kind === TILE.YARD && !decoAt(x, y) && !this.underfoot.has(`${x},${y}`)) {
+          const cover = lawnCover(x, y)
+          if (cover) g.drawImage(sprites.get(`deco.${cover.kind}.${cover.variant}`, 0, LAWN_TONED.has(cover.kind) ? { tone } : undefined), lx * T, ly * T)
+        }
         if (kind === TILE.WATER) {
           let land = 0
           SIDES.forEach(([dx, dy], side) => tileAt(x + dx, y + dy) !== TILE.WATER && (land |= SIDE_LINK[side]))
@@ -188,6 +197,7 @@ export class Canvas2dRenderer {
           let mask = 0
           SIDES.forEach(([dx, dy], side) => FENCE.has(decoAt(x0 + lx + dx, y0 + ly + dy)) && (mask |= SIDE_LINK[side]))
           g.drawImage(sprites.get(`fence.${style.fence}.${mask}`), lx * T, ly * T)
+          g.drawImage(sprites.get(`deco.verge.${mask}`, 0, { tone }), lx * T, ly * T)
           continue
         }
         const name = DECO_NAME[d]
@@ -196,9 +206,11 @@ export class Canvas2dRenderer {
         if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly, hashString(`b${x0 + lx},${y0 + ly}`)])
       }
     }
-    // Sunny and lush patches across the countryside, pixel by pixel (see ground.js).
+    // Sunny and lush patches across the countryside and a plot's lawn, pixel by pixel (see
+    // ground.js). The two sets of greens never share a colour, so neither pass recolours the other's.
     const img = g.getImageData(0, 0, CHUNK, CHUNK)
     tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, MEADOW)
+    if (this.cellStyle.has(k)) tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, LAWNS[tone % LAWNS.length], lawnTone)
     g.putImageData(img, 0, 0)
     this.chunks.set(k, entry)
     return entry
@@ -585,6 +597,10 @@ export class Canvas2dRenderer {
     // makes a new map version, so the chunks baked with the old lookup are thrown away with it.
     if (this.styleVersion !== frame.map.version) {
       this.cellStyle = cellStyles(frame.plots)
+      // Buildings and boards only come, go or move with a rebuild, which also makes a new version.
+      this.underfoot = new Set()
+      for (const b of frame.buildings) for (let dy = 0; dy < b.h; dy++) for (let dx = 0; dx < b.w; dx++) this.underfoot.add(`${b.x + dx},${b.y + dy}`)
+      for (const b of frame.boards || []) this.underfoot.add(`${b.tx},${b.ty}`)
       this.styleVersion = frame.map.version
     }
     this._drawGround(frame)
