@@ -28,6 +28,15 @@ const SCENES = [
   { name: 'issues', keys: ['i'] },
   { name: 'construction', query: 'theme=construction' },
   { name: 'elvish', query: 'theme=elvish' },
+  // A plot's landmark and its panel: what the work there has raised, and where the points came from.
+  {
+    name: 'landmark',
+    script: `const { village, world, camera } = window.__agentville
+      village.selectPlot('lighthouse')
+      const l = world.landmark('lighthouse')
+      camera.scale = 3 * camera.dpr
+      camera.flyTo((l.x + l.w / 2) * 16, (l.y - 1) * 16)`,
+  },
 ]
 
 const BROWSERS = {
@@ -91,7 +100,7 @@ async function connect(url) {
   return { send, close: () => ws.close() }
 }
 
-async function shoot(cdp, base, { name, query = '', keys = [] }) {
+async function shoot(cdp, base, { name, query = '', keys = [], script = '' }) {
   const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' })
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true })
   const send = (method, params) => cdp.send(method, params, sessionId)
@@ -108,6 +117,11 @@ async function shoot(cdp, base, { name, query = '', keys = [] }) {
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, text: key })
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code })
     // The camera's flight to whatever the key picked.
+    await sleep(2500)
+  }
+  if (script) {
+    // The dev server's page keeps a handle on the village (see src/main.js) for a scene to steer.
+    await send('Runtime.evaluate', { expression: script })
     await sleep(2500)
   }
   const { data } = await send('Page.captureScreenshot', { format: 'png' })

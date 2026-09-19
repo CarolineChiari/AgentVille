@@ -6,6 +6,7 @@ export const DEFAULTS = {
   hideDormant: true,
   prGardens: true, // grow flowers from the repo's pull requests (reads GitHub through `gh`)
   issueBoards: true, // pin the repo's open issues on a notice board (reads GitHub through `gh`)
+  repoLines: true, // count the lines of code in each repo, for its landmark (reads the files, never runs anything)
   openIn: 'vscode', // 'vscode' | 'app' — where Open sends a Claude Code thread, and its New session default
   notify: false, // a desktop notification when a villager starts needing you; turning it on asks permission
   newHarness: '', // last agent chosen in the new-session form ('' = the first one found)

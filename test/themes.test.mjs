@@ -139,3 +139,14 @@ test('on a construction site everybody wears a hard hat and hi-vis; in the villa
   const vests = new Set(Array.from({ length: 60 }, (_, i) => dress(lookFor(`t${i}`), 'construction', 'high-rise').vest))
   assert.deepEqual([...vests].sort(), [0, 1])
 })
+
+test('every theme names each tier of its landmark, smallest first', async () => {
+  const { MAX_TIER } = await import('../src/sim/progress.js')
+  const { THEME_IDS, landmarkWords } = await import('../src/sim/themes.js')
+  for (const id of THEME_IDS) {
+    const words = landmarkWords(id)
+    assert.equal(words.tiers.length, MAX_TIER + 1, id)
+    assert.equal(new Set(words.tiers).size, words.tiers.length, `${id} calls two tiers the same`)
+  }
+  assert.deepEqual(landmarkWords('no-such-theme'), landmarkWords('village'))
+})

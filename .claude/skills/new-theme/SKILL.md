@@ -33,6 +33,11 @@ Write down, before any code:
   setting-out yard. Whatever it becomes (pumpkins, lanterns, crystals) must keep what a flower
   says: one look per kind of work (`work` in FLOWER_KINDS), the cloth or petal colour it's given,
   white for an unlabeled PR, a bud for an open PR, and a sprout. Name it in `finished` (see step 2).
+- **Its landmark.** Every plot raises one in the middle of its field as work lands in it, six
+  tiers from small to grand (the village: a campfire to a keep; the site: a survey peg to a
+  topped-out tower), and each tier brings a lamp, a bench, planters, a gateway, another lamp to
+  its fence line. A theme may draw its own or leave the village's standing. If it draws them,
+  it names the tiers in `landmark` (see step 2), and a higher tier must always look like more.
 - **What it must not touch**: what things mean. Status badges and rings, lit windows and chimney
   smoke keep their meaning in every theme. A theme may restyle a sprite; it may not change what
   the sprite tells the person.
@@ -49,7 +54,8 @@ In `src/sim/themes.js` add an entry to `THEMES` (append; never reorder): `label`
 from `dims`), `auto` (the sub-themes folders are handed; changing it reshuffles folders), an
 optional `outfit` naming a hat and a top, and `finished`: what finished work is called (`one`,
 `many`, `place`, a one-character `glyph` that isn't the issues' ⚑, the `grow` setting's label,
-and optional `names` per kind of work). The sidebar, cards and settings use these words. New
+and optional `names` per kind of work), and optionally `landmark`: `one` and six `tiers` names,
+smallest first. The sidebar, cards and settings use these words. New
 hats or tops go at the end of `HATS` / `TOPS` in `src/sim/villager.js` and get drawn in
 `src/render/sprites/villagers.js`; nobody picks them for themselves (`EVERYDAY_HATS`). Ids match
 `THEME_ID`.
@@ -91,10 +97,16 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
 - Finished work (`flower.<kind>.<stage>`, params `color`): the flower's 9×13, standing on pixel
   (4, 11), each kind of work its own look, a bud unlike a bloom. Its field (`tile.bed.0` for the top
   row, `.1` below, params `tone`) is full tiles, and marks each spot on the village's 8 px grid.
+- Landmarks (optional; `landmark.<tier>.<stage>` with the pack's `landmark: { heightOf, shadowOf,
+  frames }`): 32 px wide, `heightOf(tier)` tall, taller each tier and 72 at most, on their bottom
+  rows; stages as a building's. `lit` lights windows after dark, `busy` means somebody on the plot
+  is in, day or night. What a tier brings is `static.yardlamp`, `yardbench`, `yardplanter` and
+  `gateway`: a pack that draws them keeps each grounded; the gateway is walked through. The
+  square's own `static.*` stay the village's, so answer only those names.
 
 ## 5. Look at it, and keep looking
 
-    npm run sheet -- <id> --only plots,buildings --scale 3
+    npm run sheet -- <id> --only plots,buildings,landmarks --scale 3
 
 writes `data/sheets/<id>.png` (use `--out` to put it elsewhere) and prints what each band shows:
 a sample plot per sub-theme, every building at every stage, every fence join, the ground,

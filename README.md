@@ -61,7 +61,10 @@ this way. Switch to the Claude app under Settings → Open threads in.
 | Live sessions | `~/.claude/sessions/*.json` |
 | Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows) |
 
-Only files under your home directory, and only ever read.
+| Your repos | The files in each git repository a session works in, to count its lines of code for its landmark. A folder that isn't a repository (your home, Documents, Downloads) is never walked. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
+
+Only ever read. Nothing in a repo is ever run: its lines are counted by reading its files, and
+the counts are kept in `data/repos.json`, refreshed every half hour.
 
 ## What you are looking at
 
@@ -79,6 +82,8 @@ Only files under your home directory, and only ever read.
 | Walking back into the portal | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
 | A notice board below the garden | The repo's open GitHub issues, one pinned note each |
+| A landmark in the middle of the garden | How much work the repo has seen: a campfire, then a well, a market cross, a chapel, a town hall, a keep |
+| A lamp, a bench, planters, a rose arch in the fence | What each tier of landmark brings with it |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
 
 ![A villager holding up a ? is selected: its card says it's asking you a question and offers Open in VS Code and Transcript, and the sidebar lists everything else going on in its repo](docs/screenshots/needs-you.png)
@@ -95,7 +100,8 @@ come and go on their own.
 construction site, where every plot is fenced off, each session's building is going up (a timber
 frame, a tower crane, a site office, a digger in its pit), everybody works in a hard hat and
 hi-vis, and finished work is a survey flag in each plot's setting-out yard instead of a flower in
-its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research.
+its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research. Its
+landmarks climb from a surveyor's peg to a tower topped out with a tree and the plot's flag.
 
 Or an elvish realm, where the houses are grown into living trees and carved from white stone
 under swept roofs, the ways are paved in pale flagstones, everybody works in a mithril circlet and
@@ -159,9 +165,9 @@ yellow badge on Windows; answering them clears it.
 
 ### The gardens
 
-Every finished thread leaves a flower in its repo's garden. Beds fill like a contribution graph:
-each column top to bottom, columns left to right, and a full bed carries on in the plot's next
-cell, so a repo you've done a lot in grows into a big garden. Empty slots show as bare soil.
+Every finished thread leaves a flower in its repo's garden. Beds fill a row at a time, left to
+right and round the landmark in the middle, and a full bed carries on in the plot's next cell,
+so a repo you've done a lot in grows into a big garden. Empty slots show as bare soil.
 
 There are 50 kinds of flower, and the kind says what the work was, read from the thread's title
 and first prompt: daisies for bug fixes, tulips for features, lavender for docs, sunflowers for
@@ -171,6 +177,41 @@ but fixed per thread. Click a flower to look back at the thread, open it again, 
 Villagers who need you wave and hop every few seconds, so they're easy to spot. A repo whose
 threads are all asleep rests: its villagers fold away, but its garden stays on the map. The bed
 is walkable, so villagers stroll among the flowers rather than queueing in front of their doors.
+
+### Landmarks
+
+In the middle of every garden stands what the work in that repo has raised. It starts as a
+campfire and climbs, a tier at a time, to a well, a market cross, a chapel, a town hall and a
+keep. When a repo reaches the next tier the new one goes up in front of you, foundations first,
+and everybody on the plot gets confetti. Each tier also brings something to the plot's fence
+line: a lamp, then a bench, planters at the corners, a rose arch over the gate, and a second lamp.
+
+Points come from four kinds of work. A landmark never comes down: the tier a repo has reached is
+kept in `data/village.json`, so turning PR gardens off or clearing out old transcripts costs it
+nothing.
+
+| Work | Points |
+| --- | --- |
+| A finished thread or a merged PR (a flower) | 2 each |
+| A session, live or archived | 1 each |
+| Transcripts | 1 per 250 KB, up to 1 MB of each session's |
+| Lines of code in the repo, if it's a git repository | 1 per 1,000, up to 50 |
+
+| Tier | Village | Construction site | Points |
+| --- | --- | --- | --- |
+| 0 | Campfire | Survey peg | 0 |
+| 1 | Well | Site hut | 5 |
+| 2 | Market cross | Scaffold tower | 15 |
+| 3 | Chapel | Tower crane | 40 |
+| 4 | Town hall | Concrete core | 100 |
+| 5 | Keep | Topped out | 250 |
+
+Click a landmark, or a repo in the sidebar, and its panel shows the tier, where the points came
+from and how far it is to the next. A chapel or a town hall is built of the plot's own walls and
+roofs, and flies the plot's colour; its windows light after dark and a campfire burns while
+somebody on the plot is working or waiting on you, as a chimney smokes.
+
+![A repo's plot close up with its town hall in the middle of the garden, a lamp, a bench, planters and a rose arch round it, and its panel listing the points: sixteen finished threads, twenty-one sessions, 7.7 MB of transcripts and 21,900 lines of code](docs/screenshots/landmark.png)
 
 ### Pull requests
 

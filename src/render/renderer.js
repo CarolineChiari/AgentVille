@@ -8,7 +8,7 @@ import { DECO_VARIANTS, LINK, STATIC_FRAMES, tileVariant } from './sprites/tiles
 import { lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { BUILDING_W } from './sprites/buildings.js'
-import { packFor } from './themes/index.js'
+import { landmarkShapes, packFor } from './themes/index.js'
 import { DEFAULT_THEME } from '../sim/themes.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
 import { sweepAt, sweepRow, twinklesAt } from './shine.js'
@@ -45,7 +45,7 @@ const MEADOW = [P.grass, P.grassSunny, P.grassLush]
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
-const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14, cart: 20, bench: 12 }
+const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14, cart: 20, bench: 12, yardplanter: 14, yardbench: 12 }
 /** Pigeons on the square; their own random stream, as their comings and goings are nobody's business. */
 const PIGEONS = 8
 /** The arrival square's top-left corner in world pixels, and its portal's opening and runes. */
@@ -59,7 +59,7 @@ const CORE_RGB = [parseInt(P.portalCore.slice(1, 3), 16), parseInt(P.portalCore.
 /** How near the gate someone fading in or out has to be to set the portal flaring, in tiles. */
 const PORTAL_REACH = 1.5
 /** Statics that light up after dark. */
-const LIT_STATICS = new Set(['lamp'])
+const LIT_STATICS = new Set(['lamp', 'yardlamp'])
 /** How dark a cloud's shadow is at noon; see ambient.js for where clouds are. */
 const CLOUD_SHADE = 0.3
 /** How strongly the warm light of sunrise and sunset colours everything (soft-light alpha). */
@@ -99,7 +99,7 @@ export class Canvas2dRenderer {
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
     this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
     this.plotTheme = new Map() // plot name → the theme it wears, which may not be the village's
-    this.underfoot = new Set() // "x,y" of every tile a building or a board stands on: no lawn cover there
+    this.underfoot = new Set() // "x,y" of every tile a building, a board or a landmark stands on: no lawn cover there
     this.styleVersion = -1
     this.flock = null // the birds crossing now, if any; see ambient.js
     this.flare = 0 // 0..1: the portal lights up while somebody steps through it
@@ -353,6 +353,33 @@ export class Canvas2dRenderer {
   }
 
   /**
+   * A plot's landmark in the middle of its field, drawn in the plot's theme, as tall as its tier.
+   * Its windows light after dark while somebody on the plot is in; a campfire burns while they are.
+   */
+  _drawLandmark(l, night, time) {
+    const theme = l.style?.theme ?? this.theme
+    const L = landmarkShapes(theme)
+    const H = L.heightOf(l.tier)
+    const frames = L.frames(l.tier, l.stage)
+    const frame = frames > 1 ? Math.floor(time * 3) % frames : 0
+    const style = l.style || PLAIN_STYLE
+    const img = this._sprite(`landmark.${l.tier}.${l.stage}`, frame, {
+      accent: ACCENTS[l.accent % ACCENTS.length], variant: l.variant, lit: l.lit && night > 0.35, busy: l.lit, wall: style.wall, roofs: style.roofs,
+    }, theme)
+    const x0 = l.x * T
+    const y1 = (l.y + l.h) * T
+    const shadow = l.stage >= 2 ? L.shadowOf(l.tier) : 0
+    if (shadow) this._blit(this._sprite(`fx.shadow.${shadow}x6`), x0 + (l.w * T - shadow) / 2, y1 - 4)
+    if (l.selected || l.hovered) {
+      const ring = this._sprite(`fx.ring.${l.selected ? BADGE.waiting : P.white}`)
+      // Two rings side by side under its base: one is a villager's width, and this is two tiles.
+      this._blit(ring, x0, y1 - 5, l.selected ? 1 : 0.6)
+      this._blit(ring, x0 + l.w * T - 16, y1 - 5, l.selected ? 1 : 0.6)
+    }
+    this._blit(img, x0 + (l.w * T - img.width) / 2, y1 - H)
+  }
+
+  /**
    * The band of light sweeping across a gleaming building, now and then. Painted over a copy of
    * its sprite so it only lights the building, and drawn with it, so whoever stands in front of
    * the building stays in front of the shine too.
@@ -423,7 +450,9 @@ export class Canvas2dRenderer {
   _drawStatic(st, night) {
     const lit = LIT_STATICS.has(st.sprite) ? { lit: night > 0.35 } : undefined
     const frames = STATIC_FRAMES[st.sprite] || 1
-    const img = this._sprite(`static.${st.sprite}.${st.variant || 0}`, frames > 1 ? Math.floor(this.time * 5) % frames : 0, lit)
+    // A plot's own scenery is in its theme; the countryside and the square are the village's.
+    const theme = st.plot ? this._themeOf(st.plot) : this.theme
+    const img = this._sprite(`static.${st.sprite}.${st.variant || 0}`, frames > 1 ? Math.floor(this.time * 5) % frames : 0, lit, theme)
     const shadow = STATIC_SHADOW[st.sprite]
     if (shadow) this._blit(this._sprite(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
     // The portal's veil goes in first, so the stone frames it and anyone arriving shows through it.
@@ -848,7 +877,8 @@ export class Canvas2dRenderer {
       ctx.fillRect(p.x - rad, p.y - rad, rad * 2, rad * 2)
     }
     for (const b of frame.buildings) if (b.lit && b.stage >= 2) glow((b.x + b.w / 2) * T, (b.y + b.h) * T - 12, 22, 0.33)
-    for (const st of frame.statics) if (st.sprite === 'lamp') glow(st.x * T, st.y * T - 22, 28, 0.38)
+    for (const l of frame.landmarks || []) if (l.lit && l.stage >= 2) glow((l.x + l.w / 2) * T, (l.y + l.h) * T - 10, 26, 0.36)
+    for (const st of frame.statics) if (LIT_STATICS.has(st.sprite)) glow(st.x * T, st.y * T - 22, 28, 0.38)
     // The portal lights the whole square after dark, and each crystal throws a little light.
     glow(SQUARE_X + CENTER.x, SQUARE_Y + CENTER.y - 24, 56, 0.4 + 0.3 * this.flare, P.portal)
     SQUARE_OBELISKS.forEach((_, i) => {
@@ -921,6 +951,8 @@ export class Canvas2dRenderer {
       this.underfoot = new Set()
       for (const b of frame.buildings) for (let dy = 0; dy < b.h; dy++) for (let dx = 0; dx < b.w; dx++) this.underfoot.add(`${b.x + dx},${b.y + dy}`)
       for (const b of frame.boards || []) this.underfoot.add(`${b.tx},${b.ty}`)
+      for (const l of frame.landmarks || []) for (let dy = 0; dy < l.h; dy++) for (let dx = 0; dx < l.w; dx++) this.underfoot.add(`${l.x + dx},${l.y + dy}`)
+      for (const st of frame.statics) if (st.plot) for (const [x, y] of st.blocks || []) this.underfoot.add(`${x},${y}`)
       this.styleVersion = frame.map.version
     }
     // The portal flares while anybody fades in or out beside it, and dies down slowly after.
@@ -952,6 +984,7 @@ export class Canvas2dRenderer {
     for (const b of frame.buildings) items.push([b.y + b.h - 0.05, 1, b])
     for (const v of frame.villagers) items.push([v.y, 2, v])
     for (const b of frame.boards || []) items.push([b.y, 4, b])
+    for (const l of frame.landmarks || []) items.push([l.y + l.h - 0.05, 6, l])
     items.sort((a, b) => a[0] - b[0])
     for (const [, kind, it] of items) {
       if (kind === 0) this._drawStatic(it, night)
@@ -959,6 +992,7 @@ export class Canvas2dRenderer {
       else if (kind === 2) this._drawVillager(it, night)
       else if (kind === 3) this._drawFlower(it, frame.time)
       else if (kind === 5) this._drawPigeon(it)
+      else if (kind === 6) this._drawLandmark(it, night, frame.time)
       else this._drawBoard(it)
     }
     this._drawPetals(frame, view)
@@ -979,7 +1013,19 @@ export class Canvas2dRenderer {
     this._drawLabels(frame, ui)
   }
 
-  /** What is under a CSS-pixel point: a villager, a notice board, a flower, a building's villager, else a plot. */
+  /** The landmark whose sprite is under world point `w`, the one in front if two overlap. */
+  _landmarkAt(w, frame) {
+    let hit = null
+    for (const l of frame.landmarks || []) {
+      const x0 = l.x * T
+      const y1 = (l.y + l.h) * T
+      const H = landmarkShapes(l.style?.theme ?? frame.theme).heightOf(l.tier)
+      if (w.x >= x0 && w.x < x0 + l.w * T && w.y >= y1 - H && w.y < y1 && (!hit || l.y > hit.y)) hit = l
+    }
+    return hit
+  }
+
+  /** What is under a CSS-pixel point: a villager, a notice board, a flower, a landmark, a building's villager, else a plot. */
   pick(cssX, cssY, frame) {
     const w = this.camera.toWorld(cssX, cssY)
     const byY = [...frame.villagers].sort((a, b) => b.y - a.y)
@@ -996,11 +1042,15 @@ export class Canvas2dRenderer {
       const py = b.y * T
       if (w.x >= px - 8 && w.x < px + 8 && w.y >= py - 22 && w.y < py) return { board: b.id }
     }
+    // A flower behind a landmark is hidden by it, so a click there is on the landmark.
+    const landmark = this._landmarkAt(w, frame)
     for (const f of frame.flowers) {
+      if (landmark && f.plot === landmark.plot && f.y < landmark.y + landmark.h) continue
       const px = f.x * T
       const py = f.y * T
       if (w.x >= px - 4 && w.x < px + 4 && w.y >= py - 9 && w.y < py + 1) return { flower: f.id }
     }
+    if (landmark) return { landmark: landmark.plot }
     const ids = new Set(frame.villagers.map((v) => v.id))
     for (const b of [...frame.buildings].sort((a, c) => c.y - a.y)) {
       if (b.alpha < 1) continue

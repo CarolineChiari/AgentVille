@@ -12,7 +12,9 @@ wears one, so the repos in a village tell each other apart without leaving the t
 
 Whatever a village wears, what things **mean** is the same: status badges, the selection ring, lit
 windows and chimney smoke. Finished work may be drawn as something other than a flower, but it
-still shows the kind of work, white for an unlabeled PR, and a bud for an open one.
+still shows the kind of work, white for an unlabeled PR, and a bud for an open one. Every plot's
+**landmark** climbs six tiers as the repo's work adds up; a theme names and draws its own, or
+leaves the village's standing.
 
 ---
 
@@ -34,6 +36,8 @@ plot's garden.
 **Built from** — fences: rail, picket, stone, hedge · lawns: fresh, deep, golden · walls: plaster,
 wood, stone, brick, timber · four families of roof colour.
 **Finished work**: a **flower** in the **garden** (✿). **Work clothes**: their own.
+**Landmark**: a campfire, a well, a market cross, a chapel, a town hall, a keep; each tier brings a
+lamp, a bench, planters, a rose arch and a second lamp to the fence line.
 **Handed out**: every folder gets Patchwork unless it picks otherwise, so a village nobody has
 touched looks as it always has.
 
@@ -58,6 +62,9 @@ office, a digger in its pit.
 walls: timber, brick, concrete, steel, glass · four families of machine paint.
 **Finished work**: a **survey flag** in the **setting-out yard** (⚐) — a pennant for a bug fix, a
 chequered flag for data, a windsock for research. **Work clothes**: a hard hat and hi-vis.
+**Landmark**: a survey peg, a site hut, a scaffold tower, a tower crane, a concrete core, a tower
+topped out with a tree and the plot's flag; the fence line gets a lighting mast, stacked boards,
+cones and a barrier, and a site entrance.
 
 ![The demo village as a construction site](../screenshots/construction.png)
 
@@ -84,6 +91,7 @@ roof colour.
 **Finished work**: a **lantern** lit on its stand in the **lantern grove** (✦) — a teardrop lamp
 for a bug fix, a rune lantern for data, a wisp for tests, a seeker's lamp for research.
 **Work clothes**: a mithril circlet and a travelling cloak.
+**Landmark**: the village's, campfire to keep, until the realm grows its own.
 
 ![The demo village as an elvish realm](../screenshots/elvish.png)
 

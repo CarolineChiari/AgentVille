@@ -49,11 +49,13 @@ export const DECO_VARIANTS = {
 }
 /**
  * How many looks each tall static has. Trees: 0 broadleaf, 1 pine, 2 fruit, 3 birch, 4 autumn,
- * 5 willow. A board's variant is how many notes it shows.
+ * 5 willow. A board's variant is how many notes it shows. The `yard…` ones and the gateway are what
+ * a plot's landmark brings with it (propsOf in src/sim/shape.js), apart from the square's own so a
+ * theme can dress a plot's without touching the square.
  */
 export const STATIC_VARIANTS = {
   tree: 8, bush: 2, rock: 2, stump: 1, log: 1, sapling: 1, lamp: 1, arch: 1, planter: 2, obelisk: 4, board: 7,
-  bench: 2, fountain: 1, cart: 2,
+  bench: 2, fountain: 1, cart: 2, yardlamp: 1, yardbench: 1, yardplanter: 2, gateway: 1,
 }
 /** Statics that animate, and through how many frames. */
 export const STATIC_FRAMES = { fountain: 4 }
@@ -619,6 +621,38 @@ function cart(variant) {
     pc.ellipse(x, 22, 2, 2, P.wood)
     pc.px(x, 22, P.metalDark)
   }
+  return pc.outline(P.outline)
+}
+
+/**
+ * A rose arch over a plot's gateway, two tiles wide: posts either side of the gap, roses climbing
+ * them and meeting overhead. Open underneath, as everybody walks through it.
+ */
+function roseArch() {
+  const pc = new PixelCanvas(32, 30)
+  for (const x of [3, 27]) {
+    pc.rect(x, 8, 2, 22, P.wood)
+    pc.vline(x, 8, 29, P.woodLight)
+  }
+  // The hoop: a band of leaves round the top, thickest at its crown.
+  for (let x = 2; x <= 29; x++) {
+    const t = (x - 15.5) / 13.5
+    const y = Math.round(10 - Math.sqrt(Math.max(0, 1 - t * t)) * 8)
+    pc.vline(x, y - 1, y + 2, P.leaf)
+    pc.px(x, y - 1, P.leafLight)
+    pc.px(x, y + 2, P.leafDark)
+  }
+  // Leaves down the posts, and the roses among them.
+  for (let y = 11; y < 27; y += 2) {
+    for (const x of [2, 26]) pc.hline(x, x + 3, y, y % 4 ? P.leafDark : P.leaf)
+  }
+  const roses = [[6, 5], [11, 3], [16, 2], [21, 3], [25, 5], [3, 13], [28, 16], [4, 20], [27, 22]]
+  roses.forEach(([x, y], i) => {
+    const c = P.flower[i % 2 ? 0 : 4]
+    pc.px(x, y, c)
+    pc.px(x + 1, y, shade(c, 0.25))
+    pc.px(x, y + 1, shade(c, -0.2))
+  })
   return pc.outline(P.outline)
 }
 
@@ -1202,6 +1236,11 @@ export function drawStatic(sprite, variant = 0, opts = {}) {
   if (sprite === 'bench') return bench(variant)
   if (sprite === 'fountain') return fountain(opts.frame || 0)
   if (sprite === 'cart') return cart(variant)
+  // What a plot's landmark brings with it, drawn in the village like the square's own.
+  if (sprite === 'yardlamp') return lamppost(opts.lit)
+  if (sprite === 'yardbench') return bench(variant)
+  if (sprite === 'yardplanter') return planter(variant)
+  if (sprite === 'gateway') return roseArch()
   if (sprite === 'board') {
     // A notice board with `variant` notes pinned to it (0–6), filled left to right, top row first.
     // One pixel of margin all round leaves room for the outline.

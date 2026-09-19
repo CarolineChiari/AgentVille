@@ -17,6 +17,7 @@ export function emptyState() {
     viewedAt: {},
     tasks: {},
     looks: {},
+    progress: {},
     settings: null,
     updatedAt: 0,
   }
@@ -84,6 +85,25 @@ const lookMap = (v, old) => {
   return out
 }
 
+/**
+ * The highest tier of landmark, as MAX_TIER in src/sim/progress.js has it. Copied rather than
+ * imported, for the same reason as THEME_ID.
+ */
+const MAX_TIER = 5
+
+/** Repo name → the tier its landmark has reached and when: `{ tier, at }`. */
+const progressMap = (v) => {
+  const out = {}
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out
+  for (const [k, p] of Object.entries(v)) {
+    if (k === '__proto__' || !p || typeof p !== 'object') continue
+    const { tier, at } = p
+    if (!Number.isInteger(tier) || tier < 1 || tier > MAX_TIER) continue
+    out[k] = { tier, at: typeof at === 'number' && Number.isFinite(at) ? at : 0 }
+  }
+  return out
+}
+
 /** Every field coerced to its type; unknown fields dropped. A hand-edited file cannot crash the page. */
 export function normalizeState(raw) {
   const s = raw && typeof raw === 'object' ? raw : {}
@@ -97,6 +117,7 @@ export function normalizeState(raw) {
     viewedAt: numberMap(s.viewedAt),
     tasks: taskMap(s.tasks),
     looks: lookMap(s.looks, s.subthemes),
+    progress: progressMap(s.progress),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }

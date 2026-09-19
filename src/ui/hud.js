@@ -6,6 +6,7 @@ import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
 import { THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
+import { TIER_AT } from '../sim/progress.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -121,7 +122,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (r.counts.working) b.push(`<span class="working">${r.counts.working}</span>`)
     if (r.openPrs) b.push(`<span class="open-pr" title="Open PRs">✦ ${r.openPrs}</span>`)
     if (r.openIssues) b.push(`<span class="open-issue" title="Open issues">⚑ ${r.openIssues}</span>`)
-    return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
+    // The landmark's name only in the tooltip: a row has no room to spare beside the repo's own name.
+    return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}" title="${esc(`${r.name}: ${r.progress.word}`)}">
       <span class="dot" style="background:${ACCENTS[r.accent % ACCENTS.length]}"></span>
       <span class="name">${esc(r.name)}</span>
       <span class="badges">${b.join('')}${r.threads.length ? `<span title="Villagers">${r.threads.length}</span>` : ''}${r.flowers ? `<span class="flowers" title="Finished threads in the ${esc(words.place)}">${esc(words.glyph)} ${r.flowers}</span>` : ''}</span></button>`
@@ -140,8 +142,36 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
+      ${landmark(r)}
       ${r.flowers ? `<div class="garden-note">${esc(words.glyph)} ${r.flowers} finished — click a ${esc(words.one)} in the ${esc(words.place)} to look back</div>` : ''}
       <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
+    </div>`
+  }
+
+  /**
+   * The landmark in a plot's field: what stands there now, how far it is to the next tier, and
+   * where the points came from, each kind of work on a line of its own.
+   */
+  function landmark(r) {
+    const p = r.progress
+    const words = finishedWords(village.lookOf(r.name).theme)
+    const from = TIER_AT[p.tier]
+    const to = TIER_AT[p.tier + 1]
+    const share = to === undefined ? 1 : Math.max(0, Math.min(1, (p.points - from) / (to - from)))
+    const n = (x) => x.toLocaleString()
+    const mb = (bytes) => (bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.round(bytes / 1e3)} KB`)
+    const lines = [
+      [`${esc(words.glyph)} ${n(p.work.finished)} finished`, p.breakdown.finished],
+      [`${n(p.work.sessions)} session${p.work.sessions === 1 ? '' : 's'}`, p.breakdown.sessions],
+      [`${mb(p.work.bytes)} of transcripts`, p.breakdown.bytes],
+      [{ counted: `${n(p.work.lines)} lines of code`, 'not a repo': 'Lines of code: not a git repo', counting: 'Lines of code: counting…', off: 'Lines of code: not counted' }[p.lines], p.breakdown.lines],
+    ]
+    const next = p.nextWord ? `Next: ${esc(p.nextWord)}, ${n(p.next)} more point${p.next === 1 ? '' : 's'}` : 'The top tier'
+    return `<div class="landmark" title="Every finished thread counts 2, every session 1, every 250 KB of transcript 1, every 1,000 lines of code 1 (up to 50)">
+      <div class="lm-head"><b>${esc(p.word)}</b><span>${n(p.points)} points</span></div>
+      <div class="bar"><i style="width:${Math.round(share * 100)}%"></i></div>
+      <div class="lm-next">${next}</div>
+      <ul>${lines.map(([what, pts]) => `<li><span>${what}</span><span>${pts ? `+${n(pts)}` : ''}</span></li>`).join('')}</ul>
     </div>`
   }
 
@@ -179,6 +209,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
         <label>${esc(finishedWords(theme).grow)} <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
+        <label title="Reads the files in each repo to count its lines of code, for its landmark. Nothing is run and nothing leaves this machine.">Count the lines of code in each repo <input type="checkbox" data-set="repoLines" ${s.repoLines ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day

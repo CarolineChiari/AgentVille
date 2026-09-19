@@ -2,7 +2,8 @@
 
 Every Claude Code session on this machine is a villager in a pixel-art village. Each repo is a
 plot; each session is one villager and one building. The server reads Claude Code's own files
-read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`, `issues.json`).
+read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`, `issues.json`,
+`repos.json`).
 
 ## Layout
 
@@ -38,6 +39,10 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   windows and smoke keep their meaning in every theme. A theme may draw finished work as something
   other than flowers (the site's marker flags) and name it in its own words (`finished` in
   themes.js), but it still shows the kind of work, white for an unlabeled PR, and a bud for an open one.
+- Each plot raises a landmark in its field as work lands in it (`src/sim/progress.js` scores the
+  work; the tier reached is a high-water mark in `village.json`'s `progress`). A theme names the
+  tiers in `landmark` and may draw them (`landmark.<tier>.<stage>`) and what each tier brings
+  (`static.yard*`, `static.gateway`); a pack that doesn't gets the village's.
 - `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules. To make a new
   theme, follow the `new-theme` skill in `.claude/skills/new-theme/`.
 
@@ -45,7 +50,8 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
 - No runtime dependencies without discussion. Dev dependencies are Vite, Electron and electron-builder.
-- Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. The only network access is
+- Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. A repo is
+  only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The only network access is
   `server/github.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
 - Every colour comes from `src/render/sprites/palette.js`. No hex strings elsewhere.

@@ -4,6 +4,7 @@
 // garden. The countryside between the plots and the arrival square stay the village's.
 import { buildingFrames, chimneyOf, drawSiteBuilding, fitted, heightOf, shadowOf } from './buildings.js'
 import { drawFlag } from './flags.js'
+import { drawSiteLandmark, drawSiteProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
 
 /** @type {import('../index.js').ThemePack} */
@@ -19,6 +20,11 @@ export const construction = {
         return drawFence(Number(a), n)
       case 'flower':
         return drawFlag(Number(a), n, p.color)
+      case 'static':
+        // Only what a plot's landmark brings: the countryside and the square stay the village's.
+        return drawSiteProp(a, n, p)
+      case 'landmark':
+        return drawSiteLandmark({ tier: Number(a), stage: n, variant: p.variant, accent: p.accent, wall: p.wall, roofs: p.roofs, lit: p.lit, busy: p.busy, frame })
       case 'tile':
         if (a === 'yard') return drawGround(n, p.tone)
         if (a === 'trail') return drawTrail(n, p.links || 0, p.tone)
@@ -38,4 +44,5 @@ export const construction = {
   cover: siteCover,
   patches,
   edges: { road: ROAD_EDGE, bed: BED_EDGE },
+  landmark: { heightOf: landmarkHeight, shadowOf: landmarkShadow, frames: landmarkFrames },
 }

@@ -665,6 +665,9 @@ export function drawBuilding(o) {
   return pc.outline(P.outline)
 }
 
+// The parts a landmark is built from too (see landmarks.js), so a plot's chapel is walled like its houses.
+export { walls as drawWalls, window as drawWindow, door as drawDoor, gableRoof as drawGableRoof, site as drawSite }
+
 /** Nothing to climb: these go up without scaffolding. */
 const NO_SCAFFOLD = new Set(['farm', 'well', 'stall'])
 

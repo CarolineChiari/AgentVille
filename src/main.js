@@ -70,6 +70,7 @@ const hud = createHud(hudRoot, {
     applyTheme()
     if (settings.prGardens) village.pollPrs()
     if (settings.issueBoards) village.pollIssues()
+    if (settings.repoLines) village.pollRepos()
   },
   onFly: fly,
   onNewSession: (repo) => newSession.open(repo),
@@ -146,11 +147,11 @@ canvas.addEventListener('pointermove', (e) => {
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
-  hovered = hit?.villager || hit?.flower || hit?.board || null
+  hovered = hit?.villager || hit?.flower || hit?.board || (hit?.landmark ? `landmark:${hit.landmark}` : null)
   hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot
     : hit?.flower ? world.flower(hit.flower)?.plot
     : hit?.board ? world.board(hit.board)?.plot
-    : hit?.plot || null
+    : hit?.landmark || hit?.plot || null
   canvas.classList.toggle('pointing', Boolean(hovered))
 })
 canvas.addEventListener('pointerup', (e) => {
@@ -162,7 +163,11 @@ canvas.addEventListener('pointerup', (e) => {
   if (hit?.villager) village.select(hit.villager)
   else if (hit?.flower) village.select(hit.flower)
   else if (hit?.board) village.select(hit.board)
-  else if (hit?.plot) village.selectPlot(hit.plot)
+  else if (hit?.landmark) {
+    // A landmark stands for its whole plot: its panel says how it got there and what comes next.
+    village.select(null)
+    village.selectPlot(hit.landmark)
+  } else if (hit?.plot) village.selectPlot(hit.plot)
   else {
     village.select(null)
     village.selectPlot(null)
@@ -271,7 +276,7 @@ function loop(now) {
   last = now
   world.tick(dt)
   camera.update(dt)
-  lastFrame = world.snapshot({ selected: village.selected, hovered })
+  lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot })
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()
   renderer.render(lastFrame, {
     night: 1 - dayFactor(hour),

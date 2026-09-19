@@ -1,9 +1,9 @@
 // A contact sheet of a theme's art, as a PNG, drawn under Node with no browser: a small plot in
-// each of its sub-themes, then every building at every stage, every fence join, the ground,
-// finished work (the village's flowers), and villagers in their work clothes. For working on a
-// theme: draw, look, adjust, draw again.
+// each of its sub-themes, then every building at every stage, every landmark tier, every fence
+// join, the ground, finished work (the village's flowers), and villagers in their work clothes.
+// For working on a theme: draw, look, adjust, draw again.
 //
-//   npm run sheet -- [theme] [--only plots,buildings,fences,ground,finished,villagers] [--scale 3] [--out file.png]
+//   npm run sheet -- [theme] [--only plots,buildings,landmarks,fences,ground,finished,villagers] [--scale 3] [--out file.png]
 //
 // Writes data/sheets/<theme>.png unless --out says otherwise, and prints what each band shows.
 // The plots are composed the way the renderer bakes a chunk, less the night, the weather and the
@@ -19,8 +19,9 @@ import { LINK, tileVariant } from '../src/render/sprites/tiles.js'
 import { BUILDING_W } from '../src/render/sprites/buildings.js'
 import { VILLAGER_H } from '../src/render/sprites/villagers.js'
 import { lawnTone, tintMeadow } from '../src/render/ground.js'
-import { packFor } from '../src/render/themes/index.js'
-import { THEMES, THEME_IDS, dress } from '../src/sim/themes.js'
+import { landmarkShapes, packFor } from '../src/render/themes/index.js'
+import { MAX_TIER } from '../src/sim/progress.js'
+import { THEMES, THEME_IDS, dress, landmarkWords } from '../src/sim/themes.js'
 import { KINDS } from '../src/sim/building.js'
 import { DECO, TILE } from '../src/sim/plot.js'
 import { hashString } from '../src/sim/rng.js'
@@ -32,7 +33,7 @@ import { World } from '../src/sim/world.js'
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const T = 16
 const GAP = 8
-const SECTIONS = ['plots', 'buildings', 'fences', 'ground', 'finished', 'villagers']
+const SECTIONS = ['plots', 'buildings', 'landmarks', 'fences', 'ground', 'finished', 'villagers']
 
 const TILE_NAME = {
   [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
@@ -115,10 +116,12 @@ function plotPanel(theme, sub) {
   // `picks` takes looks ({ theme, sub }), not bare sub-theme ids; the third argument is the one
   // that puts every folder in one sub-theme, which is what a panel of this band is.
   world.setTheme(theme, new Map(), sub)
+  // Each sub-theme's plot shows a different tier of landmark, the tallest first.
+  const tier = Math.max(0, MAX_TIER - THEMES[theme].subthemes.findIndex((s) => s.id === sub))
   const statuses = ['working', 'idle', 'waiting', 'working', 'sleeping']
   const threads = statuses.map((status, i) => ({ id: `sheet:${theme}:${sub}:${i}`, project: repo, createdAt: i, status, known: true, wear: [0, 1, 2, 1, 4][i] }))
   const gardens = new Map([[repo, Array.from({ length: 12 }, (_, i) => ({ id: `f${i}`, kind: i % FLOWER_KINDS.length, color: i, open: i === 11 }))]])
-  world.setRoster(threads, undefined, gardens, new Map([[repo, [{ id: 'a' }, { id: 'b' }, { id: 'c' }]]]))
+  world.setRoster(threads, undefined, gardens, new Map([[repo, [{ id: 'a' }, { id: 'b' }, { id: 'c' }]]]), new Map([[repo, tier]]))
   // Show a building going up and one just set out, as well as finished ones.
   const [, , , going, setOut] = threads.map((t) => world.buildings.get(t.id))
   if (going) going.progress = 0.6
@@ -138,6 +141,7 @@ function plotPanel(theme, sub) {
   const underfoot = new Set()
   for (const b of frame.buildings) for (let dy = 0; dy < b.h; dy++) for (let dx = 0; dx < b.w; dx++) underfoot.add(`${b.x + dx},${b.y + dy}`)
   for (const b of frame.boards) underfoot.add(`${b.tx},${b.ty}`)
+  for (const l of frame.landmarks) for (let dy = 0; dy < l.h; dy++) for (let dx = 0; dx < l.w; dx++) underfoot.add(`${l.x + dx},${l.y + dy}`)
   const tileAt = (x, y) => map.tileAt(x, y)
   const decoAt = (x, y) => map.decoAt(x, y)
   const fill = (x, y, w, h, c) => pc.rect(x, y, w, h, c)
@@ -219,6 +223,24 @@ function plotPanel(theme, sub) {
     blit(pc, sprite(theme, `flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), Math.round((f.x - x0) * T - 4), Math.round((f.y - y0) * T - 11))
   }])
   for (const b of frame.boards) items.push([b.y, () => blit(pc, sprite(theme, `static.board.${Math.min(6, b.count)}`), (b.x - x0) * T - 8, (b.y - y0) * T - 22)])
+  // What the plot's landmark has brought, standing in its fence line.
+  for (const st of frame.statics) {
+    if (st.plot !== repo) continue
+    items.push([st.y, () => {
+      const img = sprite(theme, `static.${st.sprite}.${st.variant || 0}`, 0, { lit: false })
+      blit(pc, img, Math.round((st.x - x0) * T - img.w / 2), Math.round((st.y - y0) * T - img.h))
+    }])
+  }
+  const L = landmarkShapes(theme)
+  for (const l of frame.landmarks) items.push([l.y + l.h - 0.05, () => {
+    const H = L.heightOf(l.tier)
+    const img = sprite(theme, `landmark.${l.tier}.${l.stage}`, 0, { accent: ACCENTS[l.accent % ACCENTS.length], variant: l.variant, lit: false, busy: true, wall: style.wall, roofs: style.roofs })
+    const shadow = l.stage >= 2 ? L.shadowOf(l.tier) : 0
+    const px = (l.x - x0) * T
+    const py = (l.y - y0 + l.h) * T
+    if (shadow) blit(pc, generate(`fx.shadow.${shadow}x6`, 0, {}), px + (l.w * T - shadow) / 2, py - 4)
+    blit(pc, img, px + (l.w * T - BUILDING_W) / 2, py - H)
+  }])
   threads.forEach((t, i) => {
     const b = world.buildings.get(t.id)
     if (!b) return
@@ -376,10 +398,37 @@ function villagers(theme) {
   return stack(rows)
 }
 
-const BANDS = { plots, buildings, fences, ground: groundBand, finished, villagers }
+/**
+ * A row per tier, smallest first: set out, framed, in scaffolding and finished; then lit with
+ * somebody in, through each frame it animates; then finished in three more plots' looks.
+ */
+function landmarks(theme) {
+  const L = landmarkShapes(theme)
+  const { dims } = THEMES[theme]
+  const rows = []
+  for (let tier = 0; tier <= MAX_TIER; tier++) {
+    const H = L.heightOf(tier)
+    const at = (stage, frame, variant, extra = {}) => {
+      const p = { accent: ACCENTS[variant % ACCENTS.length], variant, wall: variant % dims.wall.length, roofs: variant % dims.roofs, lit: false, busy: false, ...extra }
+      const pc = ground(theme, variant % dims.yard.length, 40, H + 8)
+      const shadow = stage >= 2 ? L.shadowOf(tier) : 0
+      if (shadow) blit(pc, generate(`fx.shadow.${shadow}x6`, 0, {}), (40 - shadow) / 2, H + 2)
+      blit(pc, sprite(theme, `landmark.${tier}.${stage}`, frame, p), 4, 4)
+      return pc
+    }
+    const cells = [0, 1, 2, 3].map((stage) => at(stage, 0, 0))
+    for (let f = 0; f < L.frames(tier, 3); f++) cells.push(at(3, f, 0, { lit: true, busy: true }))
+    for (const v of [1, 2, 3]) cells.push(at(3, 0, v))
+    rows.push(row(cells))
+  }
+  return stack(rows)
+}
+
+const BANDS = { plots, buildings, landmarks, fences, ground: groundBand, finished, villagers }
 const LEGEND = {
   plots: 'a plot in each sub-theme, in order: %s',
   buildings: `a row per kind (${KINDS.join(', ')}): stages 0, 1, 2; finished ×5 (wall and paint vary); lit; any other animation frames; wear gleaming→derelict; down a courtyard's side`,
+  landmarks: 'a row per tier (%s): set out, framed, in scaffolding, finished; lit with somebody in, each frame; three more plots\' looks',
   fences: 'a row per fence (%s): its sixteen joins by mask, then a small ring of it',
   ground: 'a band per ground (%s): six tiles, five footpaths, six roads, sixteen fringes on a road, what lies about; then a stretch of it with its patches',
   finished: `a row per kind of work (${WORK.map((w) => w.id).join(', ')}): each kind sprouting, as an open PR's bud, in bloom in three colours, then white`,
@@ -408,7 +457,7 @@ for (const theme of themes) {
     process.exit(1)
   }
   const { dims, subthemes } = THEMES[theme]
-  const names = { plots: subthemes.map((s) => s.id).join(', '), fences: dims.fence.join(', '), ground: dims.yard.join(', ') }
+  const names = { plots: subthemes.map((s) => s.id).join(', '), fences: dims.fence.join(', '), ground: dims.yard.join(', '), landmarks: landmarkWords(theme).tiers.join(', ') }
   const sheet = stack(args.only.map((s) => BANDS[s](theme)))
   const n = args.scale
   const big = new Uint8Array(sheet.w * n * sheet.h * n * 4)

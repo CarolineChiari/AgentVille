@@ -6,15 +6,18 @@ import { mergeState } from './merge-state.js'
 import { STATUS_RANK } from '../sim/status.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
-import { demoIssues, demoThreads } from './demo.js'
+import { demoIssues, demoRepos, demoThreads } from './demo.js'
+import { growthInputs, highWater, standing } from './growth.js'
+import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
-import { finishedName, isLook, subthemeFor, themeOf } from '../sim/themes.js'
+import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../sim/themes.js'
 
 const SAVE_DELAY = 500
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, settings: null, updatedAt: 0,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, progress: {}, settings: null,
+  updatedAt: 0,
 })
 
 export class Village {
@@ -45,6 +48,8 @@ export class Village {
     this.boards = new Map() // repo → its open issues' ids, newest first
     this._boardIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
+    this.counted = { repos: {}, updating: false } // each repo's lines of code, as the server counted them
+    this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
     this.selected = null
     this.selectedPlot = null
     this.platform = ''
@@ -76,6 +81,7 @@ export class Village {
         this.threads = demoThreads()
         this.warnings = []
         this.issues = demoIssues()
+        this.counted = demoRepos()
       } else {
         const r = await api.fetchThreads()
         this.threads = r.threads
@@ -84,7 +90,11 @@ export class Village {
       this.byId = new Map(this.threads.map((t) => [t.id, t]))
       this.scanned = true
       if (!this.demo) {
-        await Promise.all([this.settings.prGardens && this.pollPrs(false), this.settings.issueBoards && this.pollIssues(false)])
+        await Promise.all([
+          this.settings.prGardens && this.pollPrs(false),
+          this.settings.issueBoards && this.pollIssues(false),
+          this.settings.repoLines && this.pollRepos(false),
+        ])
       }
       this.apply()
     } catch (err) {
@@ -120,6 +130,36 @@ export class Village {
     }
   }
 
+  /**
+   * Each repo's lines of code, from the server's count, which it keeps up to date in the background.
+   * While it is still counting, look again shortly.
+   */
+  async pollRepos(apply = true) {
+    if (this.demo) return apply && this.apply()
+    try {
+      this.counted = await api.fetchRepos()
+      clearTimeout(this._repoTimer)
+      if (this.counted.updating) this._repoTimer = setTimeout(() => this.pollRepos(), 4000)
+      if (apply) this.apply()
+    } catch {
+      // The size of the code is one of four kinds of work a landmark counts; the rest still grow it.
+    }
+  }
+
+  /**
+   * What each repo's work adds up to, and how high its landmark stands: the saved tier, raised
+   * wherever the work now reaches further. Returns the tiers for the world, and whether the saved
+   * ones changed.
+   */
+  _grow(now) {
+    const counted = this.settings.repoLines ? this.counted.repos : {}
+    this.growth = growthInputs(this.threads, this.gardens, counted, this.state.hiddenProjects)
+    const reached = new Map([...this.growth].map(([name, g]) => [name, progressOf(g).tier]))
+    const { progress, changed } = highWater(this.state.progress || {}, reached, now)
+    if (changed) this.state.progress = progress
+    return { tiers: new Map(Object.entries(this.state.progress || {}).map(([name, p]) => [name, p.tier])), changed }
+  }
+
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
@@ -137,8 +177,10 @@ export class Village {
     }
     this._plantGardens()
     this._pinBoards()
+    const grown = this._grow(now)
+    if (grown.changed) dirty = true
     this.world.setTheme(this.theme, this._picks(), this._everywhere())
-    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards)
+    const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards, grown.tiers)
     const plots = Object.fromEntries(memory)
     if (JSON.stringify(plots) !== JSON.stringify(this.state.plots)) {
       this.state.plots = plots
@@ -399,6 +441,7 @@ export class Village {
       r.counts = countStatuses(r.threads)
       r.last = Math.max(0, ...r.threads.map((t) => t.lastActivityAt || 0), ...(this.gardens.get(r.name) || []).map((f) => f.finishedAt))
       r.accent = this.world.plots.get(r.name)?.accent ?? 0
+      r.progress = this.landmark(r.name)
     }
     const urgency = (r) => (r.counts.blocked || r.counts.waiting ? 0 : r.counts.working || r.openPrs ? 1 : 2)
     return list.sort((a, b) => urgency(a) - urgency(b) || b.last - a.last)
@@ -406,6 +449,20 @@ export class Village {
 
   counts() {
     return countStatuses(this.view.live)
+  }
+
+  /**
+   * A repo's landmark, for its panel: the tier standing and its name in the plot's theme, the
+   * points and where they came from, and what the next tier is called and how far off it is.
+   */
+  landmark(name) {
+    const words = landmarkWords(this.lookOf(name).theme)
+    const g = this.growth.get(name) || { sessions: 0, finished: 0, bytes: 0, lines: 0 }
+    const s = standing(g, this.state.progress?.[name])
+    const c = this.settings.repoLines ? this.counted.repos?.[name] : null
+    // How its lines stand: counted, not a git repository (never walked), or not counted yet or at all.
+    const lines = c ? (c.repo === false ? 'not a repo' : 'counted') : this.settings.repoLines ? 'counting' : 'off'
+    return { ...s, work: g, word: words.tiers[s.tier], nextWord: words.tiers[s.tier + 1] ?? null, lines }
   }
 
   projectPath(name) {

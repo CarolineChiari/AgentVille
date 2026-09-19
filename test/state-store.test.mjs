@@ -90,3 +90,18 @@ test('the server checks theme ids the way the page does', async () => {
     assert.deepEqual(normalizeState({ looks: { r: { theme: 'construction', sub: bad } } }).looks, {}, bad)
   }
 })
+
+test('each repo\'s landmark tier is kept as a whole number in range, with when it was reached', async () => {
+  const s = normalizeState({
+    progress: {
+      a: { tier: 3, at: 1700 }, b: { tier: 9, at: 1 }, c: { tier: 2.5 }, d: 'x', e: { tier: 0, at: 5 }, f: { tier: 1, at: 'soon' },
+      ['__proto__']: { tier: 2, at: 1 },
+    },
+  })
+  assert.deepEqual(s.progress, { a: { tier: 3, at: 1700 }, f: { tier: 1, at: 0 } })
+  assert.deepEqual(normalizeState({ progress: [1, 2] }).progress, {})
+  // The server's copy of the top tier is the page's.
+  const { MAX_TIER } = await import('../src/sim/progress.js')
+  assert.deepEqual(normalizeState({ progress: { a: { tier: MAX_TIER, at: 1 } } }).progress, { a: { tier: MAX_TIER, at: 1 } })
+  assert.deepEqual(normalizeState({ progress: { a: { tier: MAX_TIER + 1, at: 1 } } }).progress, {})
+})
