@@ -179,6 +179,7 @@ export class Village {
     this._pinBoards()
     const grown = this._grow(now)
     if (grown.changed) dirty = true
+    this.world.setLandmarkSpot(this.settings.landmarkSpot)
     this.world.setTheme(this.theme, this._picks(), this._everywhere())
     const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards, grown.tiers)
     const plots = Object.fromEntries(memory)

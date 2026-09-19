@@ -14,6 +14,7 @@ export const DEFAULTS = {
   newModel: '', // last model chosen there ('' = your Claude Code default)
   newEffort: '', // last effort chosen there ('' = your default)
   theme: 'village', // the whole village's look: an id from src/sim/themes.js
+  landmarkSpot: 'top', // where each plot stands its landmark in its field: 'top' | 'middle' | 'bottom'
   subthemes: {}, // theme id → the sub-theme every folder wears unless it picked its own; none: each its own
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,

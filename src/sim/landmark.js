@@ -1,4 +1,4 @@
-// One landmark per plot, in the middle of its field: what the work done in that repo has raised
+// One landmark per plot, standing in its field: what the work done in that repo has raised
 // (see progress.js). When its tier goes up it is built again, foundation to finish, the way a new
 // house goes up, and the plot celebrates.
 import { BUILD_SECONDS } from './constants.js'

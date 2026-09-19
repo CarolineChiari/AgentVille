@@ -91,6 +91,25 @@ test('the field is ploughed as flowers arrive, one row ahead, and no further tha
   assert.equal(p.tilled, p.shape.bed.h)
 })
 
+test('standing its landmark somewhere else lays the field out round it again', () => {
+  const p = new Plot('a', 0)
+  p.setCells([[1, 0], [1, 1]])
+  p.setPlanted(20)
+  const head = p.landmarkRect
+  const tilled = p.tilled
+  assert.equal(p.setSpot('bottom'), true)
+  assert.ok(p.landmarkRect.y > head.y, 'the landmark stayed at the head of the field')
+  assert.equal(p.setSpot('bottom'), false, 'the spot it already stands at changes nothing')
+  // The field is ploughed for the flowers where they now stand.
+  for (let i = 0; i < 20; i++) {
+    const { y } = p.flowerSpot(i)
+    assert.ok(Math.floor(y - 0.01) < p.shape.bed.y + p.tilled, `flower ${i} is on grass`)
+  }
+  assert.equal(p.setSpot('nowhere'), true, 'a spot we don’t know is the default one')
+  assert.deepEqual(p.landmarkRect, head)
+  assert.equal(p.tilled, tilled)
+})
+
 test('painting a plot wears trails along its walkways and leaves the fence and its gaps as they were', () => {
   const p = new Plot('a', 0)
   p.setCells([[1, 1], [2, 1]])

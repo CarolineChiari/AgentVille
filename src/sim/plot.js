@@ -2,7 +2,7 @@
 // is painted. Where anything goes inside it comes from shape.js.
 import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
-import { flowerAt, isFenceGap, isTrail, propsOf, rectOf, shapeOf, tilledRows } from './shape.js'
+import { DEFAULT_SPOT, flowerAt, isFenceGap, isTrail, landmarkSpotOf, propsOf, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
 import { plotStyle } from './style.js'
 
@@ -17,16 +17,21 @@ export const DECO = {
 const inRect = (r, x, y) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h
 
 export class Plot {
-  /** `style` is its look in the village's theme (see style.js); the plain village one if not given. */
-  constructor(name, accent, style = plotStyle(name)) {
+  /**
+   * `style` is its look in the village's theme (see style.js); the plain village one if not given.
+   * `spot` is where its landmark stands in its field (see shape.js).
+   */
+  constructor(name, accent, style = plotStyle(name), spot = DEFAULT_SPOT) {
     this.name = name
     this.accent = accent
     this.style = style
+    this.spot = landmarkSpotOf(spot)
     this.cells = []
     this.sig = ''
     this.shape = null
     this.slotKeys = [] // every house position, "x,y" of its top-left tile, preferred first
     this.slotOf = new Map() // thread id → slot key
+    this.planted = 0 // flowers asked for, so the soil can be worked out again if the field changes
     this.tilled = 0 // tile rows of the field ploughed so far
     this.tier = 0 // how far its landmark has risen; see progress.js
     this.props = [] // what that has brought with it, standing in its fence line; see propsOf
@@ -37,12 +42,28 @@ export class Plot {
     const changed = sig !== this.sig
     this.cells = cells
     this.sig = sig
-    if (changed) {
-      this.shape = shapeOf(rectOf(cells))
-      this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
-      this.props = propsOf(this.shape, this.tier)
+    if (changed) this._reshape()
+    return changed
+  }
+
+  /** Stand its landmark somewhere else in its field. True if that changes the plot. */
+  setSpot(spot) {
+    const next = landmarkSpotOf(spot)
+    const changed = next !== this.spot
+    this.spot = next
+    // The field's spots are laid out round the landmark, so the soil is worked out again with them.
+    if (changed && this.shape) {
+      this._reshape()
+      this.setPlanted(this.planted)
     }
     return changed
+  }
+
+  /** Lay the courtyard out again: after the plot's cells change, or its landmark moves. */
+  _reshape() {
+    this.shape = shapeOf(rectOf(this.cells), this.spot)
+    this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
+    this.props = propsOf(this.shape, this.tier)
   }
 
   /** Dress the plot in another style: a new theme, or another sub-theme. True if its look changed. */
@@ -54,6 +75,7 @@ export class Plot {
 
   /** Plough enough of the field for `n` flowers. True if that changes the ground. */
   setPlanted(n) {
+    this.planted = n
     const rows = tilledRows(this.shape, Math.min(n, this.flowerCapacity))
     const changed = rows !== this.tilled
     this.tilled = rows
@@ -132,8 +154,8 @@ export class Plot {
   }
 
   /**
-   * Its landmark's footprint, in the field. It moves only when the plot grows, and then the whole
-   * field has moved with it.
+   * Its landmark's footprint, in the field. It moves only when the plot grows, or when its spot in
+   * the field changes; either way the field is laid out round it again.
    */
   get landmarkRect() {
     return { ...this.shape.landmark }
@@ -180,7 +202,7 @@ export class Plot {
           map.setTile(tx, ty, TILE.ROAD)
           continue
         }
-        // The landmark stands on grass in the middle of the field, whatever has been ploughed round it.
+        // The landmark stands on grass wherever it is in the field, whatever has been ploughed round it.
         const tilled = tx >= bed.x && tx < bed.x + bed.w && ty >= bed.y && ty < bed.y + this.tilled && !inRect(s.landmark, tx, ty)
         map.setTile(tx, ty, tilled ? TILE.BED : isTrail(s, lx, ly) ? TILE.TRAIL : TILE.YARD)
         if (ring !== 1 || isFenceGap(s, lx, ly) || instead.has(key(tx, ty))) continue

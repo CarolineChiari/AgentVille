@@ -458,7 +458,7 @@ test('mix and match: a folder can wear any theme\'s look, whatever the village w
   assert.equal(hat('t2'), 5)
 })
 
-test('every plot has a landmark in the middle of its field, standing where nobody walks and no flower grows', () => {
+test('every plot has a landmark at the head of its field, standing where nobody walks and no flower grows', () => {
   const w = new World()
   const flowers = Array.from({ length: 40 }, (_, i) => F(`f${i}`))
   w.setRoster([T('t1', 'a'), T('t2', 'b')], undefined, new Map([['a', flowers]]))
@@ -478,6 +478,29 @@ test('every plot has a landmark in the middle of its field, standing where nobod
     assert.ok(!(p.x >= l.x && p.x < l.x + l.w && p.y >= l.y && p.y < l.y + l.h), `${f.id} grows on the landmark`)
   }
   assert.equal(w.landmark('landmark:a'), l, 'found by its id too')
+})
+
+test('standing the landmarks elsewhere in their fields moves them, and the work growing round them', () => {
+  const w = new World()
+  // Enough finished work for a plot four cells across: a one-cell field is too shallow to move a
+  // landmark about in, and takes the one row that keeps the walkway clear whatever it is asked.
+  const flowers = Array.from({ length: 240 }, (_, i) => F(`f${i}`))
+  const roster = () => w.setRoster([T('t1', 'a')], undefined, new Map([['a', flowers]]))
+  roster()
+  const head = { ...w.plots.get('a').landmarkRect }
+  assert.equal(w.setLandmarkSpot('bottom'), true)
+  const l = w.landmark('a')
+  assert.ok(l.y > head.y, 'the landmark stayed at the head of the field')
+  assert.ok(w.nav.isBlocked(l.x, l.y), 'nobody is kept out of where it now stands')
+  assert.ok(!w.nav.isBlocked(head.x, head.y), 'they still walk round where it stood')
+  roster()
+  for (const f of flowers) {
+    const p = w.flower(f.id)
+    assert.ok(!(p.x >= l.x && p.x < l.x + l.w && p.y >= l.y && p.y < l.y + l.h), `${f.id} grows on the landmark`)
+  }
+  assert.equal(w.setLandmarkSpot('bottom'), false, 'the spot they already stand at changes nothing')
+  assert.equal(w.setLandmarkSpot('nowhere'), true, 'a spot we don’t know is the default one')
+  assert.deepEqual({ ...w.plots.get('a').landmarkRect }, head)
 })
 
 test('a landmark present at load is standing; a tier that rises later goes up with confetti', () => {

@@ -82,7 +82,7 @@ the counts are kept in `data/repos.json`, refreshed every half hour.
 | Walking back into the portal | You archived it |
 | A flower in the plot's garden | A finished (archived) thread |
 | A notice board below the garden | The repo's open GitHub issues, one pinned note each |
-| A landmark in the middle of the garden | How much work the repo has seen: a campfire, then a well, a market cross, a chapel, a town hall, a keep |
+| A landmark at the head of the garden | How much work the repo has seen: a campfire, then a well, a market cross, a chapel, a town hall, a keep |
 | A lamp, a bench, planters, a rose arch in the fence | What each tier of landmark brings with it |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
 
@@ -167,8 +167,9 @@ yellow badge on Windows; answering them clears it.
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill a row at a time, left to
-right and round the landmark in the middle, and a full bed carries on in the plot's next cell,
-so a repo you've done a lot in grows into a big garden. Empty slots show as bare soil.
+right and round the landmark at its head, and a full bed carries on in the plot's next cell,
+so a repo you've done a lot in grows into a big garden. Empty slots show as bare soil. Nothing is
+planted behind the landmark while the garden still has open ground, so it never hides a flower.
 
 There are 50 kinds of flower, and the kind says what the work was, read from the thread's title
 and first prompt: daisies for bug fixes, tulips for features, lavender for docs, sunflowers for
@@ -181,9 +182,10 @@ is walkable, so villagers stroll among the flowers rather than queueing in front
 
 ### Landmarks
 
-In the middle of every garden stands what the work in that repo has raised. It starts as a
+At the head of every garden stands what the work in that repo has raised. It starts as a
 campfire and climbs, a tier at a time, to a well, a market cross, a chapel, a town hall and a
-keep. When a repo reaches the next tier the new one goes up in front of you, foundations first,
+keep. **Settings → Landmarks stand** moves them all to the middle of the garden or to its foot.
+When a repo reaches the next tier the new one goes up in front of you, foundations first,
 and everybody on the plot gets confetti. Each tier also brings something to the plot's fence
 line: a lamp, then a bench, planters at the corners, a rose arch over the gate, and a second lamp.
 
@@ -212,7 +214,7 @@ from and how far it is to the next. A chapel or a town hall is built of the plot
 roofs, and flies the plot's colour; its windows light after dark and a campfire burns while
 somebody on the plot is working or waiting on you, as a chimney smokes.
 
-![A repo's plot close up with its town hall in the middle of the garden, a lamp, a bench, planters and a rose arch round it, and its panel listing the points: sixteen finished threads, twenty-one sessions, 7.7 MB of transcripts and 21,900 lines of code](docs/screenshots/landmark.png)
+![A repo's plot close up with its town hall at the head of the garden, a lamp, a bench, planters and a rose arch round it, and its panel listing the points: sixteen finished threads, twenty-one sessions, 7.7 MB of transcripts and 21,900 lines of code](docs/screenshots/landmark.png)
 
 ### Pull requests
 

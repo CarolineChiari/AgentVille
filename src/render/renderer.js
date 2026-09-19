@@ -353,7 +353,7 @@ export class Canvas2dRenderer {
   }
 
   /**
-   * A plot's landmark in the middle of its field, drawn in the plot's theme, as tall as its tier.
+   * A plot's landmark standing in its field, drawn in the plot's theme, as tall as its tier.
    * Its windows light after dark while somebody on the plot is in; a campfire burns while they are.
    */
   _drawLandmark(l, night, time) {

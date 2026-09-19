@@ -33,7 +33,7 @@ Write down, before any code:
   setting-out yard. Whatever it becomes (pumpkins, lanterns, crystals) must keep what a flower
   says: one look per kind of work (`work` in FLOWER_KINDS), the cloth or petal colour it's given,
   white for an unlabeled PR, a bud for an open PR, and a sprout. Name it in `finished` (see step 2).
-- **Its landmark.** Every plot raises one in the middle of its field as work lands in it, six
+- **Its landmark.** Every plot raises one in its field as work lands in it, six
   tiers from small to grand (the village: a campfire to a keep; the site: a survey peg to a
   topped-out tower), and each tier brings a lamp, a bench, planters, a gateway, another lamp to
   its fence line. A theme may draw its own or leave the village's standing. If it draws them,

@@ -26,9 +26,9 @@
  *           One notice board per plot with open issues, one note per issue. (tx, ty) is its tile;
  *           (x, y) the bottom centre of that tile. A board shows at most a handful of notes; `count` is all of them.
  * @property {{ id: string, plot: string, tier: number, stage: number, progress: number, variant: number, x: number, y: number, w: number, h: number, style: PlotStyle, accent: number, lit: boolean, selected: boolean, hovered: boolean }[]} landmarks
- *           One per plot, standing in the middle of its field: what the work done in that repo has
- *           raised (see progress.js). `tier` 0 is the smallest; it goes up through `stage` 0 to 3
- *           like a building, whenever its tier rises. `lit` means what a lit window does.
+ *           One per plot, standing in its field where the village stands them: what the work done
+ *           in that repo has raised (see progress.js). `tier` 0 is the smallest; it goes up
+ *           through `stage` 0 to 3 like a building, whenever its tier rises. `lit` means what a lit window does.
  * @property {{ kind: 'spark'|'confetti'|'z', x: number, y: number, age: number, life: number, seed: number }[]} effects
  *
  * @typedef {object} PlotStyle  A repo's look (see style.js): indices, not colours.

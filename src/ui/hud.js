@@ -5,8 +5,9 @@ import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
-import { THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
+import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
 import { TIER_AT } from '../sim/progress.js'
+import { landmarkSpotOf } from '../sim/shape.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -18,6 +19,9 @@ const COUNT_KEYS = [
   ['idle', 'Idle'],
   ['sleeping', 'Asleep'],
 ]
+
+/** Where a plot can stand its landmark in its field, as the settings put it; the ids are shape.js's. */
+const SPOT_LABELS = [['top', 'At the head'], ['middle', 'In the middle'], ['bottom', 'At the foot']]
 
 /** Tooltips for the counts that aren't a villager's status. */
 const COUNT_TITLE = { openPrs: 'Open pull requests', openIssues: 'Open issues on the notice boards' }
@@ -199,11 +203,15 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       const s = settings
       const theme = village.theme
       const every = s.subthemes?.[theme] || ''
+      const spot = landmarkSpotOf(s.landmarkSpot)
+      const place = finishedWords(theme).place
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Theme
           <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
         <label title="Every folder that hasn't picked a look of its own, from its panel">Every folder
           <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
+        <label title="Where every plot stands the ${esc(landmarkWords(theme).one)} its work has raised. At the head of the ${esc(place)} it hides none of the ${esc(finishedWords(theme).many)} growing there.">Landmarks stand
+          <select data-set="landmarkSpot">${SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === spot ? 'selected' : ''}>${esc(`${label} of the ${place}`)}</option>`).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>

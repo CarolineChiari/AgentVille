@@ -10,13 +10,16 @@
 // while anything else is free, so a repo that comes back usually finds its own ground waiting.
 import { GATE_CELL, MAX_CELLS, MAX_RING } from './constants.js'
 import { key, ringOf, spiralCells } from './grid.js'
-import { capacityOf, isRect, rectOf } from './shape.js'
+import { DEFAULT_SPOT, capacityOf, isRect, rectOf } from './shape.js'
 
 export const MEMORY_LIMIT = 80
 
-/** Does a plot of w×h cells hold this many live threads' houses and finished threads' flowers? */
-export function fits(w, h, threads, flowers = 0) {
-  const c = capacityOf(w, h)
+/**
+ * Does a plot of w×h cells hold this many live threads' houses and finished threads' flowers?
+ * `spot` is where the village stands its landmarks: it is in the field, so it costs a few flowers.
+ */
+export function fits(w, h, threads, flowers = 0, spot = DEFAULT_SPOT) {
+  const c = capacityOf(w, h, spot)
   return c.slots >= threads && c.flowers >= flowers
 }
 
@@ -29,7 +32,7 @@ export const SHRINK_SLACK = 2
  * Keep the smallest of those that would still fit SHRINK_SLACK more threads, or else the largest.
  * A plot remembered from before plots were rectangles keeps its largest rectangular prefix.
  */
-function held(before, isFree, p) {
+function held(before, isFree, p, spot) {
   const shapes = []
   for (let n = 1; n <= before.length; n++) {
     if (!isFree(...before[n - 1])) break
@@ -37,7 +40,7 @@ function held(before, isFree, p) {
   }
   const roomy = shapes.find((n) => {
     const { w, h } = rectOf(before.slice(0, n))
-    return fits(w, h, p.size + SHRINK_SLACK, p.garden)
+    return fits(w, h, p.size + SHRINK_SLACK, p.garden, spot)
   })
   return before.slice(0, roomy ?? shapes[shapes.length - 1] ?? 0)
 }
@@ -60,9 +63,10 @@ function sidesOf({ cx, cy, w, h }) {
 /**
  * @param {{ name: string, size: number, garden?: number }[]} projects  size = live threads, garden = flowers
  * @param {Map<string, number[][]>} [previous]  name → cells, cells[0] is the root
+ * @param {string} [spot]  where landmarks stand in their fields; see shape.js
  * @returns {{ cells: Map<string, number[][]>, memory: Map<string, number[][]> }}
  */
-export function allocatePlots(projects, previous = new Map()) {
+export function allocatePlots(projects, previous = new Map(), spot = DEFAULT_SPOT) {
   const order = [...projects].sort((a, b) => b.size - a.size || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   const present = new Set(order.map((p) => p.name))
   const taken = new Map() // cell key → name
@@ -86,7 +90,7 @@ export function allocatePlots(projects, previous = new Map()) {
       fresh.push(p)
       continue
     }
-    for (const c of held(before, isFree, p)) claim(p.name, ...c)
+    for (const c of held(before, isFree, p, spot)) claim(p.name, ...c)
   }
 
   // Seed: new repos take the innermost free cell, preferring ground nobody remembers.
@@ -103,7 +107,7 @@ export function allocatePlots(projects, previous = new Map()) {
     if (!cells.length) continue
     for (;;) {
       const r = rectOf(cells)
-      if (fits(r.w, r.h, p.size, p.garden)) break
+      if (fits(r.w, r.h, p.size, p.garden, spot)) break
       let best = null
       let bestScore = Infinity
       sidesOf(r).forEach((side, dir) => {

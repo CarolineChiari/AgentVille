@@ -5,6 +5,7 @@ import { key, ringOf } from './grid.js'
 import { allocatePlots } from './layout.js'
 import { Nav } from './nav.js'
 import { DECO, Plot, TILE } from './plot.js'
+import { DEFAULT_SPOT, landmarkSpotOf } from './shape.js'
 import { Building } from './building.js'
 import { CHEER_EVERY, Landmark } from './landmark.js'
 import { Villager } from './villager.js'
@@ -75,6 +76,7 @@ export class World {
     this.theme = DEFAULT_THEME
     this.picks = new Map() // plot name → the look its folder picked: { theme, sub }, of any theme
     this.everywhere = null // the sub-theme of `theme` every folder without a pick of its own wears, if any
+    this.spot = DEFAULT_SPOT // where every plot stands its landmark in its field
     this._rebuild()
   }
 
@@ -97,6 +99,25 @@ export class World {
     for (const p of this.plots.values()) if (p.restyle(this._styleFor(p.name))) dirty = true
     if (dirty) this._rebuild()
     return dirty
+  }
+
+  /**
+   * Stand every plot's landmark at `spot` in its field (see shape.js). The field is laid out round
+   * it, so this moves the flowers in it too; the next roster puts them back in their new places.
+   * @param {string} spot  one of LANDMARK_SPOTS
+   * @returns {boolean} whether anything moved
+   */
+  setLandmarkSpot(spot) {
+    const next = landmarkSpotOf(spot)
+    if (next === this.spot) return false
+    this.spot = next
+    for (const [name, plot] of this.plots) {
+      plot.setSpot(next)
+      const { x, y } = plot.landmarkRect
+      this.landmarks.get(name)?.place(x, y)
+    }
+    this._rebuild()
+    return true
   }
 
   /** A folder's style: in the look it picked, else in the village's theme as the sub-theme it's handed. */
@@ -140,7 +161,7 @@ export class World {
     // A repo whose threads are all finished still has its garden, so it keeps its plot.
     const names = new Set([...groups.keys(), ...[...gardens].filter(([, f]) => f.length).map(([n]) => n)])
     const projects = [...names].map((name) => ({ name, size: groups.get(name)?.length ?? 0, garden: gardens.get(name)?.length ?? 0 }))
-    const { cells, memory: nextMemory } = allocatePlots(projects, this.memory)
+    const { cells, memory: nextMemory } = allocatePlots(projects, this.memory, this.spot)
     this.memory = nextMemory
 
     // Plots.
@@ -154,7 +175,7 @@ export class World {
     for (const [name, c] of cells) {
       let plot = this.plots.get(name)
       if (!plot) {
-        plot = new Plot(name, this._accentFor(name), this._styleFor(name))
+        plot = new Plot(name, this._accentFor(name), this._styleFor(name), this.spot)
         this.plots.set(name, plot)
       }
       if (plot.setCells(c)) dirty = true
@@ -197,8 +218,8 @@ export class World {
     if (where(nextBoards) !== where(this.boards)) dirty = true
     this.boards = nextBoards
 
-    // Landmarks: one in the middle of every plot's field. One present at load is already standing;
-    // a new plot's goes up from the ground, and so does one whose tier has just risen.
+    // Landmarks: one in every plot's field, where the village stands them. One present at load is
+    // already standing; a new plot's goes up from the ground, and so does one whose tier has risen.
     for (const name of [...this.landmarks.keys()]) if (!this.plots.has(name)) this.landmarks.delete(name)
     for (const [name, plot] of this.plots) {
       let lm = this.landmarks.get(name)

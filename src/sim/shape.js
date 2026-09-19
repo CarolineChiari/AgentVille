@@ -8,8 +8,8 @@
 //   _ . . . . . . . . . . _     the top walkway: every top house's door opens onto it
 //   . F H H # # # # H H F .     #  the field; side houses stand either side of it
 //   . F H H # # # # H H F .
-//   . F . . # L L # . . F .     L  the landmark, standing in the field; finished work
-//   . F . . # L L # . . F .        grows all round it
+//   . F . . # L L # . . F .     L  the landmark: at the head of the field where the field is
+//   . F . . # L L # . . F .        deep enough, here pushed down by a shallow one; work grows round it
 //   _ . . B . . . . . . . _     the bottom walkway; B the notice board
 //   . F F F _ F F _ F F F .
 //   R R R R R R R R R R R R
@@ -30,6 +30,21 @@ export const LANDMARK_H = 2
  * houses' doors are, and of whoever stands at them.
  */
 const LANDMARK_CLEAR = 2
+/**
+ * The band above the landmark's footprint its sprite fills, in tiles: the tallest tier is 72 px
+ * (LANDMARK_HEIGHTS in src/render/sprites/landmarks.js), of which two rows stand on the footprint,
+ * plus the 2 px a flower's sprite hangs below its own spot. A flower whose spot is in that band,
+ * in the two columns the landmark is wide, stands behind it and is hidden by it.
+ */
+const LANDMARK_RISE = (72 - LANDMARK_H * PX + 2) / PX
+/**
+ * Where a landmark stands in its field. At its head by default: the strip it can hide is then the
+ * one between it and the top walkway, and the field grows away from it, in front of it.
+ */
+export const LANDMARK_SPOTS = ['top', 'middle', 'bottom']
+export const DEFAULT_SPOT = LANDMARK_SPOTS[0]
+/** A spot, if it is one of ours: a saved setting is not to be trusted. */
+export const landmarkSpotOf = (spot) => (typeof spot === 'string' && LANDMARK_SPOTS.includes(spot) ? spot : DEFAULT_SPOT)
 /**
  * Columns of the top and bottom fence left open, in each cell. They land on the paths between
  * top-row houses (columns 4, 7, 10, … of the plot), so a gap never opens onto a wall.
@@ -61,8 +76,9 @@ export function isRect(cells) {
 /**
  * The courtyard of a rectangle of cells, in world tiles.
  * @param {{ cx: number, cy: number, w: number, h: number }} rect  in cells
+ * @param {string} [spot] where its landmark stands in the field; one of LANDMARK_SPOTS
  */
-export function shapeOf({ cx, cy, w, h }) {
+export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
   const x0 = cx * CELL_TILES
   const y0 = cy * CELL_TILES
   const W = w * CELL_TILES
@@ -92,26 +108,35 @@ export function shapeOf({ cx, cy, w, h }) {
     cols: Math.floor((bed.w * PX) / FLOWER_PITCH),
     rows: Math.floor((bed.h * PX - FLOWER_TOP) / FLOWER_PITCH),
   }
-  // The landmark: across the middle of the field, and as near its middle going down as leaves the
-  // top walkway clear of its tallest tier.
-  const mid = bed.y + Math.floor((bed.h - LANDMARK_H) / 2)
+  // The landmark: across the middle of the field, and as far down it as `spot` asks, but never so
+  // near the top walkway that its tallest tier reaches the doorsteps above. A field too shallow
+  // for the spot asked takes the lowest row that fits, so the walkway always wins.
+  const down = { top: LANDMARK_CLEAR, middle: Math.floor((bed.h - LANDMARK_H) / 2), bottom: bed.h - LANDMARK_H }
   const landmark = {
     x: bed.x + Math.floor((bed.w - LANDMARK_W) / 2),
-    y: Math.min(bed.y + bed.h - LANDMARK_H, Math.max(bed.y + LANDMARK_CLEAR, mid)),
+    y: Math.min(bed.y + bed.h - LANDMARK_H, Math.max(bed.y + LANDMARK_CLEAR, bed.y + down[landmarkSpotOf(spot)])),
     w: LANDMARK_W,
     h: LANDMARK_H,
   }
   // Every spot in the field a flower can stand, in the order they fill: a row at a time, left to
-  // right, skipping those on the landmark's footprint.
+  // right. None on the landmark's footprint, and the ones in the band its tallest tier rises
+  // through come last, so nothing is planted out of sight behind it while the field has open ground.
   const spots = []
+  const behind = []
   for (let row = 0; row < flowers.rows; row++) {
     for (let col = 0; col < flowers.cols; col++) {
       const x = bed.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / PX
       const y = bed.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / PX
-      const on = x >= landmark.x && x < landmark.x + landmark.w && y >= landmark.y && y < landmark.y + landmark.h
-      if (!on) spots.push({ x, y, row })
+      const under = x >= landmark.x && x < landmark.x + landmark.w
+      if (under && y >= landmark.y && y < landmark.y + landmark.h) continue
+      ;(under && y > landmark.y - LANDMARK_RISE && y < landmark.y ? behind : spots).push({ x, y, row })
     }
   }
+  spots.push(...behind)
+  // How deep the field is worked once each spot is taken: not its own row, since the spots kept
+  // for last are back up the field, on ground ploughed long before.
+  let deep = 0
+  for (const s of spots) s.deep = deep = Math.max(deep, s.row)
   return {
     x0, y0, w: W, h: H, yard, walkTop, walkBottom, bed, slots, flowers, landmark, spots,
     // On the bottom walkway, one in from the corner: column x0+2 sits right inside the side gap.
@@ -121,11 +146,11 @@ export function shapeOf({ cx, cy, w, h }) {
 }
 
 const capacities = new Map()
-/** How many houses and flowers a plot of w×h cells holds. */
-export function capacityOf(w, h) {
-  const k = `${w}x${h}`
+/** How many houses and flowers a plot of w×h cells holds, its landmark standing at `spot`. */
+export function capacityOf(w, h, spot = DEFAULT_SPOT) {
+  const k = `${w}x${h}:${landmarkSpotOf(spot)}`
   if (!capacities.has(k)) {
-    const s = shapeOf({ cx: 0, cy: 0, w, h })
+    const s = shapeOf({ cx: 0, cy: 0, w, h }, spot)
     capacities.set(k, { slots: s.slots.length, flowers: s.spots.length })
   }
   return capacities.get(k)
@@ -147,7 +172,7 @@ export function flowerAt(shape, i) {
 export function tilledRows(shape, n) {
   const { bed, flowers, spots } = shape
   const filled = Math.min(n, spots.length)
-  const rows = filled > 0 ? Math.min(flowers.rows, spots[filled - 1].row + 2) : 1
+  const rows = filled > 0 ? Math.min(flowers.rows, spots[filled - 1].deep + 2) : 1
   const last = rows - 1
   return Math.min(bed.h, Math.floor((FLOWER_TOP + last * FLOWER_PITCH + FLOWER_PITCH - 1) / PX) + 1)
 }
