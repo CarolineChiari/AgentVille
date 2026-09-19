@@ -15,7 +15,8 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   under `node --test`. It produces a `Frame` (`src/sim/frame.js`); a renderer draws it.
 - `src/render/` — the Canvas 2D renderer and the procedural sprite generators. `src/render/themes/`
   holds each theme's pack: how that theme draws.
-- `tools/` — dev tools run under Node, never shipped: `npm run sheet` draws a theme's contact sheet.
+- `tools/` — dev tools run under Node, never shipped: `npm run sheet` draws a theme's contact sheet;
+  `npm run shots` retakes the README's screenshots, `docs/screenshots/`, from the demo village.
 - `src/game/` — API client, state merge, orchestration. `src/ui/` — plain DOM HUD.
 - `test/` — `node:test`, one file per module: `test/<module>.test.mjs`.
 
@@ -54,6 +55,8 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   before they reach a URL or a command.
 - Non-obvious constants get a comment saying *why*, especially why the obvious value was wrong.
 - Pure logic lives in modules that import nothing from the DOM so it can be unit-tested.
+- The repo is public. Screenshots, fixtures and docs never show a real village, repo, path or
+  transcript: screenshots come from `?demo` through `npm run shots`, fixtures use `/Users/me`.
 - Run `npm test` before finishing a change.
 - Every commit bumps the minor version: `npm version --no-git-tag-version minor`, and commit
   `package.json` and `package-lock.json` with it. CI releases each new version pushed to main.

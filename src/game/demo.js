@@ -42,6 +42,8 @@ export function demoThreads(now = Date.now()) {
         lastFocusedAt: 0,
         running: roll < 3,
         unread: roll === 3 || roll === 4,
+        // Roll 4 is stopped on you, so the demo shows the `?` it is all for.
+        needsInput: roll === 4 ? (n % 2 ? 'question' : 'permission prompt') : '',
         hasError: roll === 5,
         prState: roll === 6 ? 'MERGED' : '',
         archived: false,

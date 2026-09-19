@@ -1,0 +1,26 @@
+# Keeps the pinned actions in build.yml and the dev dependencies current, one grouped PR each a
+# month. Security fixes don't wait for the month: Dependabot security updates open those as soon
+# as an advisory is published.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # A week before offering a new release, so a compromised one has time to be caught and pulled.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      dev-dependencies:
+        patterns: ['*']
+        update-types: [minor, patch]

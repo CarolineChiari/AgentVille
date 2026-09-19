@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -18,7 +18,8 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "app": "vite build && electron .",
     "dist": "vite build && electron-builder --publish never",
-    "sheet": "node tools/sheet.mjs"
+    "sheet": "node tools/sheet.mjs",
+    "shots": "node tools/shots.mjs"
   },
   "devDependencies": {
     "electron": "^44.4.2",
@@ -28,6 +29,7 @@
   "build": {
     "appId": "dev.agentville.app",
     "productName": "AgentVille",
+    "copyright": "Copyright © 2026 Caroline Chiari",
     "directories": {
       "output": "release"
     },

@@ -1,5 +1,11 @@
 # AgentVille
 
+[![Build](https://github.com/CarolineChiari/AgentVille/actions/workflows/build.yml/badge.svg)](https://github.com/CarolineChiari/AgentVille/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/CarolineChiari/AgentVille)](https://github.com/CarolineChiari/AgentVille/releases/latest)
+[![MIT licence](https://img.shields.io/github/license/CarolineChiari/AgentVille)](LICENSE)
+
+![The demo village: repo plots around the portal square, villagers at work, three of them holding up a ? because they need you, and the sidebar counting each state](docs/screenshots/village.png)
+
 Every Claude Code session on this machine is a villager in a small pixel-art village. Each repo
 you work in is a plot of land; each session is one villager building something on it. When a
 session is waiting on you the villager stops and holds a `?` over its head. Click it and the
@@ -75,6 +81,8 @@ Only files under your home directory, and only ever read.
 | A notice board below the garden | The repo's open GitHub issues, one pinned note each |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
 
+![A villager holding up a ? is selected: its card says it's asking you a question and offers Open in VS Code and Transcript, and the sidebar lists everything else going on in its repo](docs/screenshots/needs-you.png)
+
 Everything else is decoration, fixed per repo and per session so each stays recognisable: a
 repo's fence, lawn, building materials and roof colours; each session's house or other building
 and its villager's clothes; and the countryside of meadows, groves, rocks, orchards and ponds
@@ -96,6 +104,8 @@ puts them all in one. Mix and match with **Look** in a folder's panel: it can we
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
 the village's theme becomes. What a building means (who's working, who needs you, what has
 bloomed) is the same in every theme.
+
+![The same demo village as a construction site: fenced plots of bare earth, a tower crane and a timber frame going up, villagers in hard hats, and rows of survey flags where the gardens were](docs/screenshots/construction.png)
 
 ### Transcripts and new sessions
 
@@ -181,6 +191,8 @@ Issues are fetched with `gh issue list` at most every ten minutes, one `gh` at a
 the PRs, and cached in `data/issues.json`. A board only goes up on a plot that is already on the
 map.
 
+![A repo's notice board selected: its card lists five open issues, each with Open, Send and Recruit, and a menu to pick which villager to send one to](docs/screenshots/issues.png)
+
 ## Keys
 
 | Key | Does |
@@ -198,7 +210,7 @@ map.
 
 ## Your own art
 
-Every sprite is drawn in code at boot, so the repository ships no images. To replace one with
+Every sprite is drawn in code at boot, so the app ships no images. To replace one with
 a hand-drawn sheet, drop a PNG in `public/sprites/` and name it in `public/sprites/manifest.json`:
 
 ```json
@@ -217,12 +229,26 @@ it up as the `new-theme` skill). `npm run sheet -- <theme>` draws every sprite o
 sample plot in each of its sub-themes, into `data/sheets/<theme>.png`; `?demo&theme=<theme>&sub=<sub-theme>`
 shows it in the app without changing your settings.
 
+The screenshots in this README are the demo village, never a real one. `npm run shots` takes
+them again into `docs/screenshots/`, in headless Chrome, Chromium or Edge (`CHROME=/path` picks
+another browser).
+
 ## Keeping it local
 
 The server binds `127.0.0.1`, refuses requests whose `Host` is not local (DNS rebinding), and
 refuses state-changing requests without a local `Origin` (cross-site POST). A bare `curl` POST
 needs `-H 'Origin: http://localhost:5274'`.
 
+Found a way around any of that? Please report it privately, as [SECURITY.md](SECURITY.md)
+describes, rather than in a public issue.
+
+## Credits
+
+AgentVille was inspired by [Bot Crossing](https://github.com/Station-Sciences/bot-crossing) by
+Jarren Rocks ([botcrossing.com](https://botcrossing.com)), which turns your coding-agent threads
+into a colony of little bots building on their repos' plots. AgentVille is a separate project,
+and isn't affiliated with or endorsed by Bot Crossing.
+
 ## Licence
 
-MIT.
+MIT. Copyright © 2026 Caroline Chiari; see [LICENSE](LICENSE).
