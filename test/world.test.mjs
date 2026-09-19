@@ -412,3 +412,31 @@ test('a building wears whatever its thread\'s roster says, and changes the momen
   w.setRoster([T('t1', 'a', 'idle', { wear: 2 }), T('t2', 'a', 'working', { wear: 0 }), T('t3', 'a')])
   assert.deepEqual(wear(), { t1: 2, t2: 0, t3: 1 })
 })
+
+test('a new theme restyles every plot and repaints the ground; a folder\'s pick and the village\'s both count', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'b')])
+  const before = w.map.version
+  assert.equal(w.snapshot().theme, 'village')
+  assert.deepEqual(w.plots.get('a').style, plotStyle('a'))
+  assert.equal(w.setTheme('village'), false, 'the same theme again changes nothing')
+  assert.equal(w.map.version, before)
+
+  assert.equal(w.setTheme('construction', new Map([['a', 'roadworks']]), 'high-rise'), true)
+  assert.ok(w.map.version > before, 'the ground was repainted')
+  const snap = w.snapshot()
+  assert.equal(snap.theme, 'construction')
+  assert.equal(snap.plots.find((p) => p.name === 'a').style.sub, 'roadworks')
+  assert.equal(snap.plots.find((p) => p.name === 'b').style.sub, 'high-rise')
+  for (const b of snap.buildings) assert.equal(b.style.theme, 'construction')
+
+  // A plot that turns up later is dressed like the rest.
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'b'), T('t3', 'c')])
+  assert.equal(w.plots.get('c').style.sub, 'high-rise')
+  // Nobody's hat is a hard hat in the village, and everybody's is on site.
+  run(w, 25)
+  const hats = (s) => s.villagers.map((v) => v.look.hat)
+  assert.ok(hats(w.snapshot()).every((h) => h === 5))
+  w.setTheme('village')
+  assert.ok(hats(w.snapshot()).every((h) => h !== 5))
+})

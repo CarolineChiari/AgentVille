@@ -13,9 +13,26 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   sandboxed window on it. Pure decisions go in `electron/env.mjs`, which imports nothing from Electron.
 - `src/sim/` — renderer-agnostic simulation in tile units. **No DOM, no canvas**, so it runs
   under `node --test`. It produces a `Frame` (`src/sim/frame.js`); a renderer draws it.
-- `src/render/` — the Canvas 2D renderer and the procedural sprite generators.
+- `src/render/` — the Canvas 2D renderer and the procedural sprite generators. `src/render/themes/`
+  holds each theme's pack: how that theme draws.
+- `tools/` — dev tools run under Node, never shipped: `npm run sheet` draws a theme's contact sheet.
 - `src/game/` — API client, state merge, orchestration. `src/ui/` — plain DOM HUD.
 - `test/` — `node:test`, one file per module: `test/<module>.test.mjs`.
+
+## Themes
+
+- A theme is the whole village's look; a sub-theme is one folder's take on it. Ids, labels, each
+  theme's `dims` (its fences, grounds, walls and paint) and each sub-theme's recipe live in
+  `src/sim/themes.js`; a plot's style is drawn from its recipe in `src/sim/style.js`. How a theme
+  looks is its pack, `src/render/themes/<id>/`, registered in `src/render/themes/index.js`. A pack
+  draws only what makes the theme itself; whatever it passes on is drawn the village's way.
+- Style numbers a pack gets are indices into its own theme's dims. Only ever append to a theme's
+  dims, sub-themes and `auto` list, and to HATS and TOPS: every folder's and villager's look is
+  picked from them. The village's Patchwork must keep picking exactly what repos had before themes.
+- A theme changes how things look, never what they mean: status badges, the selection ring, PR
+  flowers' colours and buds, lit windows and smoke keep their meaning in every theme.
+- `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules. To make a new
+  theme, follow the `new-theme` skill in `.claude/skills/new-theme/`.
 
 ## Rules
 

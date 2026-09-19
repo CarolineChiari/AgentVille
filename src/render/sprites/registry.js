@@ -19,17 +19,23 @@
 //         fx.pigeon.<w|e>               (frames: standing, pecking, two of flight)
 //         static.<sprite>.<variant> takes a frame too, for the fountain's water
 //         tile.square.<y * 12 + x>      (one tile of the arrival square's floor)
+//
+// Any sprite's params may carry `theme`, a theme id. Its pack (src/render/themes/) gets the first
+// look at the request and draws it its own way, or passes it on to the village's generators here.
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
+import { PACKS } from '../themes/index.js'
 
 const memo = new Map()
 const overrides = new Map() // name → canvas[] (one per frame)
 
 /** The sprite's pixels, freshly drawn. Exported so tests can look at every sprite without a DOM. */
 export function generate(name, frame, p) {
+  const own = p.theme ? PACKS[p.theme]?.sprite?.(name, frame, p) : null
+  if (own) return own
   const [group, a, b] = name.split('.')
   switch (group) {
     case 'villager':

@@ -5,6 +5,7 @@ import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
+import { THEMES, THEME_IDS } from '../sim/themes.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -50,10 +51,21 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   root.append(side, sheet, hint)
   const open = { archived: false, hidden: true, folded: false }
   let sheetMode = null
+  let stale = false
 
   const folderWord = () => (village.platform === 'win32' ? 'Explorer' : village.platform === 'darwin' ? 'Finder' : 'Folder')
 
+  /** A sub-theme choice as an option, its blurb as the tooltip. */
+  const subOption = (s, selected) => `<option value="${esc(s.id)}" title="${esc(s.blurb)}" ${selected ? 'selected' : ''}>${esc(s.label)}</option>`
+  const subLabel = (theme, id) => THEMES[theme].subthemes.find((s) => s.id === id)?.label || id
+
   function render() {
+    // Replacing the sidebar under an open dropdown would shut it; catch up once it's let go.
+    if (side.querySelector('select:focus')) {
+      stale = true
+      return
+    }
+    stale = false
     const counts = { ...village.counts(), openPrs: village.openPrs().length, openIssues: village.openIssues().length }
     const repos = village.repos()
     const { folded, hidden, archived } = village.view
@@ -124,9 +136,20 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
         <button class="btn" data-act="hide">Hide</button>
       </div>
+      ${look(r.name)}
       ${r.flowers ? `<div class="garden-note">✿ ${r.flowers} finished — click a flower in the garden to look back</div>` : ''}
       <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
     </div>`
+  }
+
+  /** A folder's pick of sub-theme: its own, or whatever it's handed. */
+  function look(name) {
+    const theme = village.theme
+    const { subthemes } = THEMES[theme]
+    if (subthemes.length < 2) return ''
+    const pick = village.subthemePick(name)
+    return `<label class="look" title="How this folder's plot looks in the ${esc(THEMES[theme].label.toLowerCase())}">Look
+      <select data-subtheme="${esc(name)}"><option value="" ${pick ? '' : 'selected'}>Auto: ${esc(subLabel(theme, village.subthemeHanded(name)))}</option>${subthemes.map((s) => subOption(s, s.id === pick)).join('')}</select></label>`
   }
 
   function renderSheet() {
@@ -135,7 +158,13 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
     } else {
       const s = settings
+      const theme = village.theme
+      const every = s.subthemes?.[theme] || ''
       sheet.innerHTML = `<h2>Settings</h2>
+        <label>Theme
+          <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
+        <label title="A folder can still pick its own look from its panel">Every folder
+          <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
@@ -210,9 +239,21 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   sheet.addEventListener('input', (e) => {
     const k = e.target.dataset.set
     if (!k) return
-    settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
+    // The whole village's sub-theme is kept per theme, so switching themes back finds it again.
+    if (k === 'everywhere') settings.subthemes = { ...settings.subthemes, [village.theme]: e.target.value }
+    else settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
     onSettings(k)
     renderSheet()
+  })
+
+  side.addEventListener('change', (e) => {
+    const name = e.target.dataset?.subtheme
+    if (name === undefined) return
+    e.target.blur()
+    village.setSubtheme(name, e.target.value)
+  })
+  side.addEventListener('focusout', (e) => {
+    if (stale && e.target.tagName === 'SELECT') requestAnimationFrame(render)
   })
 
   return { render, showSheet, get sheetOpen() { return Boolean(sheetMode) }, closeSheet: () => sheetMode && showSheet(sheetMode) }

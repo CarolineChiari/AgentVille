@@ -6,6 +6,7 @@
  *
  * @typedef {object} Frame
  * @property {number} time
+ * @property {string} theme  the village's theme, an id from src/sim/themes.js; every style below is in it
  * @property {{ ox: number, oy: number, w: number, h: number, tiles: Uint8Array, deco: Uint8Array, version: number, tileAt: (x: number, y: number) => number, decoAt: (x: number, y: number) => number }} map
  * @property {{ x: number, y: number }} gate
  * @property {{ name: string, accent: number, style: PlotStyle, cells: number[][], labelAt: {x:number,y:number}, urgent: boolean, active: boolean }[]} plots
@@ -26,10 +27,12 @@
  * @property {{ kind: 'spark'|'confetti'|'z', x: number, y: number, age: number, life: number, seed: number }[]} effects
  *
  * @typedef {object} PlotStyle  A repo's look (see style.js): indices, not colours.
- * @property {number} fence  into FENCES
- * @property {number} yard   lawn tone
- * @property {number} wall   into WALLS, the material its houses prefer
- * @property {number} roofs  the family of roof colours its houses share
+ * @property {string} theme  its theme's id (see themes.js), which the indices below belong to
+ * @property {string} sub    the sub-theme it wears
+ * @property {number} fence  into its theme's fences
+ * @property {number} yard   into its theme's grounds: in the village, the lawn's tone
+ * @property {number} wall   into its theme's walls, the material its buildings prefer
+ * @property {number} roofs  the family of roof (or paint) colours its buildings share
  *
  * @typedef {object} Renderer
  * @property {(frame: Frame) => void} render

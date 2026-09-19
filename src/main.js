@@ -23,7 +23,10 @@ const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send m
 
 const canvas = document.getElementById('world')
 const hudRoot = document.getElementById('hud')
-const demo = new URLSearchParams(location.search).has('demo')
+const query = new URLSearchParams(location.search)
+const demo = query.has('demo')
+/** ?theme=<id>&sub=<id>: look at a theme, and one sub-theme on every folder, without saving either. */
+const preview = query.get('theme') ? { theme: query.get('theme'), sub: query.get('sub') } : null
 
 const settings = loadSettings()
 const toast = createToasts(hudRoot)
@@ -41,7 +44,7 @@ const notices = createNotices({
     fly({ villager: id })
   },
 })
-const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show })
+const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, preview })
 const transcript = createTranscript(hudRoot, village)
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
@@ -60,8 +63,11 @@ const hud = createHud(hudRoot, {
   canNotify: notices.supported,
   onSettings(key) {
     if (key === 'notify' && settings.notify) enableNotices()
+    // Choosing a theme ends a preview of one.
+    if (key === 'theme' || key === 'everywhere') village.preview = null
     saveSettings(settings)
     village.apply()
+    applyTheme()
     if (settings.prGardens) village.pollPrs()
     if (settings.issueBoards) village.pollIssues()
   },
@@ -111,6 +117,11 @@ function fly(target) {
 function home() {
   camera.scale = camera.defaultScale()
   camera.flyTo(world.gate.x * TILE_PX, world.gate.y * TILE_PX)
+}
+
+/** The page's own nod to the village's theme; see styles.css. */
+function applyTheme() {
+  document.body.dataset.theme = village.theme
 }
 
 function applyUiVisible() {
@@ -287,6 +298,7 @@ function loop(now) {
 async function boot() {
   renderer.resize()
   applyUiVisible()
+  applyTheme()
   addEventListener('resize', () => {
     renderer.resize()
     applyUiVisible()

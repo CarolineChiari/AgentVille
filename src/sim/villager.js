@@ -10,10 +10,15 @@ const STUCK_REPATH = 1.2
 const STUCK_GHOST = 3
 const STUCK_TELEPORT = 6
 
-/** Hats, by `look.hat`: 0 is none. */
-export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow']
-/** What a villager wears over its shirt, by `look.top`. */
-export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest']
+/** Hats, by `look.hat`: 0 is none. Those after EVERYDAY_HATS are work gear a theme hands out. */
+export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow', 'hardhat']
+/**
+ * The hats a villager might pick for itself. Not HATS.length: the pick below is scaled by it, and
+ * letting the list grow would have changed the hat on every villager who wears one.
+ */
+const EVERYDAY_HATS = 5
+/** What a villager wears over its shirt, by `look.top`. After 'vest', a theme's work gear. */
+export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest', 'hivis']
 /** One more thing about a villager, by `look.extra`. */
 export const EXTRAS = ['none', 'glasses', 'beard', 'scarf', 'satchel']
 
@@ -47,8 +52,8 @@ export function lookFor(id) {
   }
   const [hatKind, bareHead, hatColor, shoe, top, extra, tall, hair, shirt, pants] = Array.from({ length: 10 }, r)
   // Whoever wore the straw hat wears a hat still, of any kind; a few more put one on.
-  if (look.hat) look.hat = 1 + Math.floor(hatKind * (HATS.length - 1))
-  else if (bareHead < 0.15) look.hat = 2 + Math.floor(hatKind * (HATS.length - 2))
+  if (look.hat) look.hat = 1 + Math.floor(hatKind * (EVERYDAY_HATS - 1))
+  else if (bareHead < 0.15) look.hat = 2 + Math.floor(hatKind * (EVERYDAY_HATS - 2))
   look.hatColor = Math.floor(hatColor * 10)
   look.shoe = Math.floor(shoe * 3)
   look.top = weighted(top, [8, 3, 3, 2, 4])

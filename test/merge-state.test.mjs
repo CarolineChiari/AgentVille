@@ -45,3 +45,8 @@ test('tasks added to different repos in two tabs both survive', () => {
   const out = mergeState(S({ tasks: {} }), S({ tasks: { a: t('c-a') } }), S({ tasks: { b: t('c-b') } }))
   assert.deepEqual(out.tasks, { a: t('c-a'), b: t('c-b') })
 })
+
+test('folders dressed in different tabs both keep their looks', () => {
+  const out = mergeState(S({ subthemes: {} }), S({ subthemes: { a: { construction: 'roadworks' } } }), S({ subthemes: { b: { construction: 'high-rise' } } }))
+  assert.deepEqual(out.subthemes, { a: { construction: 'roadworks' }, b: { construction: 'high-rise' } })
+})

@@ -15,10 +15,11 @@ export const DECO = {
 }
 
 export class Plot {
-  constructor(name, accent) {
+  /** `style` is its look in the village's theme (see style.js); the plain village one if not given. */
+  constructor(name, accent, style = plotStyle(name)) {
     this.name = name
     this.accent = accent
-    this.style = plotStyle(name)
+    this.style = style
     this.cells = []
     this.sig = ''
     this.shape = null
@@ -36,6 +37,13 @@ export class Plot {
       this.shape = shapeOf(rectOf(cells))
       this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
     }
+    return changed
+  }
+
+  /** Dress the plot in another style: a new theme, or another sub-theme. True if its look changed. */
+  restyle(style) {
+    const changed = Object.keys(style).some((k) => style[k] !== this.style[k])
+    this.style = style
     return changed
   }
 

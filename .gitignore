@@ -7,3 +7,4 @@ data/*.tmp
 .claude/settings.local.json
 data/launch/
 release
+data/sheets/

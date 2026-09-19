@@ -169,6 +169,85 @@ export const PALETTE = {
   highlight: '#ffffff', // under a hovered flower
   glitterGlow: '#ffe278', // the pulse under an open PR's bud
   labelInk: '#1c1624', // the halo round a plot's name
+
+  // ---------- the construction theme (src/render/themes/construction/) ----------
+  // Work gear. Hard hats are yellow for most, then white, orange, blue and green. Hi-vis yellow is
+  // a yellow-green, as the real thing is: a plain yellow vest read as a T-shirt.
+  hardHat: ['#f4c20d', '#f2efe6', '#f07a1f', '#3f78c8', '#4fa14a'],
+  hiVis: ['#d6ee2c', '#f4781c'], // yellow, orange
+  reflective: '#e4eaee', // the silver bands round a vest
+  // Site buildings and machines (construction/buildings.js).
+  // Machine paint: yellow, amber, orange, burnt orange, red, maroon, blue, navy, sky blue. A plot's
+  // machines, cabins and containers share a family of three (PAINT_FAMILIES there).
+  sitePaint: ['#f2b62a', '#d9921c', '#ea7428', '#c4581f', '#cc4136', '#96302e', '#3b72bf', '#2b4d8a', '#6d9fd8'],
+  cladWhite: '#dfe2dc', // a site cabin's white: greyer than paint, so it reads as sheet steel
+  concrete: '#bab7ae',
+  concreteDark: '#8f8c84',
+  concreteLight: '#d6d3ca',
+  steel: '#6f7c8c', // structural steel: bluer than the village's metal, so beams read as beams
+  steelDark: '#4a5462',
+  steelLight: '#9eabba',
+  osb: '#d9ae66', // oriented strand board, the sheathing on a timber frame
+  osbFleck: '#b3843f',
+  houseWrap: '#eef0f1',
+  wrapPrint: '#5f8fcc', // the maker's name printed along house-wrap
+  rebar: '#8a4e2f',
+  rust: '#a5552e',
+  rustDark: '#7b3d21',
+  tarp: '#3d7cc9',
+  rubber: '#3c3b42', // tracks and tyres: a grey dark enough to be rubber, lighter than the outline
+  // Site ground, roads and fences (construction/ground.js).
+  // A plot's ground by its yard tone: gravel, dirt, sand, a poured slab. Each is its base, shade,
+  // light and deepest colour; then the same in a dry patch and a damp one, one for one (see
+  // src/render/ground.js). Only the ground is drawn in these, or the patches would recolour it too.
+  siteGround: [
+    ['#a9a397', '#8f897d', '#c2bcb0', '#76716a'],
+    ['#a57a52', '#8c6443', '#b98f66', '#735037'],
+    ['#dcc38c', '#c9ad76', '#e9d5a4', '#b39460'],
+    ['#b8b7b0', '#a6a59e', '#c9c8c1', '#8e8d87'],
+  ],
+  siteGroundSunny: [
+    ['#b0aca2', '#969288', '#c9c5bb', '#7f7a73'],
+    ['#a98560', '#936f4e', '#ba9a77', '#7b5a41'],
+    ['#dcca9e', '#cab587', '#e9dbb6', '#b49d71'],
+    ['#c0bfba', '#aeada8', '#d1d0cb', '#969691'],
+  ],
+  siteGroundLush: [
+    ['#a09889', '#857d71', '#b9b1a2', '#6a655f'],
+    ['#996d47', '#805738', '#b68152', '#66432d'],
+    ['#dbb976', '#c7a261', '#e9cc8d', '#af884d'],
+    ['#aeaca3', '#9b9a92', '#bfbdb4', '#83827b'],
+  ],
+  asphalt: '#56585d',
+  asphaltLight: '#6a6c71', // the aggregate showing through
+  asphaltDark: '#48494e',
+  tarSeal: '#313135', // a crack or a patch's seam, sealed with tar
+  kerb: '#b1afa7',
+  roadPaint: '#c7c3b4', // a white line, faded
+  // Scaffold boards laid for a walkway: paler than the village's timber, and darker and redder
+  // than building sand, or a walkway across sand all but vanished.
+  plank: '#c2995c',
+  plankDark: '#936c3e',
+  plankLight: '#d8b476',
+  heras: '#cfd5da', // galvanised tube
+  herasDark: '#8d959d',
+  hoarding: '#3f6fb4',
+  hoardingDark: '#2d538c',
+  hoardingLight: '#5a88c8',
+  barrierRed: '#d8433a',
+  barrierRedDark: '#a5302a',
+  barrierRedLight: '#ee6d60',
+  safetyOrange: '#f36b1c',
+  safetyOrangeDark: '#c24e14',
+  puddle: '#6f8ba3',
+  puddleLight: '#a6bfd2', // the sky in it
+  hose: '#e0b22e',
+  hoseDark: '#b3861c',
+  pipe: '#c8683a', // plastic drainage pipe
+  pipeDark: '#9a4a26',
+  pipeLight: '#e39264', // the shine along its top
+  sack: '#d8cdb4',
+  sackDark: '#b0a488',
 }
 
 /** One per plot, picked by a hash of its name with collisions stepped past. */

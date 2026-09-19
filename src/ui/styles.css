@@ -10,6 +10,8 @@
   --info: #7bd7ff;
   --glitter: #fff3b0;
   --pin: #d9443a; /* P.pin */
+  --hazard: #f4c20d; /* P.hardHat[0] */
+  --hazard-ink: #2a2233; /* P.outline */
   --done: #4fcf6f;
   --sidebar: 300px;
   --radius: 10px;
@@ -68,6 +70,16 @@ body.hud-hidden #hud { display: none; }
   padding: 14px;
   backdrop-filter: blur(10px);
   overflow: hidden;
+}
+/* The page wears a little of the village's theme too: a construction site's sidebar is taped off. */
+body[data-theme='construction'] .side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 7px, var(--hazard-ink) 7px 14px);
 }
 .side .brand { display: flex; align-items: baseline; justify-content: space-between; }
 .side .brand h1 { margin: 0; font-size: 17px; letter-spacing: 0.02em; }
@@ -132,6 +144,9 @@ body.hud-hidden #hud { display: none; }
 .detail .title b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail .path { color: var(--muted); font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.detail .look { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.detail .look select, .sheet select { font: inherit; color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 4px; }
+.detail .look select { flex: 1; min-width: 0; }
 .threads { margin-top: 8px; max-height: 180px; overflow: auto; }
 .thread-row {
   display: flex;

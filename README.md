@@ -81,6 +81,17 @@ and its villager's clothes; and the countryside of meadows, groves, rocks, orcha
 between the plots. Butterflies, birds, cloud shadows and the golden light at sunrise and sunset
 come and go on their own.
 
+### Themes
+
+**Settings → Theme** dresses the whole village: the countryside village it has always been, or a
+construction site, where every plot is fenced off, each session's building is going up (a timber
+frame, a tower crane, a site office, a digger in its pit) and everybody works in a hard hat and
+hi-vis. Within a theme each folder wears a sub-theme of its own: a farmstead, a market town or a
+stone hamlet in the village; new homes, a high-rise, roadworks, a restoration or an industrial
+park on the site. A folder is handed one by its name; pick another under **Look** in its panel,
+or put every folder in the same one with **Settings → Every folder**. What a building means
+(who's working, who needs you, what has bloomed) is the same in every theme.
+
 ### Transcripts and new sessions
 
 **Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:
@@ -195,6 +206,11 @@ a hand-drawn sheet, drop a PNG in `public/sprites/` and name it in `public/sprit
 ```
 
 Anything not named there keeps its generated version.
+
+To draw a whole new theme, follow `.claude/skills/new-theme/SKILL.md` (a Claude Code session picks
+it up as the `new-theme` skill). `npm run sheet -- <theme>` draws every sprite of a theme, and a
+sample plot in each of its sub-themes, into `data/sheets/<theme>.png`; `?demo&theme=<theme>&sub=<sub-theme>`
+shows it in the app without changing your settings.
 
 ## Keeping it local
 

@@ -5,9 +5,11 @@ import { hashString, mulberry32 } from '../sim/rng.js'
 import { ACCENTS, BUTTERFLIES, CONFETTI, NIGHT, PALETTE as P, PETALS, TILE_PX as T, BADGE, hexToRgb, rgba } from './sprites/palette.js'
 import { sprites } from './sprites/registry.js'
 import { DECO_VARIANTS, LINK, STATIC_FRAMES, tileVariant } from './sprites/tiles.js'
-import { lawnCover, lawnTone, tintMeadow } from './ground.js'
+import { lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
-import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf, BUILDING_W } from './sprites/buildings.js'
+import { BUILDING_W } from './sprites/buildings.js'
+import { packFor } from './themes/index.js'
+import { DEFAULT_THEME } from '../sim/themes.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
 import { sweepAt, sweepRow, twinklesAt } from './shine.js'
 import { GLEAMING, KEPT } from '../sim/wear.js'
@@ -40,10 +42,6 @@ const PATHS = new Set([TILE.TRAIL, TILE.ROAD, TILE.PLAZA])
 /** The span of a tile edge a footpath's mouth takes up, in px; see the footpath sprite. */
 const MOUTH = [4, 11]
 const MEADOW = [P.grass, P.grassSunny, P.grassLush]
-/** A lawn's greens in plain, sunny and lush patches, by its plot's lawn tone. */
-const LAWNS = P.yardTones.map((plain, t) => [plain, P.yardSunny[t], P.yardLush[t]])
-/** Lawn cover drawn in its lawn's own greens; the rest keeps its colours. */
-const LAWN_TONED = new Set(['clover', 'lawnflowers', 'tuft'])
 /** Notes a board has room for; the card lists the rest. */
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
@@ -114,6 +112,17 @@ export class Canvas2dRenderer {
     this.shineCanvas = null // scratch: a gleaming building with the light sweeping over it
     this.gleaming = [] // [sprite, x, y, seed] of each gleaming building drawn this frame, for its sparkles
     this.solids = new WeakMap() // sprite → its opaque pixels, so sparkles land on the building
+    this.theme = DEFAULT_THEME // the frame's theme, and its pack: how this theme draws
+    this.pack = packFor(DEFAULT_THEME)
+  }
+
+  /**
+   * A sprite in the village's theme: its pack draws it if it has its own, else the village's
+   * generators do. In the village itself the params go as they are, so its sprites are cached
+   * exactly as they always were.
+   */
+  _sprite(name, frame = 0, params = undefined) {
+    return sprites.get(name, frame, this.theme === DEFAULT_THEME ? params : { ...params, theme: this.theme })
   }
 
   _hash(id) {
@@ -176,21 +185,21 @@ export class Canvas2dRenderer {
         } else if (kind === TILE.YARD) params = { tone }
         // The arrival square's floor is one picture cut into tiles, so each spot has its own.
         const tile = kind === TILE.PLAZA ? `tile.square.${ly * CELL_TILES + lx}` : `tile.${name}.${variant}`
-        g.drawImage(sprites.get(tile, 0, params), lx * T, ly * T)
+        g.drawImage(this._sprite(tile, 0, params), lx * T, ly * T)
         if (kind === TILE.YARD && !decoAt(x, y) && !this.underfoot.has(`${x},${y}`)) {
-          const cover = lawnCover(x, y)
-          if (cover) g.drawImage(sprites.get(`deco.${cover.kind}.${cover.variant}`, 0, LAWN_TONED.has(cover.kind) ? { tone } : undefined), lx * T, ly * T)
+          const cover = this.pack.cover(x, y, tone)
+          if (cover) g.drawImage(this._sprite(`deco.${cover.kind}.${cover.variant}`, 0, { tone }), lx * T, ly * T)
         }
         if (kind === TILE.WATER) {
           let land = 0
           SIDES.forEach(([dx, dy], side) => tileAt(x + dx, y + dy) !== TILE.WATER && (land |= SIDE_LINK[side]))
-          if (land) g.drawImage(sprites.get(`deco.shore.${land}`), lx * T, ly * T)
+          if (land) g.drawImage(this._sprite(`deco.shore.${land}`), lx * T, ly * T)
           entry.water.push([x, y, hashString(`w${x},${y}`)])
         }
         // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it,
         // leaving a gap where a footpath comes in.
         if (PAVED.has(kind)) {
-          g.fillStyle = kind === TILE.ROAD ? P.pathDark : P.plazaDark
+          g.fillStyle = kind === TILE.ROAD ? this.pack.edges.road : P.plazaDark
           SIDES.forEach(([dx, dy], side) => {
             const next = tileAt(x + dx, y + dy)
             if (PAVED.has(next)) return
@@ -205,7 +214,7 @@ export class Canvas2dRenderer {
             if (!ground) return
             const k = hashString(`e${x},${y},${side}`) & 1
             const fringe = ground === 'yard' ? { ground, tone } : { ground }
-            g.drawImage(sprites.get(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
+            g.drawImage(this._sprite(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
           })
         }
         // A plank edging round each garden bed.
@@ -226,21 +235,21 @@ export class Canvas2dRenderer {
           // A fence joins up with the fence on either side of it, in the plot's own style.
           let mask = 0
           SIDES.forEach(([dx, dy], side) => FENCE.has(decoAt(x0 + lx + dx, y0 + ly + dy)) && (mask |= SIDE_LINK[side]))
-          g.drawImage(sprites.get(`fence.${style.fence}.${mask}`), lx * T, ly * T)
-          g.drawImage(sprites.get(`deco.verge.${mask}`, 0, { tone }), lx * T, ly * T)
+          g.drawImage(this._sprite(`fence.${style.fence}.${mask}`), lx * T, ly * T)
+          g.drawImage(this._sprite(`deco.verge.${mask}`, 0, { tone }), lx * T, ly * T)
           continue
         }
         const name = DECO_NAME[d]
         const variant = hashString(`f${x0 + lx},${y0 + ly}`) % DECO_VARIANTS[name]
-        g.drawImage(sprites.get(`deco.${name}.${variant}`), lx * T, ly * T)
+        g.drawImage(this._sprite(`deco.${name}.${variant}`), lx * T, ly * T)
         if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly, hashString(`b${x0 + lx},${y0 + ly}`)])
       }
     }
-    // Sunny and lush patches across the countryside and a plot's lawn, pixel by pixel (see
-    // ground.js). The two sets of greens never share a colour, so neither pass recolours the other's.
+    // Sunny and lush patches across the countryside and a plot's ground, pixel by pixel (see
+    // ground.js). The two sets of colours never share one, so neither pass recolours the other's.
     const img = g.getImageData(0, 0, CHUNK, CHUNK)
     tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, MEADOW)
-    if (this.cellStyle.has(k)) tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, LAWNS[tone % LAWNS.length], lawnTone)
+    if (this.cellStyle.has(k)) tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, this.pack.patches(tone), lawnTone)
     g.putImageData(img, 0, 0)
     this.chunks.set(k, entry)
     return entry
@@ -296,33 +305,34 @@ export class Canvas2dRenderer {
   _drawVillager(v, night) {
     const px = v.x * T
     const py = v.y * T
-    const shadow = sprites.get('fx.shadow.10')
+    const shadow = this._sprite('fx.shadow.10')
     this._blit(shadow, px - 5, py - 2, v.alpha)
     if (v.selected || v.hovered) {
-      const ring = sprites.get(`fx.ring.${v.selected ? BADGE.waiting : P.white}`)
+      const ring = this._sprite(`fx.ring.${v.selected ? BADGE.waiting : P.white}`)
       this._blit(ring, px - 8, py - 4, v.selected ? 1 : 0.6)
     }
     const hop = hopOf(v)
     const anim = v.anim === 'jump' ? 'jump' : v.anim
     const frame = v.anim === 'jump' ? (hop > 1 ? 1 : 0) : villagerFrame(v)
-    const img = sprites.get(`villager.${anim}.${v.facing}`, frame, { look: v.look })
+    const img = this._sprite(`villager.${anim}.${v.facing}`, frame, { look: v.look })
     this._blit(img, px - VILLAGER_W / 2, py - VILLAGER_H + 1 - hop, v.alpha)
   }
 
   _drawBuilding(b, night, time) {
     const lit = b.lit && night > 0.35
-    const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
-    const frames = buildingFrames(kind, b.stage)
+    const B = this.pack.buildings
+    const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
+    const frames = B.frames(kind, b.stage)
     const frame = frames > 1 ? Math.floor(time * 1.6) % frames : 0
     const style = b.style || PLAIN_STYLE
     // Only a finished building shows its age; a site going up is always new.
     const wear = b.stage >= 3 ? b.wear ?? KEPT : KEPT
-    const img = sprites.get(`building.${kind}.${b.stage}`, frame, {
+    const img = this._sprite(`building.${kind}.${b.stage}`, frame, {
       accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low, wear,
     })
-    const H = heightOf(kind, b.variant, low)
-    const shadow = b.stage >= 2 ? shadowOf(kind) : 0
-    if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
+    const H = B.heightOf(kind, b.variant, low)
+    const shadow = b.stage >= 2 ? B.shadowOf(kind) : 0
+    if (shadow) this._blit(this._sprite(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
     const x = b.x * T + (b.w * T - BUILDING_W) / 2
     const y = (b.y + b.h) * T - H
     this._blit(img, x, y, b.alpha)
@@ -403,9 +413,9 @@ export class Canvas2dRenderer {
   _drawStatic(st, night) {
     const lit = LIT_STATICS.has(st.sprite) ? { lit: night > 0.35 } : undefined
     const frames = STATIC_FRAMES[st.sprite] || 1
-    const img = sprites.get(`static.${st.sprite}.${st.variant || 0}`, frames > 1 ? Math.floor(this.time * 5) % frames : 0, lit)
+    const img = this._sprite(`static.${st.sprite}.${st.variant || 0}`, frames > 1 ? Math.floor(this.time * 5) % frames : 0, lit)
     const shadow = STATIC_SHADOW[st.sprite]
-    if (shadow) this._blit(sprites.get(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
+    if (shadow) this._blit(this._sprite(`fx.shadow.${shadow}`), st.x * T - shadow / 2, st.y * T - 4)
     // The portal's veil goes in first, so the stone frames it and anyone arriving shows through it.
     if (st.sprite === 'arch') this._drawVeil(st.x * T - ARCH_W / 2, st.y * T - ARCH_H)
     this._blit(img, st.x * T - img.width / 2, st.y * T - img.height)
@@ -414,7 +424,7 @@ export class Canvas2dRenderer {
       const i = st.variant || 0
       const [cx, cy] = crystalAt(i, this.time)
       const glint = Math.floor(this.time * 0.8 + i * 1.3) % 4 === 0 ? 1 : 0
-      this._blit(sprites.get('fx.crystal', glint), SQUARE_X + cx - 3, SQUARE_Y + cy - 5)
+      this._blit(this._sprite('fx.crystal', glint), SQUARE_X + cx - 3, SQUARE_Y + cy - 5)
     }
   }
 
@@ -485,7 +495,7 @@ export class Canvas2dRenderer {
   _drawBunting(frame, view) {
     if (!this._squareInView(view)) return
     const accents = [...frame.plots].sort((a, b) => (a.name < b.name ? -1 : 1)).map((p) => p.accent).join(',')
-    this._blit(sprites.get('fx.bunting', Math.floor(frame.time * 1.5) % 2, { accents }), SQUARE_X, SQUARE_Y)
+    this._blit(this._sprite('fx.bunting', Math.floor(frame.time * 1.5) % 2, { accents }), SQUARE_X, SQUARE_Y)
   }
 
   /** A pigeon: pecking about the paving, or in the air with its shadow on the ground under it. */
@@ -494,10 +504,10 @@ export class Canvas2dRenderer {
     const y = SQUARE_Y + b.y
     const dir = b.face > 0 ? 'e' : 'w'
     if (b.mode === 'fly') {
-      this._blit(sprites.get('fx.shadow.8'), x - 4, y - 2, 0.6)
-      this._blit(sprites.get(`fx.pigeon.${dir}`, 2 + (Math.floor(this.time * 12) % 2)), x - 5, y - 7 - b.air)
+      this._blit(this._sprite('fx.shadow.8'), x - 4, y - 2, 0.6)
+      this._blit(this._sprite(`fx.pigeon.${dir}`, 2 + (Math.floor(this.time * 12) % 2)), x - 5, y - 7 - b.air)
     } else {
-      this._blit(sprites.get(`fx.pigeon.${dir}`, b.peck ? 1 : 0), x - 5, y - 7)
+      this._blit(this._sprite(`fx.pigeon.${dir}`, b.peck ? 1 : 0), x - 5, y - 7)
     }
   }
 
@@ -595,9 +605,9 @@ export class Canvas2dRenderer {
   _drawBoard(b) {
     const px = b.x * T
     const py = b.y * T
-    this._blit(sprites.get('fx.shadow.16'), px - 8, py - 3)
-    if (b.selected || b.hovered) this._blit(sprites.get(`fx.ring.${b.selected ? BADGE.waiting : P.white}`), px - 8, py - 4, b.selected ? 1 : 0.6)
-    this._blit(sprites.get(`static.board.${Math.min(BOARD_NOTES, b.count)}`), px - 8, py - 22)
+    this._blit(this._sprite('fx.shadow.16'), px - 8, py - 3)
+    if (b.selected || b.hovered) this._blit(this._sprite(`fx.ring.${b.selected ? BADGE.waiting : P.white}`), px - 8, py - 4, b.selected ? 1 : 0.6)
+    this._blit(this._sprite(`static.board.${Math.min(BOARD_NOTES, b.count)}`), px - 8, py - 22)
   }
 
   /** Growth stage from age: a sprout, then a bud, then the bloom. */
@@ -626,7 +636,7 @@ export class Canvas2dRenderer {
     }
     const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
     const stage = f.open ? 1 : this._flowerStage(f, time)
-    const img = sprites.get(`flower.${f.kind}.${stage}`, 0, { color })
+    const img = this._sprite(`flower.${f.kind}.${stage}`, 0, { color })
     // The stem's base pixel (4, 11) sits on the flower's spot.
     this._blit(img, px - 4, py - 11)
   }
@@ -692,7 +702,7 @@ export class Canvas2dRenderer {
       const rand = mulberry32(e.seed)
       const t = e.age / e.life
       if (e.kind === 'z') {
-        this._blit(sprites.get('fx.z'), e.x * T + Math.sin(e.age * 3) * 3, e.y * T - e.age * 10, 1 - t)
+        this._blit(this._sprite('fx.z'), e.x * T + Math.sin(e.age * 3) * 3, e.y * T - e.age * 10, 1 - t)
         continue
       }
       const vx = (rand() - 0.5) * (e.kind === 'confetti' ? 40 : 30)
@@ -723,13 +733,14 @@ export class Canvas2dRenderer {
     for (const b of frame.buildings) {
       if (b.stage < 3 || !b.lit || b.alpha < 1) continue
       const style = b.style || PLAIN_STYLE
-      const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
-      const key = `${kind}:${b.variant}:${style.wall}:${style.roofs}:${low}`
-      if (!this.chimneys.has(key)) this.chimneys.set(key, chimneyOf(kind, b.variant, style.wall, style.roofs, low))
+      const B = this.pack.buildings
+      const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
+      const key = `${this.theme}:${kind}:${b.variant}:${style.wall}:${style.roofs}:${low}`
+      if (!this.chimneys.has(key)) this.chimneys.set(key, B.chimneyOf(kind, b.variant, style.wall, style.roofs, low))
       const c = this.chimneys.get(key)
       if (!c) continue
       const x = b.x * T + (b.w * T - BUILDING_W) / 2 + c.x
-      const y = (b.y + b.h) * T - heightOf(kind, b.variant, low) + c.y
+      const y = (b.y + b.h) * T - B.heightOf(kind, b.variant, low) + c.y
       if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 30 || y > view.y1 + 10) continue
       for (const p of smokePuffs(x, y, this._hash(b.id), frame.time)) {
         ctx.globalAlpha = p.alpha
@@ -773,7 +784,7 @@ export class Canvas2dRenderer {
     for (const chunk of this.inView) for (const [x, y, h] of chunk.flowers) if (h % BUTTERFLY_WILD === 0) sources.push([x * T + 8, y * T + 8, h])
     for (const [ax, ay, h] of sources.slice(0, MAX_BUTTERFLIES)) {
       const b = butterflyAt(ax, ay, h, frame.time)
-      this._blit(sprites.get(`fx.butterfly.${h % BUTTERFLIES.length}`, b.frame), b.x - 2, b.y - 1, 1 - night)
+      this._blit(this._sprite(`fx.butterfly.${h % BUTTERFLIES.length}`, b.frame), b.x - 2, b.y - 1, 1 - night)
     }
   }
 
@@ -789,8 +800,8 @@ export class Canvas2dRenderer {
       this.flock.start = cycle * FLOCK_EVERY
     }
     for (const b of birdsAt(this.flock, frame.time - this.flock.start)) {
-      this._blit(sprites.get('fx.shadow.6'), b.x - 3, b.y + BIRD_HEIGHT, 0.5 * (1 - night))
-      this._blit(sprites.get('fx.bird', b.frame), b.x - 3, b.y - 1, 1 - night)
+      this._blit(this._sprite('fx.shadow.6'), b.x - 3, b.y + BIRD_HEIGHT, 0.5 * (1 - night))
+      this._blit(this._sprite('fx.bird', b.frame), b.x - 3, b.y - 1, 1 - night)
     }
   }
 
@@ -842,7 +853,7 @@ export class Canvas2dRenderer {
     for (const v of frame.villagers) {
       if (!v.badge) continue
       const bob = v.badge === 'waiting' ? Math.round(Math.sin(v.animTime * 4) * 1.5) : 0
-      const img = sprites.get(`fx.badge.${v.badge}`)
+      const img = this._sprite(`fx.badge.${v.badge}`)
       this._blit(img, v.x * T - BADGE_W / 2, v.y * T - VILLAGER_H - BADGE_H + bob - hopOf(v), v.alpha)
     }
   }
@@ -887,6 +898,12 @@ export class Canvas2dRenderer {
     ctx.imageSmoothingEnabled = false
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
+    // Everything below is drawn in the frame's theme. A new theme restyles every plot, and so
+    // makes a new map version: the chunks baked in the old one are thrown away with it.
+    if (frame.theme !== this.theme) {
+      this.theme = frame.theme || DEFAULT_THEME
+      this.pack = packFor(this.theme)
+    }
     // Which plot's style each cell is drawn in. Only a rebuild moves plots, and a rebuild always
     // makes a new map version, so the chunks baked with the old lookup are thrown away with it.
     if (this.styleVersion !== frame.map.version) {
@@ -976,12 +993,13 @@ export class Canvas2dRenderer {
       if (w.x >= px - 4 && w.x < px + 4 && w.y >= py - 9 && w.y < py + 1) return { flower: f.id }
     }
     const ids = new Set(frame.villagers.map((v) => v.id))
+    const B = packFor(frame.theme).buildings
     for (const b of [...frame.buildings].sort((a, c) => c.y - a.y)) {
       if (b.alpha < 1) continue
       const x0 = b.x * T
       const y1 = (b.y + b.h) * T
-      const { kind, low } = fitted(b.kind, b.variant, b.roomy !== false)
-      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
+      const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
+      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - B.heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
     }
     const tx = Math.floor(w.x / T)
     const ty = Math.floor(w.y / T)

@@ -16,6 +16,7 @@ export function emptyState() {
     hiddenProjects: [],
     viewedAt: {},
     tasks: {},
+    subthemes: {},
     settings: null,
     updatedAt: 0,
   }
@@ -53,6 +54,28 @@ const taskMap = (v) => {
   return out
 }
 
+/**
+ * A theme or sub-theme id, as THEME_ID in src/sim/themes.js has it. Copied rather than imported:
+ * the desktop app ships the server with only the few files it needs from src/.
+ */
+const THEME_ID = /^[a-z][a-z0-9-]{0,31}$/
+
+/**
+ * Repo name → { theme id: the sub-theme that folder picked in it }. Ids only; the page ignores
+ * any it doesn't know, so a theme that went away costs nothing.
+ */
+const subthemeMap = (v) => {
+  const out = {}
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out
+  for (const [k, picks] of Object.entries(v)) {
+    if (k === '__proto__' || !picks || typeof picks !== 'object' || Array.isArray(picks)) continue
+    const ok = {}
+    for (const [t, s] of Object.entries(picks)) if (THEME_ID.test(t) && typeof s === 'string' && THEME_ID.test(s)) ok[t] = s
+    if (Object.keys(ok).length) out[k] = ok
+  }
+  return out
+}
+
 /** Every field coerced to its type; unknown fields dropped. A hand-edited file cannot crash the page. */
 export function normalizeState(raw) {
   const s = raw && typeof raw === 'object' ? raw : {}
@@ -65,6 +88,7 @@ export function normalizeState(raw) {
     hiddenProjects: strings(s.hiddenProjects),
     viewedAt: numberMap(s.viewedAt),
     tasks: taskMap(s.tasks),
+    subthemes: subthemeMap(s.subthemes),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }

@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -17,7 +17,8 @@
     "serve": "node server/serve.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
     "app": "vite build && electron .",
-    "dist": "vite build && electron-builder --publish never"
+    "dist": "vite build && electron-builder --publish never",
+    "sheet": "node tools/sheet.mjs"
   },
   "devDependencies": {
     "electron": "^44.4.2",

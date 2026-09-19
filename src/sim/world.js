@@ -10,7 +10,8 @@ import { Villager } from './villager.js'
 import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
 import { paintWild } from './wild.js'
-import { PLAIN_STYLE } from './style.js'
+import { plainStyle, plotStyle } from './style.js'
+import { DEFAULT_THEME, dress, subthemeFor, themeOf } from './themes.js'
 import { KEPT } from './wear.js'
 
 export const ACCENT_COUNT = 10
@@ -69,7 +70,41 @@ export class World {
     this.time = 0
     this.owner = new Map() // cell key → plot name
     this.mapVersion = 0
+    this.theme = DEFAULT_THEME
+    this.picks = new Map() // plot name → the sub-theme its folder picked, in this theme
+    this.everywhere = null // the sub-theme every folder without a pick of its own wears, if any
     this._rebuild()
+  }
+
+  /**
+   * Dress the village in `theme`. `picks` is each folder's own sub-theme and `everywhere` the one
+   * for every folder that has none; either may name something the theme doesn't have, and is then
+   * ignored. Restyles every plot, and repaints the ground if any of them changed.
+   * @param {string} theme
+   * @param {Map<string, string>} [picks]
+   * @param {string|null} [everywhere]
+   */
+  setTheme(theme, picks = new Map(), everywhere = null) {
+    this.theme = themeOf(theme)
+    this.picks = picks
+    this.everywhere = everywhere
+    let dirty = false
+    for (const p of this.plots.values()) if (p.restyle(this._styleFor(p.name))) dirty = true
+    if (dirty) this._rebuild()
+    return dirty
+  }
+
+  /** A folder's style in the village's theme, as the sub-theme it picked or was handed. */
+  _styleFor(name) {
+    return plotStyle(name, this.theme, subthemeFor(name, this.theme, this.picks.get(name), this.everywhere))
+  }
+
+  /** A villager in its theme's work clothes, if the theme has any: dressed once per sub-theme. */
+  _look(v) {
+    const sub = this.plots.get(v.building?.plot)?.style.sub ?? ''
+    const k = `${this.theme}:${sub}`
+    if (v.dressed?.key !== k) v.dressed = { key: k, look: dress(v.look, this.theme, sub) }
+    return v.dressed.look
   }
 
   /**
@@ -108,7 +143,7 @@ export class World {
     for (const [name, c] of cells) {
       let plot = this.plots.get(name)
       if (!plot) {
-        plot = new Plot(name, this._accentFor(name))
+        plot = new Plot(name, this._accentFor(name), this._styleFor(name))
         this.plots.set(name, plot)
       }
       if (plot.setCells(c)) dirty = true
@@ -450,8 +485,10 @@ export class World {
       if (v.status === 'waiting' || v.status === 'blocked') urgent.add(b.plot)
       if (v.status !== 'sleeping' && v.status !== 'idle') active.add(b.plot)
     }
+    const plain = plainStyle(this.theme)
     return {
       time: this.time,
+      theme: this.theme,
       map: this.map,
       gate: this.gate,
       plots: [...this.plots.values()].map((p) => ({
@@ -461,12 +498,12 @@ export class World {
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
         alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
-        style: this.plots.get(b.plot)?.style ?? PLAIN_STYLE,
+        style: this.plots.get(b.plot)?.style ?? plain,
       })),
       villagers: [...this.villagers.values()]
         .filter((v) => v.loco !== 'queued' && v.loco !== 'gone')
         .map((v) => ({
-          id: v.id, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: v.look, status: v.status,
+          id: v.id, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: this._look(v), status: v.status,
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
         })),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),

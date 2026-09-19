@@ -36,12 +36,20 @@ const POSES = {
   ],
 }
 
+/**
+ * A hard hat's colour by the villager's hat-colour draw (0–9): yellow for half the crew, then white,
+ * orange, blue and green, as a site's colour-coding runs. See `hardHat` in the palette.
+ */
+const HARD_HATS = [0, 0, 0, 0, 0, 1, 1, 2, 3, 4]
+
 function colours(look) {
   const skin = P.skin[look.skin % P.skin.length]
   const hair = P.hair[look.hair % P.hair.length]
   const shirt = P.cloth[look.shirt % P.cloth.length]
   const pants = P.pants[look.pants % P.pants.length]
-  const hat = look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+  const hat = HATS[look.hat] === 'hardhat' ? P.hardHat[HARD_HATS[(look.hatColor || 0) % HARD_HATS.length]]
+    : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+  const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -53,6 +61,7 @@ function colours(look) {
     hat, hatS: shade(hat, -0.2), hatL: shade(hat, 0.2),
     stripe: shade(shirt, 0.45),
     second, secondS: shade(second, -0.2),
+    vest, vestS: shade(vest, -0.18),
   }
 }
 
@@ -345,6 +354,22 @@ function hat(pc, c, look, dy, view) {
     pc.hline(4, 11, 5 + dy, c.hatS)
     for (let x = 5; x <= 10; x += 2) pc.px(x, 3 + dy, c.hatS)
     pc.hline(7, 8, 0 + dy, c.hatL)
+  } else if (kind === 'hardhat') {
+    // A dome with a ridge down the middle and a brim all round, a peak out over the eyes.
+    pc.hline(6, 9, 1 + dy, c.hat)
+    pc.hline(5, 10, 2 + dy, c.hat)
+    pc.rect(4, 3 + dy, 8, 2, c.hat)
+    pc.vline(11, 3 + dy, 4 + dy, c.hatS)
+    pc.px(10, 2 + dy, c.hatS)
+    pc.vline(7, 1 + dy, 4 + dy, c.hatL)
+    if (side) {
+      pc.hline(1, 11, 5 + dy, c.hatS)
+      pc.hline(1, 3, 5 + dy, c.hat)
+    } else {
+      pc.vline(8, 1 + dy, 2 + dy, c.hatL)
+      pc.hline(3, 12, 5 + dy, c.hatS)
+      if (view === 'front') pc.hline(5, 10, 5 + dy, c.hat)
+    }
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
@@ -383,6 +408,18 @@ function topFront(pc, c, look, dy, back) {
       pc.vline(10, 13 + dy, 16 + dy, c.secondS)
     }
   }
+  if (t === 'hivis') {
+    // A hi-vis vest: silver bands over the shoulders and one round the middle.
+    pc.rect(5, 12 + dy, 6, 5, c.vest)
+    pc.vline(10, 12 + dy, 16 + dy, c.vestS)
+    pc.hline(5, 10, 15 + dy, P.reflective)
+    for (const x of [6, 9]) pc.vline(x, 12 + dy, 14 + dy, P.reflective)
+    if (!back) {
+      // Open at the neck, over the shirt.
+      pc.px(7, 12 + dy, c.shirt)
+      pc.px(8, 12 + dy, c.shirtS)
+    }
+  }
 }
 
 function topSide(pc, c, look, dy) {
@@ -396,6 +433,12 @@ function topSide(pc, c, look, dy) {
   if (t === 'vest') {
     pc.vline(6, 13 + dy, 16 + dy, c.second)
     pc.vline(9, 13 + dy, 16 + dy, c.secondS)
+  }
+  if (t === 'hivis') {
+    pc.rect(6, 12 + dy, 4, 5, c.vest)
+    pc.vline(9, 12 + dy, 16 + dy, c.vestS)
+    pc.hline(6, 9, 15 + dy, P.reflective)
+    pc.vline(7, 12 + dy, 14 + dy, P.reflective)
   }
 }
 

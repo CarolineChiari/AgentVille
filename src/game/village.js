@@ -9,11 +9,12 @@ import { wearOf } from '../sim/wear.js'
 import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
+import { recipeOf, subthemeFor, themeOf } from '../sim/themes.js'
 
 const SAVE_DELAY = 500
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, settings: null, updatedAt: 0,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, subthemes: {}, settings: null, updatedAt: 0,
 })
 
 export class Village {
@@ -22,10 +23,12 @@ export class Village {
    * say; whether that becomes a notification is up to it.
    * @param {{ world: import('../sim/world.js').World, settings: object, demo?: boolean, onChange?: Function, toast?: Function, notify?: Function }} opts
    */
-  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {} }) {
+  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {}, preview = null }) {
     this.world = world
     this.settings = settings
     this.demo = demo
+    // A theme (and a sub-theme for every folder) to look at without saving it: ?theme=…&sub=… .
+    this.preview = preview
     this.onChange = onChange
     this.toast = toast
     this.notify = notify
@@ -134,6 +137,7 @@ export class Village {
     }
     this._plantGardens()
     this._pinBoards()
+    this.world.setTheme(this.theme, this._picks(), this._everywhere())
     const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards)
     const plots = Object.fromEntries(memory)
     if (JSON.stringify(plots) !== JSON.stringify(this.state.plots)) {
@@ -570,6 +574,50 @@ export class Village {
     } catch (err) {
       this.toast(err.message, 'error')
     }
+  }
+
+  /** The village's theme: the one being previewed, else the one in the settings. */
+  get theme() {
+    return themeOf(this.preview?.theme || this.settings.theme)
+  }
+
+  /** Each folder's own pick of sub-theme in the village's theme. */
+  _picks() {
+    const theme = this.theme
+    const out = new Map()
+    for (const [project, picks] of Object.entries(this.state.subthemes || {})) if (picks?.[theme]) out.set(project, picks[theme])
+    return out
+  }
+
+  /** The sub-theme every folder without its own pick wears, if the settings (or a preview) name one. */
+  _everywhere() {
+    return this.preview?.sub || this.settings.subthemes?.[this.theme] || null
+  }
+
+  /** The sub-theme a folder picked in the village's theme, or '' if it wears what it's handed. */
+  subthemePick(project) {
+    const id = this.state.subthemes?.[project]?.[this.theme]
+    return id && recipeOf(this.theme, id) ? id : ''
+  }
+
+  /** The sub-theme a folder would wear with no pick of its own. */
+  subthemeHanded(project) {
+    return subthemeFor(project, this.theme, this._everywhere())
+  }
+
+  /** Dress a folder in one of its theme's sub-themes, or give it back what it's handed with ''. Remembered per theme. */
+  setSubtheme(project, id) {
+    if (!project) return
+    const theme = this.theme
+    const mine = { ...this.state.subthemes?.[project] }
+    if (id && recipeOf(theme, id)) mine[theme] = id
+    else delete mine[theme]
+    const all = { ...this.state.subthemes }
+    if (Object.keys(mine).length) all[project] = mine
+    else delete all[project]
+    this.state.subthemes = all
+    this.queueSave()
+    this.apply()
   }
 
   /** A repo's own tasks, as saved. */

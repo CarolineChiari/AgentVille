@@ -35,8 +35,9 @@ test('every hat, top, extra and colour turns up, and every index has a colour to
     const look = lookFor(id)
     for (const k of Object.keys(seen)) seen[k].add(look[k])
   }
-  assert.equal(seen.hat.size, HATS.length)
-  assert.equal(seen.top.size, TOPS.length)
+  assert.equal(seen.hat.size, HATS.length - 1)
+  assert.equal(seen.top.size, TOPS.length - 1)
+  assert.ok(!seen.hat.has(HATS.indexOf('hardhat')) && !seen.top.has(TOPS.indexOf('hivis')), 'somebody put on work gear by themselves')
   assert.equal(seen.extra.size, EXTRAS.length)
   assert.equal(seen.hair.size, P.hair.length)
   assert.equal(seen.shirt.size, P.cloth.length)

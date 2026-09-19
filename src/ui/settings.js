@@ -12,6 +12,8 @@ export const DEFAULTS = {
   newTargets: {}, // harness id → last 'Open in' chosen for it (Claude's falls back to openIn)
   newModel: '', // last model chosen there ('' = your Claude Code default)
   newEffort: '', // last effort chosen there ('' = your default)
+  theme: 'village', // the whole village's look: an id from src/sim/themes.js
+  subthemes: {}, // theme id → the sub-theme every folder wears unless it picked its own; none: each its own
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,
   // Every plot is named. A new key rather than flipping the old `allNames`, which browsers have
