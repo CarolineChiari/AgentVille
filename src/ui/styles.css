@@ -12,6 +12,8 @@
   --pin: #d9443a; /* P.pin */
   --hazard: #f4c20d; /* P.hardHat[0] */
   --hazard-ink: #2a2233; /* P.outline */
+  --mithril: #d6dde6; /* P.mithril */
+  --leaf: #4f8f52; /* P.elfRoof[0] */
   --done: #4fcf6f;
   --sidebar: 300px;
   --radius: 10px;
@@ -71,7 +73,8 @@ body.hud-hidden #hud { display: none; }
   backdrop-filter: blur(10px);
   overflow: hidden;
 }
-/* The page wears a little of the village's theme too: a construction site's sidebar is taped off. */
+/* The page wears a little of the village's theme too: a construction site's sidebar is taped off,
+   and an elvish realm's is bound in a line of leaf and mithril. */
 body[data-theme='construction'] .side::before {
   content: '';
   position: absolute;
@@ -80,6 +83,15 @@ body[data-theme='construction'] .side::before {
   right: 0;
   height: 5px;
   background: repeating-linear-gradient(-45deg, var(--hazard) 0 7px, var(--hazard-ink) 7px 14px);
+}
+body[data-theme='elvish'] .side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0, var(--leaf) 18%, var(--mithril) 50%, var(--leaf) 82%, transparent 100%);
 }
 .side .brand { display: flex; align-items: baseline; justify-content: space-between; }
 .side .brand h1 { margin: 0; font-size: 17px; letter-spacing: 0.02em; }

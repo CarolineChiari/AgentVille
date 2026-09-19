@@ -104,6 +104,36 @@ export const THEMES = {
       },
     },
   },
+  elvish: {
+    label: 'Elvish realm',
+    dims: {
+      fence: ['woven', 'briar', 'filigree', 'standing'],
+      yard: ['glade', 'moss', 'loam', 'silversand'],
+      wall: ['livewood', 'birch', 'palestone', 'weave', 'crystal'],
+      // Leaf green, moonlit silver, mallorn gold, twilight violet.
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'greenwood', label: 'Greenwood', blurb: 'Homes grown into living trees under woven leaf canopies', fence: ['woven', 'briar'], yard: ['moss', 'glade'], wall: ['livewood', 'weave'], roofs: [0] },
+      { id: 'silverwood', label: 'Silver wood', blurb: 'Birch and white stone under moonlit silver roofs', fence: ['filigree', 'woven'], yard: ['glade', 'silversand'], wall: ['birch', 'palestone'], roofs: [1] },
+      { id: 'riverhall', label: 'River hall', blurb: 'Carved white halls and crystal glazing beside the water', fence: ['filigree', 'standing'], yard: ['silversand', 'glade'], wall: ['palestone', 'crystal'], roofs: [1, 3] },
+      { id: 'goldenbough', label: 'Golden bough', blurb: 'Mallorn gold and deep leaf loam, everything lantern-warm', fence: ['briar', 'woven'], yard: ['loam', 'glade'], wall: ['livewood', 'birch'], roofs: [2] },
+      { id: 'thornhold', label: 'Thorn hold', blurb: 'Briars, runestones and twilight violet over deep moss', fence: ['briar', 'standing'], yard: ['moss', 'loam'], wall: ['livewood', 'palestone'], roofs: [3, 0], outfit: { vest: 1 } },
+    ],
+    auto: ['greenwood', 'silverwood', 'riverhall', 'goldenbough', 'thornhold'],
+    outfit: { hat: 'circlet', top: 'cloak' },
+    // Finished work is a lantern lit on its stand in the lantern grove. Elves hang lights for
+    // what is done; the glyph is a four-pointed star, the nearest a light gets that isn't already
+    // the village's bloom or the open issues' flag.
+    finished: {
+      one: 'lantern', many: 'lanterns', place: 'lantern grove', glyph: '\u2726', grow: 'Light lanterns for pull requests',
+      names: {
+        fix: 'Teardrop lamp', feature: 'Star lantern', refactor: 'Leaf lantern', docs: 'Scroll lamp', test: 'Wisp',
+        ui: 'Blossom lantern', infra: 'Forge lamp', data: 'Rune lantern', perf: 'Comet lamp', review: 'Watch lamp',
+        research: 'Seeker\u2019s lamp', misc: 'Ember',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
@@ -156,7 +186,8 @@ export function dress(look, theme, sub) {
   const out = { ...look }
   if (o.hat) out.hat = HATS.indexOf(o.hat)
   if (o.top) out.top = TOPS.indexOf(o.top)
-  // Yellow mostly, orange for one in three: a crew in one colour reads as a uniform, not a site.
+  // The theme's first colour mostly, its second for one in three: everyone in one colour reads
+  // as a uniform rather than a crew. A sub-theme that names one puts its whole plot in it.
   out.vest = own?.vest ?? (look.shirt % 3 === 2 ? 1 : 0)
   return out
 }

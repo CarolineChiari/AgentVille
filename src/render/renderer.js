@@ -226,9 +226,9 @@ export class Canvas2dRenderer {
             g.drawImage(sp(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
           })
         }
-        // A plank edging round each garden bed.
+        // An edging round each garden bed, in whatever the plot's theme edges its field with.
         if (kind === TILE.BED) {
-          g.fillStyle = P.bedEdge
+          g.fillStyle = pack.edges.bed
           if (tileAt(x, y - 1) !== TILE.BED) g.fillRect(lx * T, ly * T, T, 2)
           if (tileAt(x, y + 1) !== TILE.BED) g.fillRect(lx * T, ly * T + T - 2, T, 2)
           if (tileAt(x - 1, y) !== TILE.BED) g.fillRect(lx * T, ly * T, 1, T)

@@ -97,8 +97,14 @@ frame, a tower crane, a site office, a digger in its pit), everybody works in a 
 hi-vis, and finished work is a survey flag in each plot's setting-out yard instead of a flower in
 its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research.
 
+Or an elvish realm, where the houses are grown into living trees and carved from white stone
+under swept roofs, the ways are paved in pale flagstones, everybody works in a mithril circlet and
+a travelling cloak, and finished work is a lantern lit on its stand in each plot's lantern grove:
+a teardrop lamp for a bug fix, a rune lantern for data work, a seeker's lamp for research.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
-village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site. A
+village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
+greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -106,6 +112,8 @@ the village's theme becomes. What a building means (who's working, who needs you
 bloomed) is the same in every theme.
 
 ![The same demo village as a construction site: fenced plots of bare earth, a tower crane and a timber frame going up, villagers in hard hats, and rows of survey flags where the gardens were](docs/screenshots/construction.png)
+
+![The same demo village as an elvish realm: plots of glade and moss behind briars and runestones, houses built into living trees under swept roofs, a slender spire, and rows of lit lanterns where the gardens were](docs/screenshots/elvish.png)
 
 ### Transcripts and new sessions
 

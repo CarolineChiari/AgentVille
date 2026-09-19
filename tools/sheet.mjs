@@ -112,7 +112,9 @@ function plotPanel(theme, sub) {
   const B = pack.buildings
   const world = new World()
   const repo = `sheet-${sub}`
-  world.setTheme(theme, new Map([[repo, sub]]))
+  // `picks` takes looks ({ theme, sub }), not bare sub-theme ids; the third argument is the one
+  // that puts every folder in one sub-theme, which is what a panel of this band is.
+  world.setTheme(theme, new Map(), sub)
   const statuses = ['working', 'idle', 'waiting', 'working', 'sleeping']
   const threads = statuses.map((status, i) => ({ id: `sheet:${theme}:${sub}:${i}`, project: repo, createdAt: i, status, known: true, wear: [0, 1, 2, 1, 4][i] }))
   const gardens = new Map([[repo, Array.from({ length: 12 }, (_, i) => ({ id: `f${i}`, kind: i % FLOWER_KINDS.length, color: i, open: i === 11 }))]])
@@ -176,10 +178,11 @@ function plotPanel(theme, sub) {
         })
       }
       if (kind === TILE.BED) {
-        if (tileAt(x, y - 1) !== TILE.BED) fill(lx * T, ly * T, T, 2, P.bedEdge)
-        if (tileAt(x, y + 1) !== TILE.BED) fill(lx * T, ly * T + T - 2, T, 2, P.bedEdge)
-        if (tileAt(x - 1, y) !== TILE.BED) fill(lx * T, ly * T, 1, T, P.bedEdge)
-        if (tileAt(x + 1, y) !== TILE.BED) fill(lx * T + T - 1, ly * T, 1, T, P.bedEdge)
+        const edge = pack.edges.bed
+        if (tileAt(x, y - 1) !== TILE.BED) fill(lx * T, ly * T, T, 2, edge)
+        if (tileAt(x, y + 1) !== TILE.BED) fill(lx * T, ly * T + T - 2, T, 2, edge)
+        if (tileAt(x - 1, y) !== TILE.BED) fill(lx * T, ly * T, 1, T, edge)
+        if (tileAt(x + 1, y) !== TILE.BED) fill(lx * T + T - 1, ly * T, 1, T, edge)
       }
     }
   }

@@ -28,6 +28,8 @@ const groundOf = (tone) => P.siteGround[toneOf(tone)]
 export const COVER_VARIANTS = { rubble: 3, puddle: 2, planks: 2, bricks: 2, hose: 1, cone: 2, rebar: 1, pipes: 1, sack: 1 }
 /** The lip drawn where a road meets anything else: a concrete kerb. */
 export const ROAD_EDGE = P.kerb
+/** What the setting-out yard is edged in: a scaffold board on its side, as a site's bays are. */
+export const BED_EDGE = P.plankDark
 
 // ---------- the ground ----------
 
