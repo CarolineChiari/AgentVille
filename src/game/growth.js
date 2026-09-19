@@ -28,8 +28,8 @@ export function growthInputs(threads, gardens, counted = {}, hidden = []) {
     of(name).finished = list.filter((f) => !f.open).length
   }
   for (const [name, g] of out) {
-    const lines = counted?.[name]?.lines
-    if (Number.isFinite(lines) && lines > 0) g.lines = lines
+    const c = counted?.[name]
+    if (c?.repo !== false && Number.isFinite(c?.lines) && c.lines > 0) g.lines = c.lines
   }
   return out
 }

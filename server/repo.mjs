@@ -2,6 +2,11 @@
 // is ever run: the walk skips whatever the repo's .gitignore files say, never follows a link, and
 // gives up past a limit rather than grinding through a giant tree. The counts are kept in
 // data/repos.json and refreshed in the background, so a page load never waits for one.
+//
+// Only a git repository is counted. A session can be opened in any folder, and people open them
+// in their home, Documents, Downloads, an external drive: walking those read thousands of private
+// files for a number that meant nothing, and in an iCloud Drive folder every read can fetch a file
+// down from the cloud.
 import nodeFsp from 'node:fs/promises'
 import path from 'node:path'
 import { isIgnored, parseIgnore } from './ignore.mjs'
@@ -15,6 +20,8 @@ import { isIgnored, parseIgnore } from './ignore.mjs'
  * - sniff: a NUL byte this early means binary, as git decides it.
  */
 export const LIMITS = { files: 20_000, ms: 20_000, fileBytes: 1_000_000, sniff: 8_000 }
+/** data/repos.json's layout: 2 since only repositories are counted. */
+const FILE_VERSION = 2
 
 /** Never code, whatever a .gitignore says, and never worth the walk: other tools' stores. */
 const SKIP_DIRS = new Set(['.git', '.hg', '.svn', 'node_modules', '.claude'])
@@ -47,13 +54,25 @@ async function readRules(fsp, file) {
   }
 }
 
+/** Is `dir` the top of a git repository or worktree: does it hold `.git`, a folder or a pointer file? */
+export async function isRepo(dir, fsp = nodeFsp) {
+  try {
+    const st = await fsp.stat(path.join(dir, '.git'))
+    return st.isDirectory() || st.isFile()
+  } catch {
+    return false
+  }
+}
+
 /**
  * Count the lines in the text files under `dir` that the repo does not ignore.
  * @param {string} dir  an absolute path
- * @returns {Promise<{ lines: number, files: number, skipped: number, truncated: boolean }>}
- *          `files` counted; `skipped` left out as binary or too big; `truncated` if a limit cut it short
+ * @returns {Promise<{ lines: number, files: number, skipped: number, truncated: boolean } | null>}
+ *          `files` counted; `skipped` left out as binary or too big; `truncated` if a limit cut it
+ *          short. Null for a folder that isn't a git repository, which is never walked.
  */
 export async function countRepo(dir, { fsp = nodeFsp, now = Date.now, limits = LIMITS } = {}) {
+  if (!(await isRepo(dir, fsp))) return null
   const start = now()
   const out = { lines: 0, files: 0, skipped: 0, truncated: false }
   // The repo's own excludes count like a .gitignore at its top.
@@ -131,7 +150,7 @@ export async function countRepo(dir, { fsp = nodeFsp, now = Date.now, limits = L
  */
 export function createRepoStore({ dataDir, ttlMs = 30 * 60 * 1000, count = countRepo, now = Date.now }) {
   const file = path.join(dataDir, 'repos.json')
-  let cache = null // { [folder]: { countedAt, lines, files, skipped, truncated, error } }
+  let cache = null // { [folder]: { countedAt, repo, lines, files, skipped, truncated, error } }
   let lane = Promise.resolve()
   const inFlight = new Set()
   let seq = 0
@@ -140,7 +159,9 @@ export function createRepoStore({ dataDir, ttlMs = 30 * 60 * 1000, count = count
     if (cache) return cache
     try {
       const raw = JSON.parse(await nodeFsp.readFile(file, 'utf8'))
-      cache = raw && typeof raw === 'object' && raw.repos && typeof raw.repos === 'object' && !Array.isArray(raw.repos) ? raw.repos : {}
+      // Version 1 counted any folder, not only repositories: its counts are thrown away and redone.
+      const ok = raw && typeof raw === 'object' && raw.version === FILE_VERSION && raw.repos && typeof raw.repos === 'object' && !Array.isArray(raw.repos)
+      cache = ok ? raw.repos : {}
     } catch {
       cache = {}
     }
@@ -150,7 +171,7 @@ export function createRepoStore({ dataDir, ttlMs = 30 * 60 * 1000, count = count
   async function save() {
     await nodeFsp.mkdir(dataDir, { recursive: true })
     const tmp = `${file}.${process.pid}.${++seq}.tmp`
-    await nodeFsp.writeFile(tmp, JSON.stringify({ version: 1, repos: cache }) + '\n')
+    await nodeFsp.writeFile(tmp, JSON.stringify({ version: FILE_VERSION, repos: cache }) + '\n')
     await nodeFsp.rename(tmp, file)
   }
 
@@ -161,10 +182,12 @@ export function createRepoStore({ dataDir, ttlMs = 30 * 60 * 1000, count = count
     lane = lane.then(async () => {
       try {
         const c = await count(dir)
-        cache[dir] = { countedAt: now(), lines: c.lines, files: c.files, skipped: c.skipped, truncated: c.truncated, error: '' }
+        cache[dir] = c
+          ? { countedAt: now(), repo: true, lines: c.lines, files: c.files, skipped: c.skipped, truncated: c.truncated, error: '' }
+          : { countedAt: now(), repo: false, lines: 0, files: 0, skipped: 0, truncated: false, error: '' }
       } catch (err) {
         // Keep the last count; note the failure so the next try waits a full TTL.
-        cache[dir] = { lines: 0, files: 0, skipped: 0, truncated: false, ...cache[dir], countedAt: now(), error: String(err?.message || err) }
+        cache[dir] = { repo: true, lines: 0, files: 0, skipped: 0, truncated: false, ...cache[dir], countedAt: now(), error: String(err?.message || err) }
       } finally {
         inFlight.delete(dir)
       }
@@ -185,9 +208,10 @@ export function createRepoStore({ dataDir, ttlMs = 30 * 60 * 1000, count = count
       if (typeof dir !== 'string' || !path.isAbsolute(dir)) continue
       const entry = cache[dir]
       if (!entry || now() - entry.countedAt > ttlMs) refresh(dir)
-      // A recount that failed still has the last good count, if there was one.
+      // A recount that failed still has the last good count, if there was one. A folder that isn't
+      // a repository is listed as one, so the page can say why it has no lines.
       if (entry && (!entry.error || entry.lines > 0)) {
-        repos[name] = { lines: entry.lines, files: entry.files, skipped: entry.skipped, truncated: entry.truncated, countedAt: entry.countedAt }
+        repos[name] = { repo: entry.repo !== false, lines: entry.lines, files: entry.files, skipped: entry.skipped, truncated: entry.truncated, countedAt: entry.countedAt }
       }
     }
     return { repos, updating: inFlight.size > 0 }

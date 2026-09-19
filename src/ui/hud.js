@@ -164,7 +164,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       [`${esc(words.glyph)} ${n(p.work.finished)} finished`, p.breakdown.finished],
       [`${n(p.work.sessions)} session${p.work.sessions === 1 ? '' : 's'}`, p.breakdown.sessions],
       [`${mb(p.work.bytes)} of transcripts`, p.breakdown.bytes],
-      [p.counted ? `${n(p.work.lines)} lines of code` : settings.repoLines ? 'Lines of code: counting…' : 'Lines of code: not counted', p.breakdown.lines],
+      [{ counted: `${n(p.work.lines)} lines of code`, 'not a repo': 'Lines of code: not a git repo', counting: 'Lines of code: counting…', off: 'Lines of code: not counted' }[p.lines], p.breakdown.lines],
     ]
     const next = p.nextWord ? `Next: ${esc(p.nextWord)}, ${n(p.next)} more point${p.next === 1 ? '' : 's'}` : 'The top tier'
     return `<div class="landmark" title="Every finished thread counts 2, every session 1, every 250 KB of transcript 1, every 1,000 lines of code 1 (up to 50)">

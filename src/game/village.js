@@ -459,7 +459,10 @@ export class Village {
     const words = landmarkWords(this.lookOf(name).theme)
     const g = this.growth.get(name) || { sessions: 0, finished: 0, bytes: 0, lines: 0 }
     const s = standing(g, this.state.progress?.[name])
-    return { ...s, work: g, word: words.tiers[s.tier], nextWord: words.tiers[s.tier + 1] ?? null, counted: Boolean(this.counted.repos?.[name]) }
+    const c = this.settings.repoLines ? this.counted.repos?.[name] : null
+    // How its lines stand: counted, not a git repository (never walked), or not counted yet or at all.
+    const lines = c ? (c.repo === false ? 'not a repo' : 'counted') : this.settings.repoLines ? 'counting' : 'off'
+    return { ...s, work: g, word: words.tiers[s.tier], nextWord: words.tiers[s.tier + 1] ?? null, lines }
   }
 
   projectPath(name) {

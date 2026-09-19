@@ -5,10 +5,11 @@ import path from 'node:path'
 import { countLines, countRepo, createRepoStore } from '../server/repo.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
-/** A repo on disk: `files` maps a path under it to its contents. */
-function repo(files) {
+/** A repo on disk: `files` maps a path under it to its contents. It is a git repository unless `git` is false. */
+function repo(files, { git = true } = {}) {
   const { home, cleanup } = tmpHome()
   const dir = path.join(home, 'repo')
+  if (git) fs.mkdirSync(path.join(dir, '.git'), { recursive: true })
   for (const [rel, body] of Object.entries(files)) {
     const p = path.join(dir, ...rel.split('/'))
     fs.mkdirSync(path.dirname(p), { recursive: true })
@@ -88,8 +89,40 @@ test('a huge tree is cut short and says so', async (t) => {
   assert.equal(slow.truncated, true)
 })
 
-test('a folder that has gone counts as empty rather than failing', async () => {
-  assert.deepEqual(await countRepo(path.join('/', 'no', 'such', 'agentville', 'repo')), { lines: 0, files: 0, skipped: 0, truncated: false })
+test('a folder that isn\'t a git repository is never walked, and neither is one that has gone', async (t) => {
+  const { dir, cleanup } = repo({ 'notes.txt': lines(100), 'Downloads/report.csv': lines(5000) }, { git: false })
+  t.after(cleanup)
+  let reads = 0
+  const fsp = { ...fs.promises, readdir: (...a) => (reads++, fs.promises.readdir(...a)), open: (...a) => (reads++, fs.promises.open(...a)) }
+  assert.equal(await countRepo(dir, { fsp }), null)
+  assert.equal(reads, 0, 'it looked inside')
+  assert.equal(await countRepo(path.join('/', 'no', 'such', 'agentville', 'repo')), null)
+  // A worktree's .git is a file pointing at the main repository's; it is a repository all the same.
+  const wt = repo({ 'a.js': lines(3) }, { git: false })
+  t.after(wt.cleanup)
+  fs.writeFileSync(path.join(wt.dir, '.git'), 'gitdir: /elsewhere/.git/worktrees/wt\n')
+  assert.equal((await countRepo(wt.dir)).lines, 3 + 1)
+})
+
+test('the store says which folders aren\'t repositories, so the page can say why they have no lines', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const store = createRepoStore({ dataDir: home, count: async () => null })
+  const projects = [{ name: 'downloads', path: path.join(home, 'Downloads') }]
+  await store.get(projects)
+  await store.settle()
+  const { countedAt, ...rest } = (await store.get(projects)).repos.downloads
+  assert.deepEqual(rest, { repo: false, lines: 0, files: 0, skipped: 0, truncated: false })
+  assert.equal(typeof countedAt, 'number')
+})
+
+test('counts saved before only repositories were counted are thrown away and done again', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const dir = path.join(home, 'Documents')
+  fs.writeFileSync(path.join(home, 'repos.json'), JSON.stringify({ version: 1, repos: { [dir]: { countedAt: Date.now(), lines: 99999, files: 5, skipped: 0, truncated: false, error: '' } } }))
+  const store = createRepoStore({ dataDir: home, count: async () => null })
+  assert.deepEqual((await store.get([{ name: 'docs', path: dir }])).repos, {}, 'an old count was believed')
 })
 
 test('the store counts in the background, answers from its cache, and keeps its counts across a restart', async (t) => {
@@ -105,7 +138,7 @@ test('the store counts in the background, answers from its cache, and keeps its 
   assert.equal(first.updating, true)
   await store.settle()
   const second = await store.get(projects)
-  assert.deepEqual(second.repos, { app: { lines: 42, files: 3, skipped: 0, truncated: false, countedAt: 1000 } })
+  assert.deepEqual(second.repos, { app: { repo: true, lines: 42, files: 3, skipped: 0, truncated: false, countedAt: 1000 } })
   assert.deepEqual(counted, [path.join(home, 'app')], 'a relative path is never walked')
   assert.equal(second.updating, false, 'fresh: not counted again')
   clock += 1000

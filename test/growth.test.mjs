@@ -20,9 +20,10 @@ test('finished work is what has bloomed in the garden; an open PR\'s bud is not 
 })
 
 test('lines come from the count, for repos that have one', () => {
-  const g = growthInputs([T('a'), T('b')], new Map(), { a: { lines: 4200 }, b: { lines: 'many' }, c: { lines: 10 } })
+  const g = growthInputs([T('a'), T('b'), T('d')], new Map(), { a: { lines: 4200 }, b: { lines: 'many' }, c: { lines: 10 }, d: { repo: false, lines: 500 } })
   assert.equal(g.get('a').lines, 4200)
   assert.equal(g.get('b').lines, 0)
+  assert.equal(g.get('d').lines, 0, 'a folder that is not a repository has no lines')
   assert.equal(g.has('c'), false, 'a count alone does not put a repo on the map')
 })
 

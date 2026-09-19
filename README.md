@@ -61,7 +61,7 @@ this way. Switch to the Claude app under Settings → Open threads in.
 | Live sessions | `~/.claude/sessions/*.json` |
 | Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows) |
 
-| Your repos | The files in each folder a session works in, to count its lines of code for its landmark. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
+| Your repos | The files in each git repository a session works in, to count its lines of code for its landmark. A folder that isn't a repository (your home, Documents, Downloads) is never walked. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
 
 Only ever read. Nothing in a repo is ever run: its lines are counted by reading its files, and
 the counts are kept in `data/repos.json`, refreshed every half hour.
@@ -180,7 +180,7 @@ nothing.
 | A finished thread or a merged PR (a flower) | 2 each |
 | A session, live or archived | 1 each |
 | Transcripts | 1 per 250 KB, up to 1 MB of each session's |
-| Lines of code in the repo | 1 per 1,000, up to 50 |
+| Lines of code in the repo, if it's a git repository | 1 per 1,000, up to 50 |
 
 | Tier | Village | Construction site | Points |
 | --- | --- | --- | --- |

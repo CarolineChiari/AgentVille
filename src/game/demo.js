@@ -101,6 +101,6 @@ export function demoIssues(now = Date.now()) {
 export function demoRepos() {
   const lines = { orchard: 48_200, lighthouse: 21_900, 'bakery-api': 9_400, tidepool: 64_000, windvane: 2_300, quill: 640 }
   const repos = {}
-  for (const [name, n] of Object.entries(lines)) repos[name] = { lines: n, files: Math.round(n / 120), skipped: 0, truncated: false, countedAt: 0 }
+  for (const [name, n] of Object.entries(lines)) repos[name] = { repo: true, lines: n, files: Math.round(n / 120), skipped: 0, truncated: false, countedAt: 0 }
   return { repos, updating: false }
 }
