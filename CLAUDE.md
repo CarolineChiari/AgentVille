@@ -21,7 +21,11 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 
 ## Themes
 
-- A theme is the whole village's look; a sub-theme is one folder's take on it. Ids, labels, each
+- A theme is the whole village's look; a sub-theme is one folder's take on it. A folder can also
+  pick a look (`{ theme, sub }`) from any theme, saved in `village.json` as `looks`, so plots of
+  different themes stand side by side: every plot's style carries its own theme, and the renderer
+  draws each plot, and what stands on it, in that theme. The village's theme covers the
+  countryside, the square and every folder that hasn't picked. Ids, labels, each
   theme's `dims` (its fences, grounds, walls and paint) and each sub-theme's recipe live in
   `src/sim/themes.js`; a plot's style is drawn from its recipe in `src/sim/style.js`. How a theme
   looks is its pack, `src/render/themes/<id>/`, registered in `src/render/themes/index.js`. A pack

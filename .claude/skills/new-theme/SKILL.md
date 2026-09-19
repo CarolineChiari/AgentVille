@@ -6,7 +6,9 @@ description: Build a new AgentVille theme, a whole-village look whose folders ea
 # Making a theme
 
 A **theme** is the whole village's look (Settings → Theme). A **sub-theme** is one folder's take
-on it: each plot wears one, handed out by the repo's name or picked in its panel. The
+on it: each plot wears one, handed out by the repo's name. A folder can also pick any theme's
+sub-theme as its own look (mix and match), so the new theme's plots will stand beside plots of
+every other theme, and inside villages of every other theme. The
 construction theme is the worked example: `src/sim/themes.js` (its entry in `THEMES`) and
 `src/render/themes/construction/` (its pack). Read both before starting, and read CLAUDE.md's
 Themes section: its rules are not optional.
@@ -83,6 +85,9 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
 - Cover (things lying on the ground): pure and deterministic, sparse, and named unlike any of the
   village's decorations, since the pack sees every `deco.*` request.
 - Chimney smoke starts on the building; animated buildings differ between frames.
+- Mixed villages: a pack draws only its own plots, so it can't assume its neighbours, the
+  countryside or the square are in its theme. Its road ring meets other themes' roads; check
+  the join with `?demo` and a folder's Look set to it.
 - Finished work (`flower.<kind>.<stage>`, params `color`): the flower's 9×13, standing on pixel
   (4, 11), each kind of work its own look, a bud unlike a bloom. Its field (`tile.bed.0` for the top
   row, `.1` below, params `tone`) is full tiles, and marks each spot on the village's 8 px grid.
@@ -98,8 +103,9 @@ finished work by kind of work, villagers in every pose. Read the PNG and compare
 different from its neighbours, and that plots still read against the green countryside.
 
 Then see it live: `npm run dev` and open `http://127.0.0.1:5274/?demo&theme=<id>` (add
-`&sub=<sub-theme>` to put every folder in one). The preview is not saved. Look at night too
-(Settings → Time of day → Set by hand).
+`&sub=<sub-theme>` to put every folder in one). The preview is not saved. Then open `?demo`
+alone and give one folder the new look from its panel, to see it mixed into the village. Look at
+night too (Settings → Time of day → Set by hand).
 
 ## 6. Finish
 

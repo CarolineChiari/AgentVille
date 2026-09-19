@@ -87,11 +87,15 @@ come and go on their own.
 construction site, where every plot is fenced off, each session's building is going up (a timber
 frame, a tower crane, a site office, a digger in its pit), everybody works in a hard hat and
 hi-vis, and finished work is a survey flag in each plot's setting-out yard instead of a flower in
-its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research. Within a theme each folder wears a sub-theme of its own: a farmstead, a market town or a
-stone hamlet in the village; new homes, a high-rise, roadworks, a restoration or an industrial
-park on the site. A folder is handed one by its name; pick another under **Look** in its panel,
-or put every folder in the same one with **Settings → Every folder**. What a building means
-(who's working, who needs you, what has bloomed) is the same in every theme.
+its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research.
+
+Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
+village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site. A
+folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
+puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
+look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
+the village's theme becomes. What a building means (who's working, who needs you, what has
+bloomed) is the same in every theme.
 
 ### Transcripts and new sessions
 
