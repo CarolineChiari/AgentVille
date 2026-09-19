@@ -115,6 +115,13 @@ bloomed) is the same in every theme.
 
 ![The same demo village as an elvish realm: plots of glade and moss behind briars and runestones, houses built into living trees under swept roofs, a slender spire, and rows of lit lanterns where the gardens were](docs/screenshots/elvish.png)
 
+#### Every theme
+
+**[docs/themes](docs/themes)** is the whole catalogue: every theme and every sub-theme with its
+id, a strip of sample plots so you can see what a folder will wear before you switch, what each
+theme builds its plots from, what it puts its villagers in, and what it calls finished work. It
+also says where to start if you want to add one.
+
 ### Transcripts and new sessions
 
 **Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:
