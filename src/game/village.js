@@ -10,6 +10,7 @@ import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { recipeOf, subthemeFor, themeOf } from '../sim/themes.js'
+import { nameFor } from '../sim/names.js'
 
 const SAVE_DELAY = 500
 
@@ -466,7 +467,7 @@ export class Village {
     if (!t.canOpen) return this.toast(`This thread has nothing ${t.harnessName || 'Claude'} can open.`, 'error')
     try {
       const r = await api.openThread(t.harness, t.ref, this.settings.openIn)
-      this.toast(r.note || `Opening “${t.title}”${r.where ? ` in ${r.where}` : ''}`)
+      this.toast(r.note || `Opening ${nameFor(t.id)} — “${t.title}”${r.where ? ` in ${r.where}` : ''}`)
     } catch (err) {
       this.toast(err.message, 'error')
     }
@@ -488,7 +489,7 @@ export class Village {
     if (this.selected === id) this.selected = null
     this.apply()
     this.queueSave()
-    this.toast(`Archived “${t.title}”`)
+    this.toast(`Archived ${nameFor(t.id)} — “${t.title}”`)
   }
 
   unarchive(id) {
