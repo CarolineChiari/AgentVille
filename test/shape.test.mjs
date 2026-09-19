@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { capacityOf, flowerAt, isFenceGap, isRect, isTrail, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
+import { capacityOf, flowerAt, isFenceGap, isRect, isTrail, propsOf, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
 import { BUILDING_H, BUILDING_W } from '../src/sim/constants.js'
 import { key } from '../src/sim/grid.js'
 
@@ -18,7 +18,8 @@ test('rectangles are recognised, ragged shapes are not', () => {
 
 test('how many houses and flowers each size of plot holds', () => {
   const table = SHAPES.map(([w, h]) => [`${w}x${h}`, capacityOf(w, h).slots, capacityOf(w, h).flowers])
-  assert.deepEqual(table, [['1x1', 5, 56], ['2x1', 9, 224], ['1x2', 13, 248], ['2x2', 17, 992], ['3x2', 21, 1736], ['4x3', 33, 4400]])
+  // The landmark takes a 2×2 of every field: sixteen spots a flower could have had.
+  assert.deepEqual(table, [['1x1', 5, 40], ['2x1', 9, 208], ['1x2', 13, 232], ['2x2', 17, 976], ['3x2', 21, 1720], ['4x3', 33, 4384]])
 })
 
 test('the first houses gather round the field: top middle, then either side, then the top corners', () => {
@@ -87,10 +88,62 @@ for (const [w, h] of SHAPES) {
     assert.ok(!inRect(s.bed, s.board.x, s.board.y), 'the board is not in the field')
   })
 
+  test(`${w}×${h}: the landmark stands in the middle of the field, clear of the walkway the top houses open onto`, () => {
+    const s = at(w, h, 3, -2)
+    const l = s.landmark
+    for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) assert.ok(inRect(s.bed, x, y), `the landmark reaches ${x},${y}, outside the field`)
+    // Centred across the field, to the tile.
+    assert.ok(Math.abs(l.x - s.bed.x - (s.bed.x + s.bed.w - l.x - l.w)) <= 1, 'not across the middle of the field')
+    // Its tallest tier is 72 px, 4.5 tiles, from the bottom of its footprint: that must stay below
+    // the row where the top houses' doors are, and whoever stands at them.
+    assert.ok(l.y + l.h - 72 / 16 >= s.walkTop + 0.5, `its top reaches ${l.y + l.h - 4.5}, over the doorsteps on row ${s.walkTop}`)
+  })
+
+  test(`${w}×${h}: what a landmark brings stands in the fence line, clear of every gap, the board and each other`, () => {
+    const s = at(w, h, 1, 2)
+    const ringOf = (x, y) => Math.min(x - s.x0, y - s.y0, s.x0 + s.w - 1 - x, s.y0 + s.h - 1 - y)
+    const taken = new Set()
+    let before = []
+    for (let tier = 0; tier <= 5; tier++) {
+      const props = propsOf(s, tier)
+      // Each tier keeps what the tiers below it brought.
+      for (const p of before) assert.ok(props.some((q) => q.sprite === p.sprite && q.x === p.x && q.y === p.y), `tier ${tier} lost a ${p.sprite}`)
+      assert.ok(props.length > before.length || tier === 0, `tier ${tier} brings nothing`)
+      before = props
+    }
+    for (const p of before) {
+      assert.equal(ringOf(p.x, p.y), 1, `a ${p.sprite} at ${p.x},${p.y} is off the fence line`)
+      const gap = isFenceGap(s, p.x - s.x0, p.y - s.y0)
+      if (p.walk) assert.ok(gap, 'the gateway stands over a gap')
+      else assert.ok(p.tiles.length > 0, `a ${p.sprite} takes no tile`)
+      for (const [x, y] of p.tiles) {
+        assert.equal(ringOf(x, y), 1, `a ${p.sprite} takes ${x},${y}, off the fence line`)
+        assert.ok(!isFenceGap(s, x - s.x0, y - s.y0), `a ${p.sprite} plugs the gap at ${x},${y}`)
+        assert.ok(!taken.has(key(x, y)), `two props share ${x},${y}`)
+        taken.add(key(x, y))
+      }
+    }
+    assert.ok(!taken.has(key(s.board.x, s.board.y)))
+  })
+
+  test(`${w}×${h}: flowers fill the field round the landmark, one to a spot`, () => {
+    const s = at(w, h, -2, 1)
+    const seen = new Set()
+    for (let i = 0; i < s.spots.length; i++) {
+      const { x, y } = flowerAt(s, i)
+      assert.ok(inRect(s.bed, x, y), `flower ${i} is outside the field`)
+      assert.ok(!inRect(s.landmark, x, y), `flower ${i} is on the landmark`)
+      assert.ok(!seen.has(`${x},${y}`), `two flowers at ${x},${y}`)
+      seen.add(`${x},${y}`)
+    }
+    assert.equal(capacityOf(w, h).flowers, s.spots.length)
+  })
+
   test(`${w}×${h}: every door and every fence gap can be reached from the road`, () => {
     const s = at(w, h, 1, -1)
     const blocked = new Set([key(s.board.x, s.board.y)])
     for (const slot of s.slots) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) blocked.add(key(slot.x + dx, slot.y + dy))
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) blocked.add(key(s.landmark.x + dx, s.landmark.y + dy))
     for (let ly = 0; ly < s.h; ly++) {
       for (let lx = 0; lx < s.w; lx++) {
         const ring = Math.min(lx, ly, s.w - 1 - lx, s.h - 1 - ly)
@@ -115,9 +168,23 @@ for (const [w, h] of SHAPES) {
       const door = key(slot.x + BUILDING_W / 2, slot.y + BUILDING_H)
       assert.ok(seen.has(door), `the door of the house at ${slot.x},${slot.y} can't be reached`)
     }
-    for (let y = s.bed.y; y < s.bed.y + s.bed.h; y++) for (let x = s.bed.x; x < s.bed.x + s.bed.w; x++) assert.ok(seen.has(key(x, y)), `field tile ${x},${y} is shut in`)
+    for (let y = s.bed.y; y < s.bed.y + s.bed.h; y++) {
+      for (let x = s.bed.x; x < s.bed.x + s.bed.w; x++) if (!inRect(s.landmark, x, y)) assert.ok(seen.has(key(x, y)), `field tile ${x},${y} is shut in`)
+    }
   })
 }
+
+test('in a small field the rows beside the landmark are shorter, and the one below starts under it', () => {
+  const s = at(1, 1)
+  const rows = new Map()
+  for (const p of s.spots) rows.set(p.row, (rows.get(p.row) || 0) + 1)
+  assert.deepEqual([...rows.values()], [8, 8, 8, 4, 4, 4, 4])
+  // Soil follows the flowers: a flower beside the landmark still has ploughed ground under it.
+  for (let n = 1; n <= s.spots.length; n++) {
+    const { y } = flowerAt(s, n - 1)
+    assert.ok(Math.floor(y - 0.01) < s.bed.y + tilledRows(s, n), `flower ${n} is on grass`)
+  }
+})
 
 test('a plot growing right or down keeps every house that still fits where it stood', () => {
   const keys = (s) => new Set(s.slots.map((p) => key(p.x, p.y)))
@@ -133,7 +200,8 @@ test('a plot growing right or down keeps every house that still fits where it st
 })
 
 test('the field fills a row at a time and is ploughed one row ahead', () => {
-  const s = at(1, 1)
+  // Tall enough that the first rows run clear across, above the landmark.
+  const s = at(1, 2)
   const cols = s.flowers.cols
   assert.equal(flowerAt(s, 1).y, flowerAt(s, 0).y)
   assert.ok(flowerAt(s, 1).x > flowerAt(s, 0).x)
@@ -143,7 +211,7 @@ test('the field fills a row at a time and is ploughed one row ahead', () => {
   assert.equal(tilledRows(s, cols + 1), 2)
   assert.equal(tilledRows(s, 10_000), s.bed.h, 'never past the field')
   // Every flower that fits stands on ploughed ground.
-  for (let n = 1; n <= capacityOf(1, 1).flowers; n++) {
+  for (let n = 1; n <= capacityOf(1, 2).flowers; n++) {
     const { y } = flowerAt(s, n - 1)
     assert.ok(Math.floor(y - 0.01) < s.bed.y + tilledRows(s, n), `flower ${n} is on grass`)
   }

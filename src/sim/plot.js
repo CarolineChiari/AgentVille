@@ -2,7 +2,7 @@
 // is painted. Where anything goes inside it comes from shape.js.
 import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
-import { flowerAt, isFenceGap, isTrail, rectOf, shapeOf, tilledRows } from './shape.js'
+import { flowerAt, isFenceGap, isTrail, propsOf, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
 import { plotStyle } from './style.js'
 
@@ -13,6 +13,8 @@ export const DECO = {
   NONE: 0, FENCE_H: 1, FENCE_V: 2, POST: 3, FLOWERS: 4, PEBBLES: 5, TALLGRASS: 6, CLOVER: 7, MUSHROOMS: 8, REEDS: 9,
   LILYPAD: 10,
 }
+
+const inRect = (r, x, y) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h
 
 export class Plot {
   /** `style` is its look in the village's theme (see style.js); the plain village one if not given. */
@@ -26,6 +28,8 @@ export class Plot {
     this.slotKeys = [] // every house position, "x,y" of its top-left tile, preferred first
     this.slotOf = new Map() // thread id → slot key
     this.tilled = 0 // tile rows of the field ploughed so far
+    this.tier = 0 // how far its landmark has risen; see progress.js
+    this.props = [] // what that has brought with it, standing in its fence line; see propsOf
   }
 
   setCells(cells) {
@@ -36,6 +40,7 @@ export class Plot {
     if (changed) {
       this.shape = shapeOf(rectOf(cells))
       this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
+      this.props = propsOf(this.shape, this.tier)
     }
     return changed
   }
@@ -52,6 +57,14 @@ export class Plot {
     const rows = tilledRows(this.shape, Math.min(n, this.flowerCapacity))
     const changed = rows !== this.tilled
     this.tilled = rows
+    return changed
+  }
+
+  /** Raise (or set) its landmark's tier. True if that changes what stands on it. */
+  setTier(tier) {
+    const changed = tier !== this.tier
+    this.tier = tier
+    if (changed && this.shape) this.props = propsOf(this.shape, tier)
     return changed
   }
 
@@ -115,7 +128,15 @@ export class Plot {
   }
 
   get flowerCapacity() {
-    return this.shape.flowers.cols * this.shape.flowers.rows
+    return this.shape.spots.length
+  }
+
+  /**
+   * Its landmark's footprint, in the field. It moves only when the plot grows, and then the whole
+   * field has moved with it.
+   */
+  get landmarkRect() {
+    return { ...this.shape.landmark }
   }
 
   /** Where flower `i` stands (its base, in tiles): the field fills a row at a time, left to right. */
@@ -148,6 +169,8 @@ export class Plot {
   paint(map) {
     const s = this.shape
     const { x0, y0, w: W, h: H, bed } = s
+    // A prop stands in the fence line in place of the fence.
+    const instead = new Set(this.props.flatMap((p) => p.tiles.map(([x, y]) => key(x, y))))
     for (let ly = 0; ly < H; ly++) {
       for (let lx = 0; lx < W; lx++) {
         const tx = x0 + lx
@@ -157,9 +180,10 @@ export class Plot {
           map.setTile(tx, ty, TILE.ROAD)
           continue
         }
-        const tilled = tx >= bed.x && tx < bed.x + bed.w && ty >= bed.y && ty < bed.y + this.tilled
+        // The landmark stands on grass in the middle of the field, whatever has been ploughed round it.
+        const tilled = tx >= bed.x && tx < bed.x + bed.w && ty >= bed.y && ty < bed.y + this.tilled && !inRect(s.landmark, tx, ty)
         map.setTile(tx, ty, tilled ? TILE.BED : isTrail(s, lx, ly) ? TILE.TRAIL : TILE.YARD)
-        if (ring !== 1 || isFenceGap(s, lx, ly)) continue
+        if (ring !== 1 || isFenceGap(s, lx, ly) || instead.has(key(tx, ty))) continue
         const across = ly === 1 || ly === H - 2
         const down = lx === 1 || lx === W - 2
         map.setDeco(tx, ty, across && down ? DECO.POST : across ? DECO.FENCE_H : DECO.FENCE_V)

@@ -39,6 +39,8 @@ export const DEFAULT_THEME = 'village'
  * @property {{ hat?: string, top?: string }} [outfit]  what every villager wears to work here, by
  *           name from HATS and TOPS in villager.js
  * @property {Finished} finished  what finished work is called here
+ * @property {Landmark} [landmark]  what stands in the middle of each plot's field, tier by tier;
+ *           left out, the village's
  *
  * @typedef {object} Finished  The words for finished work, which the village calls flowers. A
  *           theme may draw it as something else (its pack draws `flower.*`), but it still says
@@ -51,6 +53,11 @@ export const DEFAULT_THEME = 'village'
  * @property {string} grow    the setting that turns PRs into them
  * @property {Record<string, string>} [names]  each kind of work's name for one (see WORK in
  *           flowers.js); left out, every flower keeps its own name (a daisy, a tulip)
+ *
+ * @typedef {object} Landmark  What a plot raises in its field as work lands in it (see progress.js).
+ *           A theme names and draws it its own way, but a higher tier is always more work done.
+ * @property {string} one      'landmark'
+ * @property {string[]} tiers  one name per tier, MAX_TIER + 1 of them, smallest first
  */
 
 /** @type {Record<string, Theme>} */
@@ -74,6 +81,7 @@ export const THEMES = {
     ],
     auto: ['patchwork'],
     finished: { one: 'flower', many: 'flowers', place: 'garden', glyph: '✿', grow: 'Grow flowers from pull requests' },
+    landmark: { one: 'landmark', tiers: ['Campfire', 'Well', 'Market cross', 'Chapel', 'Town hall', 'Keep'] },
   },
   construction: {
     label: 'Construction site',
@@ -103,6 +111,8 @@ export const THEMES = {
         research: 'Windsock', misc: 'Tape tie',
       },
     },
+    // The site's own landmark climbs from a pegged-out plot to a topped-out tower.
+    landmark: { one: 'landmark', tiers: ['Survey peg', 'Site hut', 'Scaffold tower', 'Tower crane', 'Concrete core', 'Topped out'] },
   },
 }
 
@@ -136,6 +146,9 @@ export function subthemeFor(name, theme, ...choices) {
 
 /** The words for finished work in a theme; see Finished. */
 export const finishedWords = (theme) => THEMES[themeOf(theme)].finished
+
+/** What a theme calls its plots' landmarks, tier by tier: the village's words if it has none of its own. */
+export const landmarkWords = (theme) => THEMES[themeOf(theme)].landmark ?? THEMES[DEFAULT_THEME].landmark
 
 /** What one finished thread's flower (FLOWER_KINDS[kind]) is called in a theme: a daisy, a pennant. */
 export function finishedName(theme, kind) {

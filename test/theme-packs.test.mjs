@@ -9,7 +9,9 @@ import { VILLAGER_H, VILLAGER_W } from '../src/render/sprites/villagers.js'
 import { FLOWER_H, FLOWER_W } from '../src/render/sprites/flowers.js'
 import { PETALS } from '../src/render/sprites/palette.js'
 import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
-import { PACKS, packFor } from '../src/render/themes/index.js'
+import { PACKS, landmarkShapes, packFor } from '../src/render/themes/index.js'
+import { STATIC_VARIANTS } from '../src/render/sprites/tiles.js'
+import { MAX_TIER } from '../src/sim/progress.js'
 import { THEMES, THEME_IDS, dress } from '../src/sim/themes.js'
 import { KINDS } from '../src/sim/building.js'
 import { lookFor } from '../src/sim/villager.js'
@@ -109,6 +111,45 @@ for (const id of THEME_IDS) {
           }
           const n = B.frames(f.kind, 3)
           if (n > 1) assert.ok(!same(at(`building.${f.kind}.3`, 0, p), at(`building.${f.kind}.3`, 1, p)), `a ${f.kind}'s frames are the same`)
+        }
+      }
+    }
+  })
+
+  test(`${id}: every landmark is a building's width, as tall as its tier says, stands on the ground, and each tier stands taller`, () => {
+    const L = landmarkShapes(id)
+    for (const k of ['heightOf', 'shadowOf', 'frames']) assert.equal(typeof L[k], 'function', k)
+    // Its footprint is two rows down the field: any taller would reach the top houses' doorsteps.
+    assert.ok(L.heightOf(MAX_TIER) <= 72, `the top tier is ${L.heightOf(MAX_TIER)} px tall`)
+    for (let tier = 0; tier <= MAX_TIER; tier++) {
+      if (tier > 0) assert.ok(L.heightOf(tier) > L.heightOf(tier - 1), `tier ${tier} is no taller than tier ${tier - 1}`)
+      for (const variant of VARIANTS) {
+        const p = { accent: ACCENTS[variant % ACCENTS.length], variant, wall: variant % dims.wall.length, roofs: variant % dims.roofs, lit: variant % 2 === 1, busy: variant % 3 === 0 }
+        for (let stage = 0; stage <= 3; stage++) {
+          for (let frame = 0; frame < L.frames(tier, stage); frame++) {
+            const name = `landmark.${tier}.${stage}`
+            const pc = at(name, frame, p)
+            assert.equal(pc.w, BUILDING_W, name)
+            assert.equal(pc.h, L.heightOf(tier), `${name} v${variant}`)
+            assert.ok(opaque(pc) > 40, `${name} v${variant} is nearly empty`)
+            assert.ok(grounded(pc), `${name} v${variant} floats`)
+          }
+        }
+        assert.ok(!same(at(`landmark.${tier}.2`, 0, p), at(`landmark.${tier}.3`, 0, p)), `tier ${tier} v${variant} is finished while it is still going up`)
+      }
+      // Somebody in, after dark: whatever animates moves between its frames.
+      const busy = { accent: ACCENTS[0], variant: 0, wall: 0, roofs: 0, lit: true, busy: true }
+      if (L.frames(tier, 3) > 1) assert.ok(!same(at(`landmark.${tier}.3`, 0, busy), at(`landmark.${tier}.3`, 1, busy)), `tier ${tier}'s frames are the same`)
+    }
+  })
+
+  test(`${id}: what a landmark brings to its plot stands on the ground, lit or not`, () => {
+    for (const sprite of ['yardlamp', 'yardbench', 'yardplanter', 'gateway']) {
+      for (let v = 0; v < STATIC_VARIANTS[sprite]; v++) {
+        for (const lit of [false, true]) {
+          const pc = at(`static.${sprite}.${v}`, 0, { lit })
+          assert.ok(opaque(pc) > 20, `${sprite} ${v} is nearly empty`)
+          assert.ok(grounded(pc), `${sprite} ${v} floats`)
         }
       }
     }

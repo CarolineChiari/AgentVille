@@ -1545,3 +1545,6 @@ export function drawSiteBuilding(o) {
   }
   return pc.outline(P.outline)
 }
+
+// The parts the site's landmarks are put together from too (see landmarks.js).
+export { box, paintOf, pane, bulb, ladder, worklight, cone as trafficCone, corrugated, osb, scaffold as siteScaffold }

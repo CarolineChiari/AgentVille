@@ -6,6 +6,7 @@ import { allocatePlots } from './layout.js'
 import { Nav } from './nav.js'
 import { DECO, Plot, TILE } from './plot.js'
 import { Building } from './building.js'
+import { CHEER_EVERY, Landmark } from './landmark.js'
 import { Villager } from './villager.js'
 import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
@@ -56,6 +57,7 @@ export class World {
     this.villagers = new Map()
     this.flowers = new Map() // thread id → { kind, color, x, y, plot, born }
     this.boards = new Map() // 'board:<plot>' → { id, plot, tx, ty, x, y, count, notes }; read by _rebuild
+    this.landmarks = new Map() // plot name → the Landmark in its field; read by _rebuild
     this.statics = []
     this.effects = []
     this.memory = new Map()
@@ -122,9 +124,12 @@ export class World {
    *        `open` one (a PR not merged yet) waits as a bud
    * @param {Map<string, { id: string }[]>} [boards] open issues per repo, newest first; a plot with any
    *        gets a notice board. A repo with no plot gets no board: issues alone don't claim land.
+   * @param {Map<string, number>} [tiers] how far each repo's work has raised its landmark (see
+   *        progress.js); a repo not in it has a tier-0 one. A tier higher than last time is built
+   *        up in front of you, and its plot celebrates.
    * @returns {Map<string, number[][]>} the layout memory to save
    */
-  setRoster(threads, memory, gardens = new Map(), boards = new Map()) {
+  setRoster(threads, memory, gardens = new Map(), boards = new Map(), tiers = new Map()) {
     if (this.first && memory) this.memory = new Map(memory)
     const groups = new Map()
     for (const t of threads) {
@@ -156,6 +161,8 @@ export class World {
       plot.assignSlots(groups.get(name) || [])
       // The field is ploughed a row ahead of its flowers, so a new row of soil is new ground.
       if (plot.setPlanted(gardens.get(name)?.length ?? 0)) dirty = true
+      // A new tier brings new things to stand in the fence line: new ground.
+      if (plot.setTier(tiers.get(name) ?? 0)) dirty = true
     }
 
     // Flowers. Positions only depend on each plot's cells, so nothing needs rebuilding for them.
@@ -189,6 +196,21 @@ export class World {
     const where = (m) => [...m.values()].map((b) => `${b.id}@${b.tx},${b.ty}`).sort().join()
     if (where(nextBoards) !== where(this.boards)) dirty = true
     this.boards = nextBoards
+
+    // Landmarks: one in the middle of every plot's field. One present at load is already standing;
+    // a new plot's goes up from the ground, and so does one whose tier has just risen.
+    for (const name of [...this.landmarks.keys()]) if (!this.plots.has(name)) this.landmarks.delete(name)
+    for (const [name, plot] of this.plots) {
+      let lm = this.landmarks.get(name)
+      if (!lm) {
+        lm = new Landmark(name, { tier: plot.tier, built: this.first })
+        this.landmarks.set(name, lm)
+        dirty = true
+      }
+      const { x, y } = plot.landmarkRect
+      if (lm.place(x, y)) dirty = true
+      if (lm.raise(plot.tier, this.time)) this.emit('confetti', lm.top.x, lm.top.y, 16)
+    }
 
     // Buildings.
     const live = new Set()
@@ -314,7 +336,13 @@ export class World {
         else if (!this.owner.has(k)) paintWild(map, cx, cy, statics)
       }
     }
-    for (const p of this.plots.values()) p.paint(map)
+    for (const p of this.plots.values()) {
+      p.paint(map)
+      // What its landmark has brought: scenery like the countryside's, but the plot's, in its theme.
+      for (const pr of p.props) {
+        statics.push({ id: `prop:${p.name}:${pr.x},${pr.y}`, sprite: pr.sprite, variant: pr.variant, plot: p.name, x: pr.x + 0.5, y: pr.y + 1, ...(pr.walk ? {} : { blocks: pr.tiles }) })
+      }
+    }
 
     const nav = new Nav({ ox, oy: ox, w: size, h: size })
     nav.version = this.nav.version + 1
@@ -328,6 +356,7 @@ export class World {
     for (const s of statics) if (s.blocks) for (const [bx, by] of s.blocks) nav.setBlocked(bx, by)
     for (const b of this.buildings.values()) if (!b.removing) nav.blockRect(b.x, b.y, b.w, b.h)
     for (const b of this.boards.values()) nav.setBlocked(b.tx, b.ty)
+    for (const l of this.landmarks.values()) nav.blockRect(l.x, l.y, l.w, l.h)
     // Anyone standing where something now stands has to walk out; a villager at rest never moves
     // on its own, so give it somewhere to go.
     for (const v of this.villagers.values()) if (!nav.standable(v.x, v.y)) v.goal = null
@@ -408,9 +437,26 @@ export class World {
     }
     for (const v of this.villagers.values()) v.tick(dt, this)
     this._separate(dt)
+    this._cheer(dt)
     for (const [id, v] of this.villagers) if (v.loco === 'gone') this.villagers.delete(id)
     for (const e of this.effects) e.age += dt
     this.effects = this.effects.filter((e) => e.age < e.life)
+  }
+
+  /**
+   * A landmark going up: confetti over it, and over everybody on its plot, every so often until it
+   * stands. Their statuses are left alone; a villager waiting on you still says so.
+   */
+  _cheer(dt) {
+    for (const lm of this.landmarks.values()) {
+      lm.tick(dt)
+      if (!lm.cheering(this.time) || this.time < lm.nextCheer) continue
+      lm.nextCheer = this.time + CHEER_EVERY
+      this.emit('confetti', lm.top.x, lm.top.y, 10)
+      for (const v of this.villagers.values()) {
+        if (v.building?.plot === lm.plot && v.loco === 'site') this.emit('confetti', v.x, v.y - 1.5, 4)
+      }
+    }
   }
 
   /** First load: one villager out of the arch at a time, the ones waiting on you first. */
@@ -482,14 +528,20 @@ export class World {
     }
   }
 
-  snapshot({ selected = null, hovered = null } = {}) {
+  /**
+   * @param {{ selected?: string|null, hovered?: string|null, selectedPlot?: string|null }} [opts]
+   *        `selectedPlot` rings its landmark while nothing on it is selected
+   */
+  snapshot({ selected = null, hovered = null, selectedPlot = null } = {}) {
     const urgent = new Set()
     const active = new Set()
+    const busy = new Set()
     for (const v of this.villagers.values()) {
       const b = v.building
       if (!b) continue
       if (v.status === 'waiting' || v.status === 'blocked') urgent.add(b.plot)
       if (v.status !== 'sleeping' && v.status !== 'idle') active.add(b.plot)
+      if (v.status === 'working' || v.status === 'waiting') busy.add(b.plot)
     }
     const plain = plainStyle(this.theme)
     return {
@@ -514,6 +566,16 @@ export class World {
         })),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
       boards: [...this.boards.values()].map((b) => ({ ...b, selected: b.id === selected, hovered: b.id === hovered })),
+      landmarks: [...this.landmarks.values()].map((l) => {
+        const plot = this.plots.get(l.plot)
+        return {
+          id: l.id, plot: l.plot, tier: l.tier, stage: l.stage, progress: l.progress, variant: l.variant, x: l.x, y: l.y, w: l.w, h: l.h,
+          style: plot?.style ?? plain, accent: plot?.accent ?? 0,
+          // Lit for the same reason as a window: somebody on its plot is in, working or waiting on you.
+          lit: busy.has(l.plot),
+          selected: !selected && l.plot === selectedPlot, hovered: l.id === hovered,
+        }
+      }),
       effects: this.effects,
     }
   }
@@ -524,6 +586,12 @@ export class World {
 
   board(id) {
     return this.boards.get(id) || null
+  }
+
+  /** A plot's landmark, by the plot's name or by its own id, `landmark:<plot>`. */
+  landmark(name) {
+    const plot = typeof name === 'string' && name.startsWith('landmark:') ? name.slice('landmark:'.length) : name
+    return this.landmarks.get(plot) || null
   }
 
   plotAtTile(tx, ty) {

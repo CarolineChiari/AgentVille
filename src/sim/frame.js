@@ -10,8 +10,9 @@
  * @property {{ ox: number, oy: number, w: number, h: number, tiles: Uint8Array, deco: Uint8Array, version: number, tileAt: (x: number, y: number) => number, decoAt: (x: number, y: number) => number }} map
  * @property {{ x: number, y: number }} gate
  * @property {{ name: string, accent: number, style: PlotStyle, cells: number[][], labelAt: {x:number,y:number}, urgent: boolean, active: boolean }[]} plots
- * @property {{ id: string, sprite: string, variant?: number, x: number, y: number, blocks?: number[][] }[]} statics
+ * @property {{ id: string, sprite: string, variant?: number, x: number, y: number, blocks?: number[][], plot?: string }[]} statics
  *           Scenery; (x, y) is the bottom centre of its tile. `blocks` lists the tiles it stands on, if nobody can walk through it.
+ *           One with a `plot` belongs to that plot (what its landmark brought, see propsOf) and is drawn in its theme.
  * @property {{ id: string, kind: string, variant: number, stage: number, progress: number, x: number, y: number, w: number, h: number, alpha: number, lit: boolean, wear: number, roomy: boolean, plot: string, accent: number, style: PlotStyle }[]} buildings
  *           `style` is its plot's. `wear` is how weathered it looks, a grade from wear.js: it gleams
  *           while its thread works and runs down the longer it sits.
@@ -24,6 +25,10 @@
  * @property {{ id: string, plot: string, tx: number, ty: number, x: number, y: number, count: number, notes: { id: string }[], selected: boolean, hovered: boolean }[]} boards
  *           One notice board per plot with open issues, one note per issue. (tx, ty) is its tile;
  *           (x, y) the bottom centre of that tile. A board shows at most a handful of notes; `count` is all of them.
+ * @property {{ id: string, plot: string, tier: number, stage: number, progress: number, variant: number, x: number, y: number, w: number, h: number, style: PlotStyle, accent: number, lit: boolean, selected: boolean, hovered: boolean }[]} landmarks
+ *           One per plot, standing in the middle of its field: what the work done in that repo has
+ *           raised (see progress.js). `tier` 0 is the smallest; it goes up through `stage` 0 to 3
+ *           like a building, whenever its tier rises. `lit` means what a lit window does.
  * @property {{ kind: 'spark'|'confetti'|'z', x: number, y: number, age: number, life: number, seed: number }[]} effects
  *
  * @typedef {object} PlotStyle  A repo's look (see style.js): indices, not colours.
@@ -36,7 +41,7 @@
  *
  * @typedef {object} Renderer
  * @property {(frame: Frame) => void} render
- * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, flower?: string, board?: string, plot?: string } | null} pick
+ * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, flower?: string, board?: string, landmark?: string, plot?: string } | null} pick
  * @property {() => void} resize
  */
 export {}

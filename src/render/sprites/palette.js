@@ -248,6 +248,16 @@ export const PALETTE = {
   pipeLight: '#e39264', // the shine along its top
   sack: '#d8cdb4',
   sackDark: '#b0a488',
+
+  // ---------- landmarks (src/render/sprites/landmarks.js) ----------
+  // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
+  flame: '#f0662a',
+  flameTip: '#ffa53a',
+  flameCore: '#ffe07a',
+  ember: '#b8402a',
+  ash: '#8a8078',
+  gilt: '#e9bb3f', // finials, weathervanes, a clock's hands and a bell
+  giltDark: '#b58a24',
 }
 
 /** One per plot, picked by a hash of its name with collisions stepped past. */

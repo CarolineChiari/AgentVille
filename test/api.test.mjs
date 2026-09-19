@@ -28,7 +28,8 @@ before(async () => {
   const prStore = { get: async () => ({ repos: {}, updating: false, available: true, warnings: [] }) }
   const terminal = async (spec) => (terminals.push(spec), { ok: true, promptPassed: true })
   const issueStore = { get: async (list) => ({ repos: {}, updating: false, available: true, warnings: [], asked: list.length }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, terminal })
+  const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, terminal })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -232,4 +233,13 @@ test('a task needs a known harness, a prompt, and a real folder to fall back to'
   assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: ['x'] })).status, 400)
   assert.equal((await post('/api/task', { harness: 'fake', folder: '/not/here/xyz', prompt: 'x' })).status, 400)
   assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: 'x' }, { 'Content-Type': 'application/json' })).status, 403)
+})
+
+test('the repos endpoint counts only the folders the scan found', async () => {
+  const r = await fetch(`${base}/api/repos`)
+  assert.equal(r.status, 200)
+  const body = await r.json()
+  assert.equal(body.updating, false)
+  // The fake harness's thread has no folder, so there is nothing to count.
+  assert.deepEqual(body.repos, {})
 })

@@ -8,8 +8,8 @@
 //   _ . . . . . . . . . . _     the top walkway: every top house's door opens onto it
 //   . F H H # # # # H H F .     #  the field; side houses stand either side of it
 //   . F H H # # # # H H F .
-//   . F . . # # # # . . F .
-//   . F . . # # # # . . F .
+//   . F . . # L L # . . F .     L  the landmark, standing in the field; finished work
+//   . F . . # L L # . . F .        grows all round it
 //   _ . . B . . . . . . . _     the bottom walkway; B the notice board
 //   . F F F _ F F _ F F F .
 //   R R R R R R R R R R R R
@@ -21,6 +21,15 @@ import { key } from './grid.js'
 
 /** A tile is 16 px; the flower grid is laid out in pixels so it lines up with the soil sprite. */
 const PX = 16
+/** The landmark's footprint in tiles, the same as a house's. */
+export const LANDMARK_W = 2
+export const LANDMARK_H = 2
+/**
+ * Rows of field kept between the top walkway and the landmark. Its tallest tier is 72 px, two and
+ * a half tiles above its footprint; two rows keep that clear of the walkway row where the top
+ * houses' doors are, and of whoever stands at them.
+ */
+const LANDMARK_CLEAR = 2
 /**
  * Columns of the top and bottom fence left open, in each cell. They land on the paths between
  * top-row houses (columns 4, 7, 10, … of the plot), so a gap never opens onto a wall.
@@ -83,8 +92,28 @@ export function shapeOf({ cx, cy, w, h }) {
     cols: Math.floor((bed.w * PX) / FLOWER_PITCH),
     rows: Math.floor((bed.h * PX - FLOWER_TOP) / FLOWER_PITCH),
   }
+  // The landmark: across the middle of the field, and as near its middle going down as leaves the
+  // top walkway clear of its tallest tier.
+  const mid = bed.y + Math.floor((bed.h - LANDMARK_H) / 2)
+  const landmark = {
+    x: bed.x + Math.floor((bed.w - LANDMARK_W) / 2),
+    y: Math.min(bed.y + bed.h - LANDMARK_H, Math.max(bed.y + LANDMARK_CLEAR, mid)),
+    w: LANDMARK_W,
+    h: LANDMARK_H,
+  }
+  // Every spot in the field a flower can stand, in the order they fill: a row at a time, left to
+  // right, skipping those on the landmark's footprint.
+  const spots = []
+  for (let row = 0; row < flowers.rows; row++) {
+    for (let col = 0; col < flowers.cols; col++) {
+      const x = bed.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / PX
+      const y = bed.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / PX
+      const on = x >= landmark.x && x < landmark.x + landmark.w && y >= landmark.y && y < landmark.y + landmark.h
+      if (!on) spots.push({ x, y, row })
+    }
+  }
   return {
-    x0, y0, w: W, h: H, yard, walkTop, walkBottom, bed, slots, flowers,
+    x0, y0, w: W, h: H, yard, walkTop, walkBottom, bed, slots, flowers, landmark, spots,
     // On the bottom walkway, one in from the corner: column x0+2 sits right inside the side gap.
     board: { x: yard.x + 1, y: walkBottom },
     label: { x: x0 + W / 2, y: y0 + 1 },
@@ -97,23 +126,18 @@ export function capacityOf(w, h) {
   const k = `${w}x${h}`
   if (!capacities.has(k)) {
     const s = shapeOf({ cx: 0, cy: 0, w, h })
-    capacities.set(k, { slots: s.slots.length, flowers: s.flowers.cols * s.flowers.rows })
+    capacities.set(k, { slots: s.slots.length, flowers: s.spots.length })
   }
   return capacities.get(k)
 }
 
 /**
  * Where flower `i` stands (its base, in tiles). The field fills a row at a time, left to right,
- * so it is ploughed from the top down as work lands.
+ * round the landmark, so it is ploughed from the top down as work lands.
  */
 export function flowerAt(shape, i) {
-  const { bed, flowers } = shape
-  const row = Math.floor(i / flowers.cols)
-  const col = i % flowers.cols
-  return {
-    x: bed.x + (col * FLOWER_PITCH + FLOWER_PITCH / 2) / PX,
-    y: bed.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / PX,
-  }
+  const { x, y } = shape.spots[i]
+  return { x, y }
 }
 
 /**
@@ -121,10 +145,45 @@ export function flowerAt(shape, i) {
  * so the next flower always has soil waiting. The rest of the field is grass until it is needed.
  */
 export function tilledRows(shape, n) {
-  const { bed, flowers } = shape
-  const rows = Math.max(1, Math.min(flowers.rows, Math.ceil(n / flowers.cols) + 1))
+  const { bed, flowers, spots } = shape
+  const filled = Math.min(n, spots.length)
+  const rows = filled > 0 ? Math.min(flowers.rows, spots[filled - 1].row + 2) : 1
   const last = rows - 1
   return Math.min(bed.h, Math.floor((FLOWER_TOP + last * FLOWER_PITCH + FLOWER_PITCH - 1) / PX) + 1)
+}
+
+/**
+ * What a plot's landmark has brought with it, tier by tier: a lamp, a bench, planters, a gateway,
+ * another lamp. The yard has no tile to spare (houses, doorsteps, walkways, the field, the board),
+ * so each stands in the fence line in place of the fence, where nobody walks anyway; the gateway
+ * stands over the bottom gap nearest the middle, and everybody walks under it. Each tier keeps
+ * everything the tiers below it brought.
+ *
+ * Sprites are `static.<sprite>`, drawn in the plot's theme. Each prop's (x, y) is the tile it
+ * stands on, its bottom one; `tiles` are the fence tiles it takes; `walk` if people pass under it.
+ * @returns {{ sprite: string, variant: number, x: number, y: number, tiles: number[][], walk?: boolean }[]}
+ */
+export function propsOf(shape, tier) {
+  const { x0, y0, w: W, h: H, walkBottom } = shape
+  const left = x0 + 1
+  const right = x0 + W - 2
+  const top = y0 + 1
+  const bottom = y0 + H - 2
+  const at = (sprite, variant, x, y, tiles = [[x, y]], walk = false) => ({ sprite, variant, x, y, tiles, ...(walk ? { walk } : {}) })
+  // The bottom gap nearest the middle; of two as near, the one on the right, clear of the board.
+  let gate = null
+  for (let lx = 0; lx < W; lx++) {
+    if (!FENCE_GAPS.has(lx % CELL_TILES)) continue
+    if (!gate || Math.abs(lx + 0.5 - W / 2) <= Math.abs(gate + 0.5 - W / 2)) gate = lx
+  }
+  const all = [
+    [at('yardlamp', 0, left, bottom)],
+    [at('yardbench', 0, left, walkBottom - 1, [[left, walkBottom - 2], [left, walkBottom - 1]])],
+    [at('yardplanter', 0, left, top), at('yardplanter', 1, right, top)],
+    [at('gateway', 0, x0 + gate, bottom, [], true)],
+    [at('yardlamp', 0, right, bottom)],
+  ]
+  return all.slice(0, Math.max(0, Math.min(all.length, tier))).flat()
 }
 
 /**

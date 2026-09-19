@@ -10,6 +10,9 @@
 //                                        verges; ground too, for a path's grass fringe)
 //         fence.<style>.<mask>          (style into FENCES; mask: 1 N, 2 E, 4 S, 8 W carry on)
 //         static.<sprite>.<variant>     (params: lit; a board's variant is how many notes it shows)
+//         landmark.<tier>.<stage>       (params: accent, variant, wall and roofs as a building's; lit, its
+//                                        windows after dark; busy, somebody on its plot is in; frames
+//                                        from its pack's landmark.frames)
 //         flower.<kind>.<stage>         (params: color)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
@@ -27,6 +30,7 @@ import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
+import { drawLandmark } from './landmarks.js'
 import { PACKS } from '../themes/index.js'
 
 const memo = new Map()
@@ -50,6 +54,8 @@ export function generate(name, frame, p) {
       return drawFence(Number(a), Number(b))
     case 'flower':
       return drawFlower(Number(a), Number(b), p.color)
+    case 'landmark':
+      return drawLandmark({ tier: Number(a), stage: Number(b), variant: p.variant, accent: p.accent, wall: p.wall, roofs: p.roofs, lit: p.lit, busy: p.busy, frame })
     case 'static':
       return drawStatic(a, Number(b || 0), { ...p, frame })
     case 'fx':

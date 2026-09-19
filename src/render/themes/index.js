@@ -7,6 +7,7 @@
 // yard, wall and roofs) are indices into its own theme's dims, not the village's.
 import { PALETTE as P } from '../sprites/palette.js'
 import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf } from '../sprites/buildings.js'
+import { heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from '../sprites/landmarks.js'
 import { lawnCover } from '../ground.js'
 import { construction } from './construction/index.js'
 
@@ -25,6 +26,8 @@ import { construction } from './construction/index.js'
  *           the ground's tone field says so, the renderer repaints each plain colour with its
  *           sunny or lush partner (see src/render/ground.js). Only exact plain colours change.
  * @property {{ road: string }} edges  the lip drawn where a road meets anything else
+ * @property {LandmarkShapes} [landmark]  how its landmarks stand, if it draws its own
+ *           `landmark.<tier>.<stage>`; left out, the village's landmarks stand on its plots
  *
  * @typedef {object} BuildingShapes  How a theme's buildings stand; see src/render/sprites/buildings.js.
  * @property {(kind: string, variant: number, roomy: boolean) => { kind: string, low: boolean }} fitted
@@ -36,6 +39,13 @@ import { construction } from './construction/index.js'
  * @property {(kind: string, stage: number) => number} frames  frames it animates through
  * @property {(kind: string, variant: number, wall: number, roofs: number, low: boolean) => ({ x: number, y: number } | null)} chimneyOf
  *           where smoke leaves it, in sprite pixels, or null
+ *
+ * @typedef {object} LandmarkShapes  How a theme's landmarks stand; see src/render/sprites/landmarks.js.
+ *           Each tier's sprite is 32 px wide and heightOf(tier) tall, taller than the tier below
+ *           and 72 at most, its bottom row on the ground.
+ * @property {(tier: number) => number} heightOf
+ * @property {(tier: number) => number} shadowOf  width of the shadow it casts; 0 for none
+ * @property {(tier: number, stage: number) => number} frames  frames it animates through
  */
 
 /** A lawn's greens in plain, sunny and lush patches, by its plot's lawn tone. */
@@ -49,6 +59,7 @@ export const village = {
   cover: (tx, ty) => lawnCover(tx, ty),
   patches: (tone) => LAWNS[(tone || 0) % LAWNS.length],
   edges: { road: P.pathDark },
+  landmark: { heightOf: landmarkHeight, shadowOf: landmarkShadow, frames: landmarkFrames },
 }
 
 /** @type {Record<string, ThemePack>} */
@@ -56,3 +67,6 @@ export const PACKS = { village, construction }
 
 /** A theme's pack; the village's for a theme with none. */
 export const packFor = (id) => PACKS[id] || village
+
+/** How a theme's landmarks stand: its own, or the village's for a pack that draws none. */
+export const landmarkShapes = (id) => packFor(id).landmark ?? village.landmark

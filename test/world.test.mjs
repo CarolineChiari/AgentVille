@@ -457,3 +457,105 @@ test('mix and match: a folder can wear any theme\'s look, whatever the village w
   assert.notEqual(hat('t1'), 5)
   assert.equal(hat('t2'), 5)
 })
+
+test('every plot has a landmark in the middle of its field, standing where nobody walks and no flower grows', () => {
+  const w = new World()
+  const flowers = Array.from({ length: 40 }, (_, i) => F(`f${i}`))
+  w.setRoster([T('t1', 'a'), T('t2', 'b')], undefined, new Map([['a', flowers]]))
+  const snap = w.snapshot()
+  assert.deepEqual(snap.landmarks.map((l) => l.plot).sort(), ['a', 'b'])
+  const l = w.landmark('a')
+  const bed = w.plots.get('a').shape.bed
+  assert.ok(l.x >= bed.x && l.x + l.w <= bed.x + bed.w && l.y >= bed.y && l.y + l.h <= bed.y + bed.h, 'not in the field')
+  for (let y = l.y; y < l.y + l.h; y++) {
+    for (let x = l.x; x < l.x + l.w; x++) {
+      assert.ok(w.nav.isBlocked(x, y), `${x},${y} under the landmark is walkable`)
+      assert.equal(w.map.tileAt(x, y), TILE.YARD, `${x},${y} under the landmark is ploughed`)
+    }
+  }
+  for (const f of flowers) {
+    const p = w.flower(f.id)
+    assert.ok(!(p.x >= l.x && p.x < l.x + l.w && p.y >= l.y && p.y < l.y + l.h), `${f.id} grows on the landmark`)
+  }
+  assert.equal(w.landmark('landmark:a'), l, 'found by its id too')
+})
+
+test('a landmark present at load is standing; a tier that rises later goes up with confetti', () => {
+  const w = new World()
+  // Done: it stands still at its door, so the confetti over it is still over it a moment later.
+  w.setRoster([T('t1', 'a', 'done')], undefined, new Map(), new Map(), new Map([['a', 2]]))
+  assert.equal(w.landmark('a').tier, 2)
+  assert.equal(w.landmark('a').stage, 3, 'at load it is already built')
+  assert.equal(w.effects.length, 0, 'and nobody celebrates what was already there')
+  run(w, 25)
+  w.setRoster([T('t1', 'a', 'done')], undefined, new Map(), new Map(), new Map([['a', 3]]))
+  const l = w.landmark('a')
+  assert.equal(l.tier, 3)
+  assert.equal(l.stage, 0, 'a new tier goes up from its foundations')
+  assert.ok(w.effects.some((e) => e.kind === 'confetti'), 'no confetti')
+  // The villager on that plot cheers too, and keeps its own status.
+  run(w, 2)
+  const v = w.villager('t1')
+  assert.ok(w.effects.some((e) => e.kind === 'confetti' && Math.hypot(e.x - v.x, e.y - (v.y - 1.5)) < 1), 'no confetti over the villager')
+  assert.equal(v.status, 'done')
+  run(w, 10)
+  assert.equal(l.stage, 3)
+})
+
+test('a plot a new repo claims raises its landmark from the ground', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')])
+  w.setRoster([T('t1', 'a'), T('t2', 'b', 'idle', { known: false })])
+  assert.equal(w.landmark('a').stage, 3)
+  assert.equal(w.landmark('b').stage, 0)
+})
+
+test('a landmark is lit while somebody on its plot is working or waiting on you, like a window', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'b', 'sleeping')])
+  run(w, 25)
+  const lit = Object.fromEntries(w.snapshot().landmarks.map((l) => [l.plot, l.lit]))
+  assert.deepEqual(lit, { a: true, b: false })
+})
+
+test('a selected plot rings its landmark, unless something on it is selected', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a'), T('t2', 'b')])
+  const ring = (opts) => Object.fromEntries(w.snapshot(opts).landmarks.map((l) => [l.plot, l.selected]))
+  assert.deepEqual(ring({ selectedPlot: 'a' }), { a: true, b: false })
+  assert.deepEqual(ring({ selectedPlot: 'a', selected: 't1' }), { a: false, b: false })
+  assert.equal(w.snapshot({ hovered: 'landmark:b' }).landmarks.find((l) => l.plot === 'b').hovered, true)
+})
+
+test('when a plot grows, its landmark moves with the field and the villagers walk round it', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map(), new Map([['a', 1]]))
+  const small = { x: w.landmark('a').x, y: w.landmark('a').y }
+  w.setRoster(Array.from({ length: 9 }, (_, i) => T(`t${i + 1}`, 'a')), undefined, new Map(), new Map(), new Map([['a', 1]]))
+  assert.ok(w.plots.get('a').cells.length > 1, 'the plot grew')
+  const l = w.landmark('a')
+  assert.notDeepEqual({ x: l.x, y: l.y }, small)
+  assert.ok(w.nav.isBlocked(l.x, l.y))
+  assert.equal(l.stage, 3, 'moving is not rebuilding')
+})
+
+test('a landmark\'s tier brings scenery into its plot\'s fence line, and never shuts anybody in', () => {
+  const w = new World()
+  const threads = [T('t1', 'a', 'working'), T('t2', 'a')]
+  w.setRoster(threads)
+  const blockedBefore = new Set()
+  for (let y = w.map.oy; y < w.map.oy + w.map.h; y++) for (let x = w.map.ox; x < w.map.ox + w.map.w; x++) if (w.nav.isBlocked(x, y)) blockedBefore.add(`${x},${y}`)
+  assert.equal(w.statics.filter((s) => s.plot).length, 0, 'a campfire brings nothing')
+  w.setRoster(threads, undefined, new Map(), new Map(), new Map([['a', 5]]))
+  const props = w.statics.filter((s) => s.plot === 'a')
+  assert.deepEqual(props.map((s) => s.sprite).sort(), ['gateway', 'yardbench', 'yardlamp', 'yardlamp', 'yardplanter', 'yardplanter'])
+  // They stand where the fence stood: nothing that was open is closed, and the gateway is walked through.
+  for (let y = w.map.oy; y < w.map.oy + w.map.h; y++) {
+    for (let x = w.map.ox; x < w.map.ox + w.map.w; x++) {
+      if (w.nav.isBlocked(x, y)) assert.ok(blockedBefore.has(`${x},${y}`), `${x},${y} was walkable before the props came`)
+    }
+  }
+  const gate = props.find((s) => s.sprite === 'gateway')
+  assert.ok(!w.nav.isBlocked(Math.floor(gate.x), gate.y - 1), 'the gateway plugs its gap')
+  for (const s of props) for (const [x, y] of s.blocks || []) assert.equal(w.map.decoAt(x, y), 0, `a fence still stands under the ${s.sprite}`)
+})

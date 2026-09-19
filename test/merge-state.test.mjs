@@ -52,3 +52,8 @@ test('folders dressed in different tabs both keep their looks', () => {
   const out = mergeState(S({ looks: {} }), S({ looks: { a } }), S({ looks: { b } }))
   assert.deepEqual(out.looks, { a, b })
 })
+
+test('landmarks raised in different tabs both stay raised', () => {
+  const out = mergeState(S({ progress: { a: { tier: 1, at: 1 } } }), S({ progress: { a: { tier: 2, at: 5 } } }), S({ progress: { a: { tier: 1, at: 1 }, b: { tier: 3, at: 4 } } }))
+  assert.deepEqual(out.progress, { a: { tier: 2, at: 5 }, b: { tier: 3, at: 4 } })
+})
