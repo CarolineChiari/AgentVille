@@ -57,7 +57,7 @@ for (const id of THEME_IDS) {
   test(`${id}: has a pack of its own`, () => {
     assert.equal(PACKS[id]?.id, id)
     for (const k of ['fitted', 'heightOf', 'shadowOf', 'frames', 'chimneyOf']) assert.equal(typeof B[k], 'function', k)
-    assert.ok(PALETTE_COLOURS.has(pack.edges.road.toLowerCase()), 'its road edge is not a palette colour')
+    for (const k of ['road', 'bed']) assert.ok(PALETTE_COLOURS.has(pack.edges[k]?.toLowerCase()), `its ${k} edge is not a palette colour`)
   })
 
   test(`${id}: every building, at every stage and in every look, is as tall as heightOf says and stands on the ground`, () => {

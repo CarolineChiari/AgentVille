@@ -103,8 +103,15 @@ hi-vis, and finished work is a survey flag in each plot's setting-out yard inste
 its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research. Its
 landmarks climb from a surveyor's peg to a tower topped out with a tree and the plot's flag.
 
+Or an elvish realm, where the houses are grown into living trees and carved from white stone
+under swept roofs, the ways are paved in pale flagstones, everybody works in a mithril circlet and
+a travelling cloak, and finished work is a lantern lit on its stand in each plot's lantern grove:
+a teardrop lamp for a bug fix, a rune lantern for data work, a seeker's lamp for research. Its
+landmarks grow from a fairy ring of glowing toadstools to a white tower with a star-crystal in its crown.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
-village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site. A
+village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
+greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -112,6 +119,15 @@ the village's theme becomes. What a building means (who's working, who needs you
 bloomed) is the same in every theme.
 
 ![The same demo village as a construction site: fenced plots of bare earth, a tower crane and a timber frame going up, villagers in hard hats, and rows of survey flags where the gardens were](docs/screenshots/construction.png)
+
+![The same demo village as an elvish realm: plots of glade and moss behind briars and runestones, houses built into living trees under swept roofs, a slender spire, and rows of lit lanterns where the gardens were](docs/screenshots/elvish.png)
+
+#### Every theme
+
+**[docs/themes](docs/themes)** is the whole catalogue: every theme and every sub-theme with its
+id, a strip of sample plots so you can see what a folder will wear before you switch, what each
+theme builds its plots from, what it puts its villagers in, and what it calls finished work. It
+also says where to start if you want to add one.
 
 ### Transcripts and new sessions
 
@@ -182,14 +198,14 @@ nothing.
 | Transcripts | 1 per 250 KB, up to 1 MB of each session's |
 | Lines of code in the repo, if it's a git repository | 1 per 1,000, up to 50 |
 
-| Tier | Village | Construction site | Points |
-| --- | --- | --- | --- |
-| 0 | Campfire | Survey peg | 0 |
-| 1 | Well | Site hut | 5 |
-| 2 | Market cross | Scaffold tower | 15 |
-| 3 | Chapel | Tower crane | 40 |
-| 4 | Town hall | Concrete core | 100 |
-| 5 | Keep | Topped out | 250 |
+| Tier | Village | Construction site | Elvish realm | Points |
+| --- | --- | --- | --- | --- |
+| 0 | Campfire | Survey peg | Fairy ring | 0 |
+| 1 | Well | Site hut | Moonstone | 5 |
+| 2 | Market cross | Scaffold tower | Star shrine | 15 |
+| 3 | Chapel | Tower crane | Silver tree | 40 |
+| 4 | Town hall | Concrete core | Crystal hall | 100 |
+| 5 | Keep | Topped out | Starwatch | 250 |
 
 Click a landmark, or a repo in the sidebar, and its panel shows the tier, where the points came
 from and how far it is to the next. A chapel or a town hall is built of the plot's own walls and

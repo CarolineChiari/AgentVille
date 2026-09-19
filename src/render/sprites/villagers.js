@@ -47,9 +47,14 @@ function colours(look) {
   const hair = P.hair[look.hair % P.hair.length]
   const shirt = P.cloth[look.shirt % P.cloth.length]
   const pants = P.pants[look.pants % P.pants.length]
-  const hat = HATS[look.hat] === 'hardhat' ? P.hardHat[HARD_HATS[(look.hatColor || 0) % HARD_HATS.length]]
-    : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+  const kind = HATS[look.hat]
+  const hat = kind === 'hardhat' ? P.hardHat[HARD_HATS[(look.hatColor || 0) % HARD_HATS.length]]
+    // A circlet is mithril whoever wears it: an elf's own hat colour on it read as a headband.
+    : kind === 'circlet' ? P.mithril
+      : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
   const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
+  // A theme's second uniform colour, on the same draw as the vest's: greenleaf or twilight.
+  const cloak = P.elfCloak[(look.vest || 0) % P.elfCloak.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -62,6 +67,7 @@ function colours(look) {
     stripe: shade(shirt, 0.45),
     second, secondS: shade(second, -0.2),
     vest, vestS: shade(vest, -0.18),
+    cloak, cloakS: shade(cloak, -0.22), cloakL: shade(cloak, 0.2),
   }
 }
 
@@ -370,6 +376,20 @@ function hat(pc, c, look, dy, view) {
       pc.hline(3, 12, 5 + dy, c.hatS)
       if (view === 'front') pc.hline(5, 10, 5 + dy, c.hat)
     }
+  } else if (kind === 'circlet') {
+    // A fillet of mithril across the brow, rising to a single leaf over the forehead. It sits on
+    // the hair rather than covering it: an elf's hair is half of what says elf.
+    // Row 6 is the brow: under the hair's fringe and above the eyes. Higher up, the band sat on
+    // top of the head and read as a white cap.
+    pc.hline(4, 11, 6 + dy, c.hat)
+    pc.px(4, 6 + dy, c.hatL)
+    pc.px(11, 6 + dy, c.hatS)
+    // A leaf swept back from the temple, on the side you can see.
+    const x = view === 'back' || side ? 4 : 11
+    const o = x === 4 ? -1 : 1
+    pc.px(x, 5 + dy, c.hatL)
+    pc.px(x + o, 5 + dy, c.hat)
+    pc.px(x + o, 4 + dy, c.hatL)
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
@@ -408,6 +428,25 @@ function topFront(pc, c, look, dy, back) {
       pc.vline(10, 13 + dy, 16 + dy, c.secondS)
     }
   }
+  if (t === 'cloak') {
+    // A travelling cloak: the hood folded back over the shoulders, and the cloth hanging past the
+    // waist. Worn open down the front, so the shirt still shows between its edges and the villager
+    // doesn't lose the colour that tells it from the next one.
+    if (back) {
+      pc.rect(4, 12 + dy, 8, 7, c.cloak)
+      pc.hline(4, 11, 11 + dy, c.cloakL) // the hood, lying across the shoulders
+      pc.hline(4, 11, 12 + dy, c.cloakL)
+      pc.vline(11, 13 + dy, 18 + dy, c.cloakS)
+      pc.hline(4, 11, 18 + dy, c.cloakS)
+    } else {
+      for (const [x, k] of [[3, c.cloakS], [4, c.cloak], [5, c.cloakL], [10, c.cloakL], [11, c.cloak], [12, c.cloakS]]) pc.vline(x, 12 + dy, 18 + dy, k)
+      for (const x of [3, 12]) pc.px(x, 18 + dy, c.cloakS)
+      pc.hline(4, 11, 11 + dy, c.cloakL)
+      pc.hline(6, 9, 12 + dy, c.cloak)
+      pc.px(7, 12 + dy, P.mithril) // the leaf brooch at the throat
+      pc.px(8, 12 + dy, P.mithrilDark)
+    }
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -433,6 +472,13 @@ function topSide(pc, c, look, dy) {
   if (t === 'vest') {
     pc.vline(6, 13 + dy, 16 + dy, c.second)
     pc.vline(9, 13 + dy, 16 + dy, c.secondS)
+  }
+  if (t === 'cloak') {
+    // Side on, the cloak is a panel down the back with the hood bunched at the shoulder.
+    pc.vline(10, 12 + dy, 18 + dy, c.cloak)
+    pc.vline(11, 13 + dy, 18 + dy, c.cloakS)
+    pc.hline(6, 10, 12 + dy, c.cloakL)
+    pc.px(5, 13 + dy, P.mithril)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)

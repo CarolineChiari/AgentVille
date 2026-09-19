@@ -249,6 +249,88 @@ export const PALETTE = {
   sack: '#d8cdb4',
   sackDark: '#b0a488',
 
+  // ---------- the elvish theme (src/render/themes/elvish/) ----------
+  // Elf-silver, for circlets, filigree railings and a lantern's frame. Not the village's `metal`,
+  // a grey tool-steel: mithril has to read as bright work against pale stone and pale bark.
+  mithril: '#d6dde6',
+  mithrilDark: '#97a2b0',
+  mithrilLight: '#f0f5fa',
+  // Travelling cloaks: greenleaf and twilight, the two an elvish villager wears over its shirt.
+  elfCloak: ['#5c7a63', '#67699c'],
+  // Elvish buildings (elvish/buildings.js).
+  // Living wood: a tree still growing, so warmer and greener than the village's felled `wood`.
+  livewood: '#8a6a4a',
+  livewoodDark: '#5a4330',
+  livewoodLight: '#ad8a62',
+  barkMoss: '#6d8a58', // the green in the bark's furrows
+  // Carved white stone. Paler than the village's plaster, which read as a rendered cottage wall.
+  paleStone: '#e4e1d5',
+  paleStoneDark: '#b7b3a4',
+  paleStoneLight: '#f5f3ec',
+  carving: '#9ba49f', // the shadow inside a carved line, cool against the stone's warm white
+  // Woven leaf-and-withy panels, the fifth wall material.
+  weave: '#9ab86a',
+  weaveDark: '#6e8c46',
+  weaveLight: '#bdd68d',
+  vine: '#4e7a3e', // the cord an elf makes of a living creeper: darker than a leaf, and woodier
+  vineLight: '#79a85a',
+  // Roofs and paint: leaf green, moonlit silver-blue, mallorn gold, twilight violet, then deep
+  // green, pale silver, amber and dusk rose. A plot's buildings share a family of three.
+  elfRoof: ['#4f8f52', '#6f8fc0', '#d9ae4a', '#8a6aa8', '#37684a', '#aebdd4', '#bf8434', '#c08298'],
+  lanternGlow: '#ffeab0', // the light inside a lantern's glass, warmer than a lit window's
+  // Elvish ground, ways and fences (elvish/ground.js).
+  // A plot's ground by its yard tone: a flowering glade, deep moss, leaf loam, pale river sand.
+  // Each is its base, shade, light and deepest; then the same dry and damp, one for one (see
+  // src/render/ground.js). Only the ground is drawn in these, or the patches would recolour it.
+  elfGround: [
+    ['#7fb85c', '#6ca84b', '#95c972', '#5a8e42'],
+    ['#5f9061', '#4e7d53', '#78a578', '#3d6544'],
+    ['#b8935d', '#9f7b49', '#d0ac73', '#7e5f39'],
+    ['#d9d7c9', '#c1beae', '#ebe9de', '#a29f90'],
+  ],
+  elfGroundSunny: [
+    ['#8dc25f', '#7ab24e', '#a3d375', '#679845'],
+    ['#6e9a60', '#5d8752', '#87af77', '#4c6f43'],
+    ['#c4a067', '#ab8853', '#dcb97d', '#8a6c43'],
+    ['#e2dfce', '#cac6b3', '#f2f0e3', '#aba795'],
+  ],
+  elfGroundLush: [
+    ['#6fab58', '#5c9b47', '#85bc6e', '#4a813e'],
+    ['#4f8563', '#3e7255', '#689a7a', '#2d5a46'],
+    ['#a5875a', '#8c6f46', '#bda070', '#6b5336'],
+    ['#c8c9c2', '#b0b0a7', '#dadbd7', '#919189'],
+  ],
+  // The paved way round a plot: pale stones fitted close, moss in the seams.
+  wayStone: '#c8c4b6',
+  wayStoneDark: '#a29e90',
+  wayStoneLight: '#dedbd0',
+  waySeam: '#8a8678',
+  wayMoss: '#7f9a5e',
+  // Stepping stones, for the footpaths inside a plot: cooler and lighter than the way's, so a
+  // path reads as its own thing where it leaves the road.
+  stepStone: '#cfd3cb',
+  stepStoneDark: '#a3a79f',
+  stepStoneLight: '#e7eae3',
+  // Fences: a woven withy hurdle, a briar in flower, filigree, and low runestones.
+  withy: '#c6a06a',
+  withyDark: '#96754a',
+  withyLight: '#dcbb87',
+  briarThorn: '#7b5a3c',
+  briarBloom: '#f2d3e0',
+  runestone: '#9aa0a4',
+  runestoneDark: '#70767b',
+  runestoneLight: '#c2c7cb',
+  // What lies about under the trees.
+  fern: '#5d9a4a',
+  fernDark: '#3f7334',
+  glowCap: '#8fd8e8', // toadstools that glow faintly blue, even by day
+  glowCapStem: '#e4ecd8',
+  petalFall: '#f3d7e2',
+  petalFallDark: '#d4a9be',
+  shard: '#9fe0ea', // a splinter of the crystal the halls are glazed with
+  shardDark: '#5fa3b8',
+  acorn: '#a9743f',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

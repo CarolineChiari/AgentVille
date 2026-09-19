@@ -1,7 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EXTRAS, HATS, TOPS, lookFor } from '../src/sim/villager.js'
+import { THEMES } from '../src/sim/themes.js'
 import { PALETTE as P } from '../src/render/sprites/palette.js'
+
+/** What the themes hand out: nobody picks work gear for themselves, whichever theme it belongs to. */
+const WORK_GEAR = {
+  hat: Object.values(THEMES).map((t) => t.outfit?.hat).filter(Boolean),
+  top: Object.values(THEMES).map((t) => t.outfit?.top).filter(Boolean),
+}
 
 const IDS = Array.from({ length: 4000 }, (_, i) => `claude-code:${(i * 7919).toString(16)}`)
 
@@ -35,9 +42,10 @@ test('every hat, top, extra and colour turns up, and every index has a colour to
     const look = lookFor(id)
     for (const k of Object.keys(seen)) seen[k].add(look[k])
   }
-  assert.equal(seen.hat.size, HATS.length - 1)
-  assert.equal(seen.top.size, TOPS.length - 1)
-  assert.ok(!seen.hat.has(HATS.indexOf('hardhat')) && !seen.top.has(TOPS.indexOf('hivis')), 'somebody put on work gear by themselves')
+  assert.equal(seen.hat.size, HATS.length - WORK_GEAR.hat.length)
+  assert.equal(seen.top.size, TOPS.length - WORK_GEAR.top.length)
+  for (const name of WORK_GEAR.hat) assert.ok(!seen.hat.has(HATS.indexOf(name)), `somebody put on a ${name} by themselves`)
+  for (const name of WORK_GEAR.top) assert.ok(!seen.top.has(TOPS.indexOf(name)), `somebody put on a ${name} by themselves`)
   assert.equal(seen.extra.size, EXTRAS.length)
   assert.equal(seen.hair.size, P.hair.length)
   assert.equal(seen.shirt.size, P.cloth.length)

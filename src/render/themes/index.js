@@ -10,6 +10,7 @@ import { buildingFrames, chimneyOf, fitted, heightOf, shadowOf } from '../sprite
 import { heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from '../sprites/landmarks.js'
 import { lawnCover } from '../ground.js'
 import { construction } from './construction/index.js'
+import { elvish } from './elvish/index.js'
 
 /**
  * @typedef {object} ThemePack
@@ -25,7 +26,8 @@ import { construction } from './construction/index.js'
  *           The plot ground's colours as [plain, sunny, lush]: three lists, one for one. Wherever
  *           the ground's tone field says so, the renderer repaints each plain colour with its
  *           sunny or lush partner (see src/render/ground.js). Only exact plain colours change.
- * @property {{ road: string }} edges  the lip drawn where a road meets anything else
+ * @property {{ road: string, bed: string }} edges  the lip drawn where a road meets anything
+ *           else, and the edging laid round the field finished work stands in
  * @property {LandmarkShapes} [landmark]  how its landmarks stand, if it draws its own
  *           `landmark.<tier>.<stage>`; left out, the village's landmarks stand on its plots
  *
@@ -58,12 +60,12 @@ export const village = {
   buildings: { fitted, heightOf, shadowOf, frames: buildingFrames, chimneyOf },
   cover: (tx, ty) => lawnCover(tx, ty),
   patches: (tone) => LAWNS[(tone || 0) % LAWNS.length],
-  edges: { road: P.pathDark },
+  edges: { road: P.pathDark, bed: P.bedEdge },
   landmark: { heightOf: landmarkHeight, shadowOf: landmarkShadow, frames: landmarkFrames },
 }
 
 /** @type {Record<string, ThemePack>} */
-export const PACKS = { village, construction }
+export const PACKS = { village, construction, elvish }
 
 /** A theme's pack; the village's for a theme with none. */
 export const packFor = (id) => PACKS[id] || village

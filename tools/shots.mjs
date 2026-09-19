@@ -27,6 +27,7 @@ const SCENES = [
   { name: 'needs-you', keys: ['n'] },
   { name: 'issues', keys: ['i'] },
   { name: 'construction', query: 'theme=construction' },
+  { name: 'elvish', query: 'theme=elvish' },
   // A plot's landmark and its panel: what the work there has raised, and where the points came from.
   {
     name: 'landmark',

@@ -5,7 +5,7 @@
 import { buildingFrames, chimneyOf, drawSiteBuilding, fitted, heightOf, shadowOf } from './buildings.js'
 import { drawFlag } from './flags.js'
 import { drawSiteLandmark, drawSiteProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
-import { COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
+import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const construction = {
@@ -43,6 +43,6 @@ export const construction = {
   buildings: { fitted, heightOf, shadowOf, frames: buildingFrames, chimneyOf },
   cover: siteCover,
   patches,
-  edges: { road: ROAD_EDGE },
+  edges: { road: ROAD_EDGE, bed: BED_EDGE },
   landmark: { heightOf: landmarkHeight, shadowOf: landmarkShadow, frames: landmarkFrames },
 }
