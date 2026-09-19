@@ -143,6 +143,9 @@ export const THEMES = {
         research: 'Seeker\u2019s lamp', misc: 'Ember',
       },
     },
+    // What a plot's work raises in its grove: toadstools come up in a ring, then a moonstone, a
+    // shrine with a star hung in it, a silver tree, a hall under a crystal dome, a white tower.
+    landmark: { one: 'landmark', tiers: ['Fairy ring', 'Moonstone', 'Star shrine', 'Silver tree', 'Crystal hall', 'Starwatch'] },
   },
 }
 

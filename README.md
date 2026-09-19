@@ -106,7 +106,8 @@ landmarks climb from a surveyor's peg to a tower topped out with a tree and the 
 Or an elvish realm, where the houses are grown into living trees and carved from white stone
 under swept roofs, the ways are paved in pale flagstones, everybody works in a mithril circlet and
 a travelling cloak, and finished work is a lantern lit on its stand in each plot's lantern grove:
-a teardrop lamp for a bug fix, a rune lantern for data work, a seeker's lamp for research.
+a teardrop lamp for a bug fix, a rune lantern for data work, a seeker's lamp for research. Its
+landmarks grow from a fairy ring of glowing toadstools to a white tower with a star-crystal in its crown.
 
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
@@ -197,14 +198,14 @@ nothing.
 | Transcripts | 1 per 250 KB, up to 1 MB of each session's |
 | Lines of code in the repo, if it's a git repository | 1 per 1,000, up to 50 |
 
-| Tier | Village | Construction site | Points |
-| --- | --- | --- | --- |
-| 0 | Campfire | Survey peg | 0 |
-| 1 | Well | Site hut | 5 |
-| 2 | Market cross | Scaffold tower | 15 |
-| 3 | Chapel | Tower crane | 40 |
-| 4 | Town hall | Concrete core | 100 |
-| 5 | Keep | Topped out | 250 |
+| Tier | Village | Construction site | Elvish realm | Points |
+| --- | --- | --- | --- | --- |
+| 0 | Campfire | Survey peg | Fairy ring | 0 |
+| 1 | Well | Site hut | Moonstone | 5 |
+| 2 | Market cross | Scaffold tower | Star shrine | 15 |
+| 3 | Chapel | Tower crane | Silver tree | 40 |
+| 4 | Town hall | Concrete core | Crystal hall | 100 |
+| 5 | Keep | Topped out | Starwatch | 250 |
 
 Click a landmark, or a repo in the sidebar, and its panel shows the tier, where the points came
 from and how far it is to the next. A chapel or a town hall is built of the plot's own walls and

@@ -91,7 +91,9 @@ roof colour.
 **Finished work**: a **lantern** lit on its stand in the **lantern grove** (✦) — a teardrop lamp
 for a bug fix, a rune lantern for data, a wisp for tests, a seeker's lamp for research.
 **Work clothes**: a mithril circlet and a travelling cloak.
-**Landmark**: the village's, campfire to keep, until the realm grows its own.
+**Landmark**: a fairy ring of glowing toadstools, a moonstone, a star shrine, a silver tree, a
+crystal hall, and the starwatch, a white tower with a star-crystal in its crown; the fence line
+gets lanterns on crooks, a stone seat, urns of fern and toadstools, and two saplings grown into an arch.
 
 ![The demo village as an elvish realm](../screenshots/elvish.png)
 

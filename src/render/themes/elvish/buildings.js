@@ -715,3 +715,6 @@ export function drawElfBuilding(o) {
   }
   return pc.outline(P.outline)
 }
+
+// The parts the realm's landmarks are grown from too (see landmarks.js).
+export { box, roofOf, MATERIALS, wallOf, sweptRoof, leafPane, arched, hangLantern, bough, trunk, trellis, site }

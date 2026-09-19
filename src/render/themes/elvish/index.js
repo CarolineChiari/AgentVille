@@ -5,6 +5,7 @@
 // village's, so an elvish plot can stand in any village.
 import { buildingFrames, chimneyOf, drawElfBuilding, fitted, heightOf, shadowOf } from './buildings.js'
 import { drawLantern } from './lanterns.js'
+import { drawElfLandmark, drawElfProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, elfCover, patches } from './ground.js'
 
 /** @type {import('../index.js').ThemePack} */
@@ -20,6 +21,11 @@ export const elvish = {
         return drawFence(Number(a), n)
       case 'flower':
         return drawLantern(Number(a), n, p.color)
+      case 'static':
+        // Only what a plot's landmark brings: the countryside and the square stay the village's.
+        return drawElfProp(a, n, p)
+      case 'landmark':
+        return drawElfLandmark({ tier: Number(a), stage: n, variant: p.variant, accent: p.accent, wall: p.wall, roofs: p.roofs, lit: p.lit, busy: p.busy, frame })
       case 'tile':
         if (a === 'yard') return drawGround(n, p.tone)
         if (a === 'trail') return drawTrail(n, p.links || 0, p.tone)
@@ -40,4 +46,5 @@ export const elvish = {
   cover: elfCover,
   patches,
   edges: { road: ROAD_EDGE, bed: BED_EDGE },
+  landmark: { heightOf: landmarkHeight, shadowOf: landmarkShadow, frames: landmarkFrames },
 }
