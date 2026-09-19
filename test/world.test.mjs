@@ -413,7 +413,7 @@ test('a building wears whatever its thread\'s roster says, and changes the momen
   assert.deepEqual(wear(), { t1: 2, t2: 0, t3: 1 })
 })
 
-test('a new theme restyles every plot and repaints the ground; a folder\'s pick and the village\'s both count', () => {
+test('a new theme restyles every plot and repaints the ground; the village\'s sub-theme counts for every folder', () => {
   const w = new World()
   w.setRoster([T('t1', 'a', 'working'), T('t2', 'b')])
   const before = w.map.version
@@ -422,21 +422,38 @@ test('a new theme restyles every plot and repaints the ground; a folder\'s pick 
   assert.equal(w.setTheme('village'), false, 'the same theme again changes nothing')
   assert.equal(w.map.version, before)
 
-  assert.equal(w.setTheme('construction', new Map([['a', 'roadworks']]), 'high-rise'), true)
+  assert.equal(w.setTheme('construction', new Map(), 'high-rise'), true)
   assert.ok(w.map.version > before, 'the ground was repainted')
   const snap = w.snapshot()
   assert.equal(snap.theme, 'construction')
-  assert.equal(snap.plots.find((p) => p.name === 'a').style.sub, 'roadworks')
-  assert.equal(snap.plots.find((p) => p.name === 'b').style.sub, 'high-rise')
+  for (const p of snap.plots) assert.deepEqual([p.style.theme, p.style.sub], ['construction', 'high-rise'])
   for (const b of snap.buildings) assert.equal(b.style.theme, 'construction')
-
   // A plot that turns up later is dressed like the rest.
   w.setRoster([T('t1', 'a', 'working'), T('t2', 'b'), T('t3', 'c')])
   assert.equal(w.plots.get('c').style.sub, 'high-rise')
-  // Nobody's hat is a hard hat in the village, and everybody's is on site.
+})
+
+test('mix and match: a folder can wear any theme\'s look, whatever the village wears, and its villagers dress for it', () => {
+  const w = new World()
+  const site = { theme: 'construction', sub: 'roadworks' }
+  w.setTheme('village', new Map([['a', site], ['c', { theme: 'nope', sub: 'x' }]]))
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'b'), T('t3', 'c')])
+  const style = (n) => w.plots.get(n).style
+  assert.deepEqual([style('a').theme, style('a').sub], ['construction', 'roadworks'])
+  assert.deepEqual(style('b'), plotStyle('b'), 'a folder without a look follows the village')
+  assert.deepEqual(style('c'), plotStyle('c'), 'a look that doesn\'t exist is ignored')
   run(w, 25)
-  const hats = (s) => s.villagers.map((v) => v.look.hat)
-  assert.ok(hats(w.snapshot()).every((h) => h === 5))
-  w.setTheme('village')
-  assert.ok(hats(w.snapshot()).every((h) => h !== 5))
+  const hat = (id) => w.snapshot().villagers.find((v) => v.id === id).look.hat
+  assert.equal(hat('t1'), 5, 'the roadworks crew wears hard hats in a countryside village')
+  assert.notEqual(hat('t2'), 5)
+  const building = (id) => w.snapshot().buildings.find((b) => b.id === id)
+  assert.equal(building('t1').style.theme, 'construction')
+  assert.equal(building('t2').style.theme, 'village')
+
+  // The village becomes a site; the folder with its own look keeps it, the rest follow.
+  w.setTheme('construction', new Map([['a', { theme: 'village', sub: 'stone-hamlet' }]]))
+  assert.deepEqual([style('a').theme, style('a').sub], ['village', 'stone-hamlet'])
+  assert.equal(style('b').theme, 'construction')
+  assert.notEqual(hat('t1'), 5)
+  assert.equal(hat('t2'), 5)
 })

@@ -117,8 +117,16 @@ export function recipeOf(theme, sub) {
 }
 
 /**
- * The sub-theme a folder wears: the first of `choices` that is one of its theme's (its own pick,
- * then the whole village's), else one handed out by a hash of its name.
+ * A look: one sub-theme of one theme, `{ theme, sub }`, which is what a folder picks for itself.
+ * True only for a look that exists, so a saved pick naming a theme that went away is ignored.
+ */
+export function isLook(l) {
+  return Boolean(l && typeof l === 'object' && typeof l.theme === 'string' && Object.hasOwn(THEMES, l.theme) && recipeOf(l.theme, l.sub))
+}
+
+/**
+ * The sub-theme a folder wears within `theme`: the first of `choices` that is one of its
+ * sub-themes (the whole village's pick), else one handed out by a hash of its name.
  */
 export function subthemeFor(name, theme, ...choices) {
   const t = themeOf(theme)

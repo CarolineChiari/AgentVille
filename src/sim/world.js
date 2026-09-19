@@ -11,7 +11,7 @@ import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
 import { paintWild } from './wild.js'
 import { plainStyle, plotStyle } from './style.js'
-import { DEFAULT_THEME, dress, subthemeFor, themeOf } from './themes.js'
+import { DEFAULT_THEME, dress, isLook, subthemeFor, themeOf } from './themes.js'
 import { KEPT } from './wear.js'
 
 export const ACCENT_COUNT = 10
@@ -71,17 +71,20 @@ export class World {
     this.owner = new Map() // cell key → plot name
     this.mapVersion = 0
     this.theme = DEFAULT_THEME
-    this.picks = new Map() // plot name → the sub-theme its folder picked, in this theme
-    this.everywhere = null // the sub-theme every folder without a pick of its own wears, if any
+    this.picks = new Map() // plot name → the look its folder picked: { theme, sub }, of any theme
+    this.everywhere = null // the sub-theme of `theme` every folder without a pick of its own wears, if any
     this._rebuild()
   }
 
   /**
-   * Dress the village in `theme`. `picks` is each folder's own sub-theme and `everywhere` the one
-   * for every folder that has none; either may name something the theme doesn't have, and is then
-   * ignored. Restyles every plot, and repaints the ground if any of them changed.
+   * Dress the village in `theme`: its countryside and square, and every folder that hasn't picked
+   * a look of its own. `picks` is those folders' looks, each a sub-theme of any theme, so a
+   * Halloween plot can stand beside a construction site in a countryside village. `everywhere` is
+   * the sub-theme of `theme` the rest wear, if not one handed out by name. A pick or `everywhere`
+   * naming something that doesn't exist is ignored. Restyles every plot, and repaints the ground
+   * if any of them changed.
    * @param {string} theme
-   * @param {Map<string, string>} [picks]
+   * @param {Map<string, { theme: string, sub: string }>} [picks]
    * @param {string|null} [everywhere]
    */
   setTheme(theme, picks = new Map(), everywhere = null) {
@@ -94,16 +97,19 @@ export class World {
     return dirty
   }
 
-  /** A folder's style in the village's theme, as the sub-theme it picked or was handed. */
+  /** A folder's style: in the look it picked, else in the village's theme as the sub-theme it's handed. */
   _styleFor(name) {
-    return plotStyle(name, this.theme, subthemeFor(name, this.theme, this.picks.get(name), this.everywhere))
+    const own = this.picks.get(name)
+    if (isLook(own)) return plotStyle(name, own.theme, own.sub)
+    return plotStyle(name, this.theme, subthemeFor(name, this.theme, this.everywhere))
   }
 
-  /** A villager in its theme's work clothes, if the theme has any: dressed once per sub-theme. */
+  /** A villager in its plot's work clothes, if its plot's theme has any: dressed once per look. */
   _look(v) {
-    const sub = this.plots.get(v.building?.plot)?.style.sub ?? ''
-    const k = `${this.theme}:${sub}`
-    if (v.dressed?.key !== k) v.dressed = { key: k, look: dress(v.look, this.theme, sub) }
+    const style = this.plots.get(v.building?.plot)?.style
+    const theme = style?.theme ?? this.theme
+    const k = `${theme}:${style?.sub ?? ''}`
+    if (v.dressed?.key !== k) v.dressed = { key: k, look: dress(v.look, theme, style?.sub) }
     return v.dressed.look
   }
 

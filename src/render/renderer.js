@@ -98,6 +98,7 @@ export class Canvas2dRenderer {
     this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y, hash][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
     this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
+    this.plotTheme = new Map() // plot name → the theme it wears, which may not be the village's
     this.underfoot = new Set() // "x,y" of every tile a building or a board stands on: no lawn cover there
     this.styleVersion = -1
     this.flock = null // the birds crossing now, if any; see ambient.js
@@ -112,17 +113,21 @@ export class Canvas2dRenderer {
     this.shineCanvas = null // scratch: a gleaming building with the light sweeping over it
     this.gleaming = [] // [sprite, x, y, seed] of each gleaming building drawn this frame, for its sparkles
     this.solids = new WeakMap() // sprite → its opaque pixels, so sparkles land on the building
-    this.theme = DEFAULT_THEME // the frame's theme, and its pack: how this theme draws
-    this.pack = packFor(DEFAULT_THEME)
+    this.theme = DEFAULT_THEME // the village's theme: its countryside, its square, and any plot without its own
   }
 
   /**
-   * A sprite in the village's theme: its pack draws it if it has its own, else the village's
-   * generators do. In the village itself the params go as they are, so its sprites are cached
-   * exactly as they always were.
+   * A sprite in a theme, the village's unless another is given: that theme's pack draws it if it
+   * has its own, else the village's generators do. In the default theme the params go as they
+   * are, so its sprites are cached exactly as they always were.
    */
-  _sprite(name, frame = 0, params = undefined) {
-    return sprites.get(name, frame, this.theme === DEFAULT_THEME ? params : { ...params, theme: this.theme })
+  _sprite(name, frame = 0, params = undefined, theme = this.theme) {
+    return sprites.get(name, frame, theme === DEFAULT_THEME ? params : { ...params, theme })
+  }
+
+  /** The theme a plot wears: its own, since a folder can wear any theme's look, or the village's. */
+  _themeOf(plot) {
+    return this.plotTheme.get(plot) ?? this.theme
   }
 
   _hash(id) {
@@ -154,10 +159,14 @@ export class Canvas2dRenderer {
    */
   _chunk(map, cx, cy) {
     const k = `${cx},${cy}`
+    // A plot's cells are drawn in its own theme; the countryside and the square in the village's.
+    const theme = this.cellStyle.get(k)?.theme ?? this.theme
     const hit = this.chunks.get(k)
-    if (hit && hit.version === map.version) return hit
+    if (hit && hit.version === map.version && hit.theme === theme) return hit
+    const pack = packFor(theme)
+    const sp = (name, frame = 0, params = undefined) => this._sprite(name, frame, params, theme)
     const canvas = hit?.canvas || document.createElement('canvas')
-    const entry = { version: map.version, canvas, water: [], flowers: [] }
+    const entry = { version: map.version, theme, canvas, water: [], flowers: [] }
     canvas.width = CHUNK
     canvas.height = CHUNK
     const g = canvas.getContext('2d', { willReadFrequently: true })
@@ -185,21 +194,21 @@ export class Canvas2dRenderer {
         } else if (kind === TILE.YARD || kind === TILE.BED) params = { tone }
         // The arrival square's floor is one picture cut into tiles, so each spot has its own.
         const tile = kind === TILE.PLAZA ? `tile.square.${ly * CELL_TILES + lx}` : `tile.${name}.${variant}`
-        g.drawImage(this._sprite(tile, 0, params), lx * T, ly * T)
+        g.drawImage(sp(tile, 0, params), lx * T, ly * T)
         if (kind === TILE.YARD && !decoAt(x, y) && !this.underfoot.has(`${x},${y}`)) {
-          const cover = this.pack.cover(x, y, tone)
-          if (cover) g.drawImage(this._sprite(`deco.${cover.kind}.${cover.variant}`, 0, { tone }), lx * T, ly * T)
+          const cover = pack.cover(x, y, tone)
+          if (cover) g.drawImage(sp(`deco.${cover.kind}.${cover.variant}`, 0, { tone }), lx * T, ly * T)
         }
         if (kind === TILE.WATER) {
           let land = 0
           SIDES.forEach(([dx, dy], side) => tileAt(x + dx, y + dy) !== TILE.WATER && (land |= SIDE_LINK[side]))
-          if (land) g.drawImage(this._sprite(`deco.shore.${land}`), lx * T, ly * T)
+          if (land) g.drawImage(sp(`deco.shore.${land}`), lx * T, ly * T)
           entry.water.push([x, y, hashString(`w${x},${y}`)])
         }
         // Cheap autotiling: a darker lip where paving meets grass, and the grass hanging over it,
         // leaving a gap where a footpath comes in.
         if (PAVED.has(kind)) {
-          g.fillStyle = kind === TILE.ROAD ? this.pack.edges.road : P.plazaDark
+          g.fillStyle = kind === TILE.ROAD ? pack.edges.road : P.plazaDark
           SIDES.forEach(([dx, dy], side) => {
             const next = tileAt(x + dx, y + dy)
             if (PAVED.has(next)) return
@@ -214,7 +223,7 @@ export class Canvas2dRenderer {
             if (!ground) return
             const k = hashString(`e${x},${y},${side}`) & 1
             const fringe = ground === 'yard' ? { ground, tone } : { ground }
-            g.drawImage(this._sprite(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
+            g.drawImage(sp(`deco.fringe.${(mouth ? 8 : 0) + side * 2 + k}`, 0, fringe), lx * T, ly * T)
           })
         }
         // A plank edging round each garden bed.
@@ -235,13 +244,13 @@ export class Canvas2dRenderer {
           // A fence joins up with the fence on either side of it, in the plot's own style.
           let mask = 0
           SIDES.forEach(([dx, dy], side) => FENCE.has(decoAt(x0 + lx + dx, y0 + ly + dy)) && (mask |= SIDE_LINK[side]))
-          g.drawImage(this._sprite(`fence.${style.fence}.${mask}`), lx * T, ly * T)
-          g.drawImage(this._sprite(`deco.verge.${mask}`, 0, { tone }), lx * T, ly * T)
+          g.drawImage(sp(`fence.${style.fence}.${mask}`), lx * T, ly * T)
+          g.drawImage(sp(`deco.verge.${mask}`, 0, { tone }), lx * T, ly * T)
           continue
         }
         const name = DECO_NAME[d]
         const variant = hashString(`f${x0 + lx},${y0 + ly}`) % DECO_VARIANTS[name]
-        g.drawImage(this._sprite(`deco.${name}.${variant}`), lx * T, ly * T)
+        g.drawImage(sp(`deco.${name}.${variant}`), lx * T, ly * T)
         if (d === DECO.FLOWERS) entry.flowers.push([x0 + lx, y0 + ly, hashString(`b${x0 + lx},${y0 + ly}`)])
       }
     }
@@ -249,7 +258,7 @@ export class Canvas2dRenderer {
     // ground.js). The two sets of colours never share one, so neither pass recolours the other's.
     const img = g.getImageData(0, 0, CHUNK, CHUNK)
     tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, MEADOW)
-    if (this.cellStyle.has(k)) tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, this.pack.patches(tone), lawnTone)
+    if (this.cellStyle.has(k)) tintMeadow(img.data, CHUNK, CHUNK, x0 * T, y0 * T, pack.patches(tone), lawnTone)
     g.putImageData(img, 0, 0)
     this.chunks.set(k, entry)
     return entry
@@ -314,13 +323,14 @@ export class Canvas2dRenderer {
     const hop = hopOf(v)
     const anim = v.anim === 'jump' ? 'jump' : v.anim
     const frame = v.anim === 'jump' ? (hop > 1 ? 1 : 0) : villagerFrame(v)
-    const img = this._sprite(`villager.${anim}.${v.facing}`, frame, { look: v.look })
+    const img = this._sprite(`villager.${anim}.${v.facing}`, frame, { look: v.look }, this._themeOf(v.plot))
     this._blit(img, px - VILLAGER_W / 2, py - VILLAGER_H + 1 - hop, v.alpha)
   }
 
   _drawBuilding(b, night, time) {
     const lit = b.lit && night > 0.35
-    const B = this.pack.buildings
+    const theme = b.style?.theme ?? this.theme
+    const B = packFor(theme).buildings
     const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
     const frames = B.frames(kind, b.stage)
     const frame = frames > 1 ? Math.floor(time * 1.6) % frames : 0
@@ -329,7 +339,7 @@ export class Canvas2dRenderer {
     const wear = b.stage >= 3 ? b.wear ?? KEPT : KEPT
     const img = this._sprite(`building.${kind}.${b.stage}`, frame, {
       accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low, wear,
-    })
+    }, theme)
     const H = B.heightOf(kind, b.variant, low)
     const shadow = b.stage >= 2 ? B.shadowOf(kind) : 0
     if (shadow) this._blit(this._sprite(`fx.shadow.${shadow}x6`), b.x * T + (b.w * T - shadow) / 2, (b.y + b.h) * T - 4, b.alpha)
@@ -607,7 +617,7 @@ export class Canvas2dRenderer {
     const py = b.y * T
     this._blit(this._sprite('fx.shadow.16'), px - 8, py - 3)
     if (b.selected || b.hovered) this._blit(this._sprite(`fx.ring.${b.selected ? BADGE.waiting : P.white}`), px - 8, py - 4, b.selected ? 1 : 0.6)
-    this._blit(this._sprite(`static.board.${Math.min(BOARD_NOTES, b.count)}`), px - 8, py - 22)
+    this._blit(this._sprite(`static.board.${Math.min(BOARD_NOTES, b.count)}`, 0, undefined, this._themeOf(b.plot)), px - 8, py - 22)
   }
 
   /** Growth stage from age: a sprout, then a bud, then the bloom. */
@@ -636,7 +646,7 @@ export class Canvas2dRenderer {
     }
     const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
     const stage = f.open ? 1 : this._flowerStage(f, time)
-    const img = this._sprite(`flower.${f.kind}.${stage}`, 0, { color })
+    const img = this._sprite(`flower.${f.kind}.${stage}`, 0, { color }, this._themeOf(f.plot))
     // The stem's base pixel (4, 11) sits on the flower's spot.
     this._blit(img, px - 4, py - 11)
   }
@@ -733,9 +743,10 @@ export class Canvas2dRenderer {
     for (const b of frame.buildings) {
       if (b.stage < 3 || !b.lit || b.alpha < 1) continue
       const style = b.style || PLAIN_STYLE
-      const B = this.pack.buildings
+      const theme = style.theme ?? this.theme
+      const B = packFor(theme).buildings
       const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
-      const key = `${this.theme}:${kind}:${b.variant}:${style.wall}:${style.roofs}:${low}`
+      const key = `${theme}:${kind}:${b.variant}:${style.wall}:${style.roofs}:${low}`
       if (!this.chimneys.has(key)) this.chimneys.set(key, B.chimneyOf(kind, b.variant, style.wall, style.roofs, low))
       const c = this.chimneys.get(key)
       if (!c) continue
@@ -898,16 +909,14 @@ export class Canvas2dRenderer {
     ctx.imageSmoothingEnabled = false
     ctx.fillStyle = P.void
     ctx.fillRect(0, 0, cam.width, cam.height)
-    // Everything below is drawn in the frame's theme. A new theme restyles every plot, and so
-    // makes a new map version: the chunks baked in the old one are thrown away with it.
-    if (frame.theme !== this.theme) {
-      this.theme = frame.theme || DEFAULT_THEME
-      this.pack = packFor(this.theme)
-    }
+    // The village's theme; each plot may wear another (see plotTheme). A plot's new look restyles
+    // it and makes a new map version, so the chunks baked in its old one are thrown away with it.
+    this.theme = frame.theme || DEFAULT_THEME
     // Which plot's style each cell is drawn in. Only a rebuild moves plots, and a rebuild always
     // makes a new map version, so the chunks baked with the old lookup are thrown away with it.
     if (this.styleVersion !== frame.map.version) {
       this.cellStyle = cellStyles(frame.plots)
+      this.plotTheme = new Map(frame.plots.map((p) => [p.name, p.style.theme]))
       // Buildings and boards only come, go or move with a rebuild, which also makes a new version.
       this.underfoot = new Set()
       for (const b of frame.buildings) for (let dy = 0; dy < b.h; dy++) for (let dx = 0; dx < b.w; dx++) this.underfoot.add(`${b.x + dx},${b.y + dy}`)
@@ -993,11 +1002,11 @@ export class Canvas2dRenderer {
       if (w.x >= px - 4 && w.x < px + 4 && w.y >= py - 9 && w.y < py + 1) return { flower: f.id }
     }
     const ids = new Set(frame.villagers.map((v) => v.id))
-    const B = packFor(frame.theme).buildings
     for (const b of [...frame.buildings].sort((a, c) => c.y - a.y)) {
       if (b.alpha < 1) continue
       const x0 = b.x * T
       const y1 = (b.y + b.h) * T
+      const B = packFor(b.style?.theme ?? frame.theme).buildings
       const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
       if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - B.heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
     }

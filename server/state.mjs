@@ -16,7 +16,7 @@ export function emptyState() {
     hiddenProjects: [],
     viewedAt: {},
     tasks: {},
-    subthemes: {},
+    looks: {},
     settings: null,
     updatedAt: 0,
   }
@@ -60,18 +60,26 @@ const taskMap = (v) => {
  */
 const THEME_ID = /^[a-z][a-z0-9-]{0,31}$/
 
+const isId = (s) => typeof s === 'string' && THEME_ID.test(s)
+
 /**
- * Repo name → { theme id: the sub-theme that folder picked in it }. Ids only; the page ignores
- * any it doesn't know, so a theme that went away costs nothing.
+ * Repo name → the look that folder picked for itself: `{ theme, sub }`, a sub-theme of any theme.
+ * Ids only; the page ignores any it doesn't know, so a theme that went away costs nothing.
+ *
+ * `old` is what v0.21 and v0.22 saved instead, `subthemes`: repo → { theme: sub-theme }, a pick
+ * within each theme. A folder with no look yet takes the first of those as its look.
  */
-const subthemeMap = (v) => {
+const lookMap = (v, old) => {
   const out = {}
-  if (!v || typeof v !== 'object' || Array.isArray(v)) return out
-  for (const [k, picks] of Object.entries(v)) {
-    if (k === '__proto__' || !picks || typeof picks !== 'object' || Array.isArray(picks)) continue
-    const ok = {}
-    for (const [t, s] of Object.entries(picks)) if (THEME_ID.test(t) && typeof s === 'string' && THEME_ID.test(s)) ok[t] = s
-    if (Object.keys(ok).length) out[k] = ok
+  const add = (k, theme, sub) => {
+    if (k !== '__proto__' && !Object.hasOwn(out, k) && isId(theme) && isId(sub)) out[k] = { theme, sub }
+  }
+  if (v && typeof v === 'object' && !Array.isArray(v)) for (const [k, l] of Object.entries(v)) if (l && typeof l === 'object') add(k, l.theme, l.sub)
+  if (old && typeof old === 'object' && !Array.isArray(old)) {
+    for (const [k, picks] of Object.entries(old)) {
+      if (!picks || typeof picks !== 'object' || Array.isArray(picks)) continue
+      for (const [t, s] of Object.entries(picks)) add(k, t, s)
+    }
   }
   return out
 }
@@ -88,7 +96,7 @@ export function normalizeState(raw) {
     hiddenProjects: strings(s.hiddenProjects),
     viewedAt: numberMap(s.viewedAt),
     tasks: taskMap(s.tasks),
-    subthemes: subthemeMap(s.subthemes),
+    looks: lookMap(s.looks, s.subthemes),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }

@@ -113,7 +113,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   }
 
   function repoRow(r, selected) {
-    const words = finishedWords(village.theme)
+    const words = finishedWords(village.lookOf(r.name).theme)
     const b = []
     if (r.counts.blocked) b.push(`<span class="blocked">${r.counts.blocked} !</span>`)
     if (r.counts.waiting) b.push(`<span class="waiting">${r.counts.waiting} ?</span>`)
@@ -128,7 +128,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   }
 
   function detail(r) {
-    const words = finishedWords(village.theme)
+    const words = finishedWords(village.lookOf(r.name).theme)
     return `<div class="detail">
       <div class="title"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:${ACCENTS[r.accent % ACCENTS.length]}"></span><b>${esc(r.name)}</b><button class="btn" data-act="closeRepo" title="Close (Esc)">✕</button></div>
       <div class="path" title="${esc(r.path)}">${esc(r.path)}</div>
@@ -145,14 +145,20 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
-  /** A folder's pick of sub-theme: its own, or whatever it's handed. */
+  /**
+   * A folder's look: the village's (Auto), or any sub-theme of any theme, grouped by theme. A pick
+   * is `<theme>/<sub-theme>`; ids can't hold a slash, so it splits cleanly.
+   */
   function look(name) {
-    const theme = village.theme
-    const { subthemes } = THEMES[theme]
-    if (subthemes.length < 2) return ''
-    const pick = village.subthemePick(name)
-    return `<label class="look" title="How this folder's plot looks in the ${esc(THEMES[theme].label.toLowerCase())}">Look
-      <select data-subtheme="${esc(name)}"><option value="" ${pick ? '' : 'selected'}>Auto: ${esc(subLabel(theme, village.subthemeHanded(name)))}</option>${subthemes.map((s) => subOption(s, s.id === pick)).join('')}</select></label>`
+    const pick = village.lookPick(name)
+    const picked = pick ? `${pick.theme}/${pick.sub}` : ''
+    const handed = village.lookHanded(name)
+    const groups = THEME_IDS.map((t) => `<optgroup label="${esc(THEMES[t].label)}">${THEMES[t].subthemes.map((s) => {
+      const v = `${t}/${s.id}`
+      return `<option value="${esc(v)}" title="${esc(s.blurb)}" ${v === picked ? 'selected' : ''}>${esc(s.label)}</option>`
+    }).join('')}</optgroup>`).join('')
+    return `<label class="look" title="How this folder's plot looks: like the rest of the village, or any theme's look of its own">Look
+      <select data-look="${esc(name)}"><option value="" ${picked ? '' : 'selected'}>Auto: ${esc(subLabel(handed.theme, handed.sub))}</option>${groups}</select></label>`
   }
 
   function renderSheet() {
@@ -166,7 +172,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Theme
           <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
-        <label title="A folder can still pick its own look from its panel">Every folder
+        <label title="Every folder that hasn't picked a look of its own, from its panel">Every folder
           <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
@@ -250,10 +256,11 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   })
 
   side.addEventListener('change', (e) => {
-    const name = e.target.dataset?.subtheme
+    const name = e.target.dataset?.look
     if (name === undefined) return
     e.target.blur()
-    village.setSubtheme(name, e.target.value)
+    const [theme, sub] = e.target.value.split('/')
+    village.setLook(name, e.target.value ? { theme, sub } : null)
   })
   side.addEventListener('focusout', (e) => {
     if (stale && e.target.tagName === 'SELECT') requestAnimationFrame(render)

@@ -9,12 +9,12 @@ import { wearOf } from '../sim/wear.js'
 import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
-import { finishedName, recipeOf, subthemeFor, themeOf } from '../sim/themes.js'
+import { finishedName, isLook, subthemeFor, themeOf } from '../sim/themes.js'
 
 const SAVE_DELAY = 500
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, subthemes: {}, settings: null, updatedAt: 0,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, settings: null, updatedAt: 0,
 })
 
 export class Village {
@@ -323,7 +323,8 @@ export class Village {
   flower(id) {
     const f = this.flowerInfo.get(id)
     if (!f) return null
-    return { ...f, name: finishedName(this.theme, f.kind), workLabel: WORK_LABEL[f.work] }
+    const theme = this.lookOf(f.project).theme
+    return { ...f, theme, name: finishedName(theme, f.kind), workLabel: WORK_LABEL[f.work] }
   }
 
   async openPr(id = this.selected) {
@@ -581,41 +582,44 @@ export class Village {
     return themeOf(this.preview?.theme || this.settings.theme)
   }
 
-  /** Each folder's own pick of sub-theme in the village's theme. */
+  /** Each folder's own look, where it picked one: a sub-theme of any theme. */
   _picks() {
-    const theme = this.theme
     const out = new Map()
-    for (const [project, picks] of Object.entries(this.state.subthemes || {})) if (picks?.[theme]) out.set(project, picks[theme])
+    for (const [project, look] of Object.entries(this.state.looks || {})) if (isLook(look)) out.set(project, look)
     return out
   }
 
-  /** The sub-theme every folder without its own pick wears, if the settings (or a preview) name one. */
+  /** The sub-theme every folder without its own look wears, if the settings (or a preview) name one. */
   _everywhere() {
     return this.preview?.sub || this.settings.subthemes?.[this.theme] || null
   }
 
-  /** The sub-theme a folder picked in the village's theme, or '' if it wears what it's handed. */
-  subthemePick(project) {
-    const id = this.state.subthemes?.[project]?.[this.theme]
-    return id && recipeOf(this.theme, id) ? id : ''
+  /** The look a folder picked for itself, `{ theme, sub }`, or null if it follows the village. */
+  lookPick(project) {
+    const l = this.state.looks?.[project]
+    return isLook(l) ? l : null
   }
 
-  /** The sub-theme a folder would wear with no pick of its own. */
-  subthemeHanded(project) {
-    return subthemeFor(project, this.theme, this._everywhere())
+  /** The look a folder wears when it follows the village: the village's theme, as the sub-theme it's handed. */
+  lookHanded(project) {
+    return { theme: this.theme, sub: subthemeFor(project, this.theme, this._everywhere()) }
   }
 
-  /** Dress a folder in one of its theme's sub-themes, or give it back what it's handed with ''. Remembered per theme. */
-  setSubtheme(project, id) {
+  /** The look a folder wears: its own pick, else the village's. */
+  lookOf(project) {
+    return this.lookPick(project) || this.lookHanded(project)
+  }
+
+  /**
+   * Dress a folder in any theme's sub-theme, `{ theme, sub }`, or with null let it follow the
+   * village again. It keeps its look whatever the village's theme becomes.
+   */
+  setLook(project, look) {
     if (!project) return
-    const theme = this.theme
-    const mine = { ...this.state.subthemes?.[project] }
-    if (id && recipeOf(theme, id)) mine[theme] = id
-    else delete mine[theme]
-    const all = { ...this.state.subthemes }
-    if (Object.keys(mine).length) all[project] = mine
-    else delete all[project]
-    this.state.subthemes = all
+    const looks = { ...this.state.looks }
+    if (isLook(look)) looks[project] = { theme: look.theme, sub: look.sub }
+    else delete looks[project]
+    this.state.looks = looks
     this.queueSave()
     this.apply()
   }
