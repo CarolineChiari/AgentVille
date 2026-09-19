@@ -29,15 +29,15 @@ const HELP = [
   ['P', 'Next open PR'],
   ['I', 'Next notice board with open issues'],
   ['Enter', 'Open the selected thread'],
-  ['A', 'Archive it'],
+  ['⌫', 'Archive it'],
   ['C', 'New session (optionally with a first prompt)'],
   ['T', 'Transcript of the selected thread'],
   ['H', 'Hide the panels'],
-  ['S', 'Settings'],
+  [',', 'Settings'],
   ['Esc', 'Deselect'],
-  ['Drag', 'Move around'],
+  ['W A S D', 'Move around; hold Shift to hurry'],
+  ['Drag / Arrows', 'Move around too'],
   ['Scroll / + −', 'Zoom'],
-  ['Arrows', 'Pan'],
   ['0', 'Back to the square'],
 ]
 
@@ -104,7 +104,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       ? 'Press N to visit whoever needs you'
       : counts.done
         ? 'Press R to review finished work'
-        : 'Drag to look around · scroll to zoom · click a villager'
+        : 'WASD or drag to look around · scroll to zoom · click a villager'
     if (sheetMode) renderSheet()
   }
 

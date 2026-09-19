@@ -87,7 +87,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
-        <button class="btn danger" data-act="archive">Archive<kbd>A</kbd></button>
+        <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
       </div>
       ${tasksOpen ? taskList(t) : ''}`
   }

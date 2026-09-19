@@ -15,6 +15,7 @@ import { createNotices } from './ui/notices.js'
 import { createTranscript } from './ui/transcript.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
+import { heading, isMoveKey } from './ui/move.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
@@ -194,7 +195,11 @@ canvas.addEventListener(
 
 // ---------- keyboard ----------
 
+const held = new Set() // movement keys down right now, by `code`
+let hurry = false // Shift
+
 addEventListener('keydown', (e) => {
+  hurry = e.shiftKey
   if (e.target.closest?.('input, select, textarea')) return
   // Ctrl on Windows, where the OS keeps the Windows key's shortcuts for itself.
   if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
@@ -203,8 +208,13 @@ addEventListener('keydown', (e) => {
     applyUiVisible()
     return
   }
-  if (e.metaKey || e.ctrlKey || e.altKey) return
-  const pan = 48 / camera.scale
+  // macOS sends no keyup for a key let go while ⌘ is down, so a held key would drive on forever.
+  if (e.metaKey || e.ctrlKey || e.altKey) return held.clear()
+  if (isMoveKey(e.code)) {
+    held.add(e.code)
+    e.preventDefault()
+    return
+  }
   const centerX = (camera.width + camera.insetLeft - camera.insetRight) / 2 / camera.dpr
   const centerY = camera.height / 2 / camera.dpr
   switch (e.key) {
@@ -214,7 +224,8 @@ addEventListener('keydown', (e) => {
     case 'i': case 'I': { const id = village.nextIssueBoard(); if (id) fly({ villager: id }); break }
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break
-    case 'a': case 'A': village.archive(); break
+    // Well away from WASD, so a slip while moving never archives anything.
+    case 'Backspace': case 'Delete': village.archive(); break
     case 'c': case 'C': newSession.open(); break
     case 't': case 'T': {
       const f = village.flower(village.selected)
@@ -232,7 +243,7 @@ addEventListener('keydown', (e) => {
       saveSettings(settings)
       applyUiVisible()
       break
-    case 's': case 'S': hud.showSheet('settings'); break
+    case ',': hud.showSheet('settings'); break
     case '?': hud.showSheet('help'); break
     case 'Escape':
       if (hud.sheetOpen) hud.closeSheet()
@@ -243,14 +254,17 @@ addEventListener('keydown', (e) => {
     case '+': case '=': camera.zoomAt(centerX, centerY, 1); break
     case '-': case '_': camera.zoomAt(centerX, centerY, -1); break
     case '0': home(); break
-    case 'ArrowLeft': camera.panBy(pan * 4, 0); break
-    case 'ArrowRight': camera.panBy(-pan * 4, 0); break
-    case 'ArrowUp': camera.panBy(0, pan * 4); break
-    case 'ArrowDown': camera.panBy(0, -pan * 4); break
     default: return
   }
   e.preventDefault()
 })
+// Always, even over a text box: a key let go there was still pressed on the map.
+addEventListener('keyup', (e) => {
+  hurry = e.shiftKey
+  held.delete(e.code)
+})
+// A key let go in another window never sends its keyup here.
+addEventListener('blur', () => held.clear())
 
 // ---------- polling ----------
 
@@ -275,6 +289,7 @@ function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000)
   last = now
   world.tick(dt)
+  camera.steer(heading(held), hurry, dt)
   camera.update(dt)
   lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot })
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()

@@ -5,6 +5,14 @@ import { TILE_PX } from './sprites/palette.js'
 
 export const MIN_SCALE = 1
 export const MAX_SCALE = 12
+// Held-key movement, in CSS pixels a second: the map slides past at one pace at every zoom,
+// where a pace in world pixels would crawl zoomed in and race zoomed out.
+export const MOVE_SPEED = 800
+export const MOVE_BOOST = 2.5 // with Shift
+// How fast movement reaches full speed and comes to rest. Instant felt like a jolt; this is a
+// short run-up, and letting go coasts to a stop in about a third of a second.
+const MOVE_EASE = 14
+const MOVE_REST = 5 // CSS px/s: slower than this with nothing held is stopped
 
 export class Camera {
   constructor() {
@@ -17,6 +25,8 @@ export class Camera {
     this.insetRight = 0 // device pixels hidden under the sidebar
     this.insetLeft = 0 // …and under the transcript panel
     this.target = null // eased fly-to
+    this.vx = 0 // CSS px/s, from held movement keys
+    this.vy = 0
   }
 
   resize(cssW, cssH, dpr) {
@@ -73,6 +83,24 @@ export class Camera {
 
   flyTo(wx, wy) {
     this.target = { x: wx, y: wy }
+    // Or the last of a coast would cancel it.
+    this.vx = 0
+    this.vy = 0
+  }
+
+  /** Move toward unit direction `dir` (from the held keys) for `dt` seconds, easing in and out. */
+  steer(dir, boost, dt) {
+    const speed = MOVE_SPEED * (boost ? MOVE_BOOST : 1)
+    const k = 1 - Math.exp(-dt * MOVE_EASE)
+    this.vx += (dir.x * speed - this.vx) * k
+    this.vy += (dir.y * speed - this.vy) * k
+    // Stopped, it must not pan at all: panning drops a fly-to.
+    if (!dir.x && !dir.y && Math.hypot(this.vx, this.vy) < MOVE_REST) {
+      this.vx = 0
+      this.vy = 0
+      return
+    }
+    this.panBy(-this.vx * dt, -this.vy * dt)
   }
 
   update(dt) {

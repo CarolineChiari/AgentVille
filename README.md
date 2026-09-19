@@ -242,12 +242,14 @@ map.
 | `R` | Fly to the next finished thread to review |
 | `P` | Fly to the next open PR |
 | `I` | Fly to the next notice board with open issues |
-| `Enter` / `A` / `V` | Open / archive / mark reviewed the selected thread |
+| `Enter` / `⌫` / `V` | Open / archive / mark reviewed the selected thread |
 | `C` | New session, with an optional first prompt |
 | `T` | Transcript of the selected thread |
 | `H` | Hide the panels |
+| `,` | Settings |
 | `Esc` | Deselect |
-| Arrows, `+` / `-`, `0` | Pan, zoom, reset the view |
+| `W` `A` `S` `D` or arrows | Move around, like in a game; hold `Shift` to hurry |
+| `+` / `-`, `0` | Zoom, reset the view |
 
 ## Your own art
 
