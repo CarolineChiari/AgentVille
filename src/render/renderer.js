@@ -182,7 +182,7 @@ export class Canvas2dRenderer {
           let links = 0
           SIDES.forEach(([dx, dy], side) => PATHS.has(tileAt(x + dx, y + dy)) && (links |= SIDE_LINK[side]))
           params = { links, tone }
-        } else if (kind === TILE.YARD) params = { tone }
+        } else if (kind === TILE.YARD || kind === TILE.BED) params = { tone }
         // The arrival square's floor is one picture cut into tiles, so each spot has its own.
         const tile = kind === TILE.PLAZA ? `tile.square.${ly * CELL_TILES + lx}` : `tile.${name}.${variant}`
         g.drawImage(this._sprite(tile, 0, params), lx * T, ly * T)

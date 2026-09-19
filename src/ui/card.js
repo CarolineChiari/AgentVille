@@ -3,6 +3,7 @@ import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
+import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
 
 const GAP = 18
 /** Issues listed on a board's card; the rest are a link away on GitHub. */
@@ -105,6 +106,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     </div>`
   }
 
+  /** Sprite params in the village's theme, so a card shows what the plot shows. */
+  const themed = (p) => (village.theme === DEFAULT_THEME ? p : { ...p, theme: village.theme })
+
   /** Looking back at a finished thread: its flower, what kind of work it was, and when. */
   function fillFinished(t, f) {
     const color = PETALS[f.color % PETALS.length]
@@ -124,7 +128,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
           <b title="${esc(t.title)}">${esc(t.title)}</b>
-          <span class="status"><span style="color:${color}">✿</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
+          <span class="status"><span style="color:${color}">${esc(finishedWords(village.theme).glyph)}</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
@@ -137,23 +141,24 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </div>`
     const c = card.querySelector('canvas.avatar')
     const g = c.getContext('2d')
-    g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, { color }), 3, 8)
+    g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, themed({ color })), 3, 8)
   }
 
   /** A pull request: what it was, who wrote it, and a way to it. Open ones are asking for you. */
   function fillPr(f) {
     const pr = f.pr
     const color = f.white ? P.petalWhite : PETALS[f.color % PETALS.length]
+    const words = finishedWords(village.theme)
     const status = f.open
       ? `<span style="color:${P.glitter}">✦</span> ${pr.draft ? 'Draft PR' : 'Open PR'} #${pr.number} · waiting to merge`
-      : `<span style="color:${color}">✿</span> ${esc(f.name)} · ${esc(f.workLabel)} · PR #${pr.number}`
+      : `<span style="color:${color}">${esc(words.glyph)}</span> ${esc(f.name)} · ${esc(f.workLabel)} · PR #${pr.number}`
     const meta = [
       ['Repo', f.slug],
       pr.author && ['Author', pr.author],
       pr.branch && ['Branch', pr.branch],
       f.open ? ['Opened', ago(pr.createdAt)] : ['Merged', ago(pr.mergedAt)],
       ['Changes', `+${pr.additions} −${pr.deletions}`],
-      ['Labels', pr.labels.length ? pr.labels.join(', ') : 'none (white flower)'],
+      ['Labels', pr.labels.length ? pr.labels.join(', ') : `none (white ${words.one})`],
     ].filter(Boolean)
     card.innerHTML = `
       <div class="head">
@@ -170,7 +175,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         ${f.threadId ? `<button class="btn" data-act="transcript" data-id="${esc(f.threadId)}">Transcript</button><button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
       </div>`
     const g = card.querySelector('canvas.avatar').getContext('2d')
-    g.drawImage(sprites.get(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), 3, 8)
+    g.drawImage(sprites.get(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, themed({ color })), 3, 8)
   }
 
   /**
@@ -240,7 +245,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${village.theme}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id
@@ -256,7 +261,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         return
       }
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? 'f' : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}`
+      const key = `${flower ? `f:${village.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}`
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)

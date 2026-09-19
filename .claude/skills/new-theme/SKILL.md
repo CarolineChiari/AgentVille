@@ -22,12 +22,18 @@ Write down, before any code:
 - **Its vocabulary (`dims`)**: the fences, grounds (`yard`), wall materials and paint families
   (`roofs`, a count) its plots are built from. Each sub-theme's recipe narrows these lists.
 - **What it redraws.** A pack draws only what makes the theme itself; everything else stays the
-  village's. Typical, in order of payoff: buildings, villager outfits, fences, plot ground and
-  roads, footpaths, what lies about on the ground, and only then trees, the countryside or the
-  square. Scope it: a theme that redraws four things well beats one that redraws ten badly.
-- **What it must not touch**: what things mean. Status badges and rings, the colours of PR
-  flowers and their buds, lit windows and chimney smoke keep their meaning in every theme. A
-  theme may restyle a sprite; it may not change what the sprite tells the person.
+  village's. Typical, in order of payoff: buildings, villager outfits, finished work, fences,
+  plot ground and roads, footpaths, what lies about on the ground, and only then trees, the
+  countryside or the square. Scope it: a theme that redraws four things well beats one that
+  redraws ten badly.
+- **Finished work.** The village grows a flower per finished thread in each plot's garden. Ask
+  whether flowers fit: on a construction site they didn't, and became survey flags in a
+  setting-out yard. Whatever it becomes (pumpkins, lanterns, crystals) must keep what a flower
+  says: one look per kind of work (`work` in FLOWER_KINDS), the cloth or petal colour it's given,
+  white for an unlabeled PR, a bud for an open PR, and a sprout. Name it in `finished` (see step 2).
+- **What it must not touch**: what things mean. Status badges and rings, lit windows and chimney
+  smoke keep their meaning in every theme. A theme may restyle a sprite; it may not change what
+  the sprite tells the person.
 
 For a holiday or a culture, depict it the way the people who celebrate it would recognise:
 research its real symbols, colours and customs, prefer celebration over caricature, and keep
@@ -38,10 +44,13 @@ unsure about a symbol, leave it out and say so in the pull request or issue.
 
 In `src/sim/themes.js` add an entry to `THEMES` (append; never reorder): `label`, `dims`,
 `subthemes` (append-only, each `{ id, label, blurb, fence?, yard?, wall?, roofs?, outfit? }`, names
-from `dims`), `auto` (the sub-themes folders are handed; changing it reshuffles folders), and an
-optional `outfit` naming a hat and a top. New hats or tops go at the end of `HATS` / `TOPS` in
-`src/sim/villager.js` and get drawn in `src/render/sprites/villagers.js`; nobody picks them for
-themselves (`EVERYDAY_HATS`). Ids match `THEME_ID`.
+from `dims`), `auto` (the sub-themes folders are handed; changing it reshuffles folders), an
+optional `outfit` naming a hat and a top, and `finished`: what finished work is called (`one`,
+`many`, `place`, a one-character `glyph` that isn't the issues' ⚑, the `grow` setting's label,
+and optional `names` per kind of work). The sidebar, cards and settings use these words. New
+hats or tops go at the end of `HATS` / `TOPS` in `src/sim/villager.js` and get drawn in
+`src/render/sprites/villagers.js`; nobody picks them for themselves (`EVERYDAY_HATS`). Ids match
+`THEME_ID`.
 
 Run `node --test test/themes.test.mjs`. It checks ids, recipes and that every sub-theme's
 choices turn up.
@@ -74,6 +83,9 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
 - Cover (things lying on the ground): pure and deterministic, sparse, and named unlike any of the
   village's decorations, since the pack sees every `deco.*` request.
 - Chimney smoke starts on the building; animated buildings differ between frames.
+- Finished work (`flower.<kind>.<stage>`, params `color`): the flower's 9×13, standing on pixel
+  (4, 11), each kind of work its own look, a bud unlike a bloom. Its field (`tile.bed.0` for the top
+  row, `.1` below, params `tone`) is full tiles, and marks each spot on the village's 8 px grid.
 
 ## 5. Look at it, and keep looking
 
@@ -81,8 +93,8 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
 
 writes `data/sheets/<id>.png` (use `--out` to put it elsewhere) and prints what each band shows:
 a sample plot per sub-theme, every building at every stage, every fence join, the ground,
-villagers in every pose. Read the PNG and compare it with `npm run sheet -- village`. Draw, look,
-fix, draw again; judge it at 1× as well as zoomed. Check that each sub-theme is recognisably
+finished work by kind of work, villagers in every pose. Read the PNG and compare it with
+`npm run sheet -- village`. Draw, look, fix, draw again; judge it at 1× as well as zoomed. Check that each sub-theme is recognisably
 different from its neighbours, and that plots still read against the green countryside.
 
 Then see it live: `npm run dev` and open `http://127.0.0.1:5274/?demo&theme=<id>` (add

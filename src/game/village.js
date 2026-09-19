@@ -9,7 +9,7 @@ import { wearOf } from '../sim/wear.js'
 import { demoIssues, demoThreads } from './demo.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
-import { recipeOf, subthemeFor, themeOf } from '../sim/themes.js'
+import { finishedName, recipeOf, subthemeFor, themeOf } from '../sim/themes.js'
 
 const SAVE_DELAY = 500
 
@@ -323,7 +323,7 @@ export class Village {
   flower(id) {
     const f = this.flowerInfo.get(id)
     if (!f) return null
-    return { ...f, name: FLOWER_KINDS[f.kind].name, workLabel: WORK_LABEL[f.work] }
+    return { ...f, name: finishedName(this.theme, f.kind), workLabel: WORK_LABEL[f.work] }
   }
 
   async openPr(id = this.selected) {

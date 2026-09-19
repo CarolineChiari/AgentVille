@@ -5,7 +5,7 @@ import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
-import { THEMES, THEME_IDS } from '../sim/themes.js'
+import { THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -75,13 +75,14 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const hiddenNames = [...new Set(hidden.map((t) => t.project))]
     const total = village.view.live.length
     const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
+    const words = finishedWords(village.theme)
     // Only when it changes: the desktop app turns every title update into a dock badge call.
     const title = pageTitle(counts)
     if (document.title !== title) document.title = title
 
     side.innerHTML = `
       <div class="brand"><h1>AgentVille</h1><button class="btn primary new" data-act="newAny" title="Start a new session (C)">+ New session</button></div>
-      <div class="brand-sub"><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} flower${bloomed === 1 ? '' : 's'}</span></div>
+      <div class="brand-sub"><span class="sub">${total} villager${total === 1 ? '' : 's'} · ${bloomed} ${bloomed === 1 ? words.one : words.many}</span></div>
       <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k] || COUNT_TITLE[k] || l)}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
@@ -112,6 +113,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   }
 
   function repoRow(r, selected) {
+    const words = finishedWords(village.theme)
     const b = []
     if (r.counts.blocked) b.push(`<span class="blocked">${r.counts.blocked} !</span>`)
     if (r.counts.waiting) b.push(`<span class="waiting">${r.counts.waiting} ?</span>`)
@@ -122,10 +124,11 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     return `<button class="repo ${selected ? 'selected' : ''}" data-act="repo" data-name="${esc(r.name)}">
       <span class="dot" style="background:${ACCENTS[r.accent % ACCENTS.length]}"></span>
       <span class="name">${esc(r.name)}</span>
-      <span class="badges">${b.join('')}${r.threads.length ? `<span title="Villagers">${r.threads.length}</span>` : ''}${r.flowers ? `<span class="flowers" title="Finished threads in the garden">✿ ${r.flowers}</span>` : ''}</span></button>`
+      <span class="badges">${b.join('')}${r.threads.length ? `<span title="Villagers">${r.threads.length}</span>` : ''}${r.flowers ? `<span class="flowers" title="Finished threads in the ${esc(words.place)}">${esc(words.glyph)} ${r.flowers}</span>` : ''}</span></button>`
   }
 
   function detail(r) {
+    const words = finishedWords(village.theme)
     return `<div class="detail">
       <div class="title"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:${ACCENTS[r.accent % ACCENTS.length]}"></span><b>${esc(r.name)}</b><button class="btn" data-act="closeRepo" title="Close (Esc)">✕</button></div>
       <div class="path" title="${esc(r.path)}">${esc(r.path)}</div>
@@ -137,7 +140,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
-      ${r.flowers ? `<div class="garden-note">✿ ${r.flowers} finished — click a flower in the garden to look back</div>` : ''}
+      ${r.flowers ? `<div class="garden-note">${esc(words.glyph)} ${r.flowers} finished — click a ${esc(words.one)} in the ${esc(words.place)} to look back</div>` : ''}
       <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
     </div>`
   }
@@ -168,7 +171,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
-        <label>Grow flowers from pull requests <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
+        <label>${esc(finishedWords(theme).grow)} <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>

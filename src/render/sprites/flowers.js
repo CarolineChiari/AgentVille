@@ -216,7 +216,8 @@ export function drawFlower(kindIndex, stage, color) {
   }
   const selfStemmed = k.shape === 'fern' || k.shape === 'cactus' || k.shape === 'mushroom'
   if (stage === 1) {
-    if (!selfStemmed) stem(pc, cy + 2)
+    // A self-stemmed kind draws its own stem when it blooms; a bud still needs one, or it floats.
+    stem(pc, cy + 2)
     leaves(pc, k.leaves, cy + 2)
     pc.px(CX, cy + 1, color)
     pc.px(CX, cy + 2, shade(color, -0.2))

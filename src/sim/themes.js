@@ -9,6 +9,7 @@
 // Only names and small numbers live here, so it runs under Node and the settings can list it.
 // What they look like is up to the theme's pack in src/render/themes/.
 import { HATS, TOPS } from './villager.js'
+import { FLOWER_KINDS } from './flowers.js'
 import { pick, rngFor } from './rng.js'
 
 /** Theme and sub-theme ids are saved in village.json and settings, so they're checked before they're trusted. */
@@ -37,6 +38,19 @@ export const DEFAULT_THEME = 'village'
  *           reshuffles which folder gets which, so add sub-themes to it sparingly.
  * @property {{ hat?: string, top?: string }} [outfit]  what every villager wears to work here, by
  *           name from HATS and TOPS in villager.js
+ * @property {Finished} finished  what finished work is called here
+ *
+ * @typedef {object} Finished  The words for finished work, which the village calls flowers. A
+ *           theme may draw it as something else (its pack draws `flower.*`), but it still says
+ *           what the flower said: its kind is the kind of work, white is an unlabeled PR, and an
+ *           open PR is a bud.
+ * @property {string} one     'flower'
+ * @property {string} many    'flowers'
+ * @property {string} place   'garden': where they are
+ * @property {string} glyph   one character that stands for one, in counts and on the card
+ * @property {string} grow    the setting that turns PRs into them
+ * @property {Record<string, string>} [names]  each kind of work's name for one (see WORK in
+ *           flowers.js); left out, every flower keeps its own name (a daisy, a tulip)
  */
 
 /** @type {Record<string, Theme>} */
@@ -59,6 +73,7 @@ export const THEMES = {
       { id: 'tudor-lane', label: 'Tudor lane', blurb: 'Box hedges and half-timbered houses', fence: ['hedge'], yard: ['fresh', 'deep'], wall: ['timber', 'plaster'], roofs: [3, 0] },
     ],
     auto: ['patchwork'],
+    finished: { one: 'flower', many: 'flowers', place: 'garden', glyph: '✿', grow: 'Grow flowers from pull requests' },
   },
   construction: {
     label: 'Construction site',
@@ -78,6 +93,16 @@ export const THEMES = {
     ],
     auto: ['new-homes', 'high-rise', 'roadworks', 'restoration', 'industrial'],
     outfit: { hat: 'hardhat', top: 'hivis' },
+    // Survey marker flags in a setting-out yard: sites really do colour-code their flags. The
+    // glyph is an outline flag because the open issues' count already has the filled one.
+    finished: {
+      one: 'flag', many: 'flags', place: 'setting-out yard', glyph: '⚐', grow: 'Plant flags for pull requests',
+      names: {
+        fix: 'Pennant', feature: 'Square flag', refactor: 'Swallowtail', docs: 'Streamer', test: 'Flagging tape',
+        ui: 'Split flag', infra: 'Banded flag', data: 'Chequered flag', perf: 'Arrow flag', review: 'Spot flag',
+        research: 'Windsock', misc: 'Tape tie',
+      },
+    },
   },
 }
 
@@ -99,6 +124,15 @@ export function subthemeFor(name, theme, ...choices) {
   const t = themeOf(theme)
   for (const c of choices) if (typeof c === 'string' && recipeOf(t, c)) return c
   return pick(rngFor(`subtheme:${t}:${name}`), THEMES[t].auto)
+}
+
+/** The words for finished work in a theme; see Finished. */
+export const finishedWords = (theme) => THEMES[themeOf(theme)].finished
+
+/** What one finished thread's flower (FLOWER_KINDS[kind]) is called in a theme: a daisy, a pennant. */
+export function finishedName(theme, kind) {
+  const k = FLOWER_KINDS[kind] || FLOWER_KINDS[0]
+  return finishedWords(theme).names?.[k.work] ?? k.name
 }
 
 /**

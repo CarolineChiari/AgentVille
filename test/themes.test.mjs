@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_THEME, THEMES, THEME_ID, THEME_IDS, dress, recipeOf, subthemeFor, themeOf } from '../src/sim/themes.js'
+import { DEFAULT_THEME, THEMES, THEME_ID, THEME_IDS, dress, finishedName, finishedWords, recipeOf, subthemeFor, themeOf } from '../src/sim/themes.js'
+import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { PLAIN_STYLE, plainStyle, plotStyle } from '../src/sim/style.js'
 import { HATS, TOPS, lookFor } from '../src/sim/villager.js'
 import { rngFor } from '../src/sim/rng.js'
@@ -24,6 +25,21 @@ test('every theme and sub-theme has an id that can be saved, a label, and a pack
     assert.ok(t.auto.length && t.auto.every((a) => ids.includes(a)), `${id}'s auto list names a sub-theme it doesn't have`)
   }
   assert.ok(THEMES[DEFAULT_THEME])
+})
+
+test('every theme has words for finished work, and a name for every kind of it', () => {
+  for (const id of THEME_IDS) {
+    const w = finishedWords(id)
+    for (const k of ['one', 'many', 'place', 'glyph', 'grow']) assert.ok(typeof w[k] === 'string' && w[k], `${id}: finished.${k}`)
+    assert.equal([...w.glyph].length, 1, `${id}'s glyph is one character`)
+    if (w.names) for (const work of WORK) assert.ok(w.names[work.id], `${id} has no name for ${work.id}`)
+    FLOWER_KINDS.forEach((_, kind) => assert.ok(finishedName(id, kind), `${id}: kind ${kind} has no name`))
+  }
+  // The village keeps its flowers' own names; a site names each flag by its kind of work.
+  assert.equal(finishedName('village', 0), FLOWER_KINDS[0].name)
+  assert.equal(finishedName('construction', FLOWER_KINDS.findIndex((k) => k.work === 'data')), 'Chequered flag')
+  // Its glyph can't be mistaken for the open issues' ⚑.
+  for (const id of THEME_IDS) assert.notEqual(finishedWords(id).glyph, '⚑')
 })
 
 test('every recipe only asks for what its theme has', () => {

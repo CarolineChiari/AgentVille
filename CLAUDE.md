@@ -29,8 +29,10 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 - Style numbers a pack gets are indices into its own theme's dims. Only ever append to a theme's
   dims, sub-themes and `auto` list, and to HATS and TOPS: every folder's and villager's look is
   picked from them. The village's Patchwork must keep picking exactly what repos had before themes.
-- A theme changes how things look, never what they mean: status badges, the selection ring, PR
-  flowers' colours and buds, lit windows and smoke keep their meaning in every theme.
+- A theme changes how things look, never what they mean: status badges, the selection ring, lit
+  windows and smoke keep their meaning in every theme. A theme may draw finished work as something
+  other than flowers (the site's marker flags) and name it in its own words (`finished` in
+  themes.js), but it still shows the kind of work, white for an unlabeled PR, and a bud for an open one.
 - `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules. To make a new
   theme, follow the `new-theme` skill in `.claude/skills/new-theme/`.
 

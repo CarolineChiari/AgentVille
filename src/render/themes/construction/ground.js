@@ -200,6 +200,24 @@ export function drawGround(variant, tone) {
   return pc
 }
 
+/**
+ * The setting-out yard, where the village has its ploughed field: the plot's ground raked level,
+ * with a dot of paint where each flag will go. The crosses sit on the village's grid of dimples,
+ * 8 px apart: variant 0 is the yard's top row, variant 1 every row below, which carries on the
+ * grid from the row above (see the village's `bed` tile). Raked in the ground's own colours, so
+ * the yard takes its plot's patches like the rest of the ground.
+ */
+export function drawBed(variant, tone) {
+  const [base, dark, light] = groundOf(tone)
+  const pc = new PixelCanvas(T, T)
+  pc.rect(0, 0, T, T, base)
+  // Rake marks: a line every other row, broken every fourth pixel so neighbours line up.
+  for (let y = 1; y < T; y += 2) for (let x = 0; x < T; x++) if (x % 4 !== (y % 4 === 1 ? 3 : 1)) pc.px(x, y, y % 4 === 1 ? dark : light)
+  // A dot of paint where each flag goes: crosses there read as a busy orange pattern.
+  for (const y0 of variant ? [-4, 4] : [4]) for (const x0 of [0, 8]) pc.hline(x0 + 3, x0 + 4, y0 + 5, P.safetyOrange)
+  return pc
+}
+
 // ---------- walkways ----------
 
 /** Where a walkway runs across its tile: 8 px wide, down the middle, so arms meet their neighbours'. */

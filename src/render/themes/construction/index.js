@@ -1,9 +1,10 @@
 // The construction theme: every plot a building site. Its sub-themes (new homes, high-rise,
 // roadworks, restoration, an industrial park) are recipes in src/sim/themes.js; this is how it
-// draws them. The countryside between the plots, the arrival square and the flowers in each
-// plot's garden stay the village's: finished work still blooms, as the site's landscaping.
+// draws them. Finished work is a marker flag in a setting-out yard where the village has a
+// garden. The countryside between the plots and the arrival square stay the village's.
 import { buildingFrames, chimneyOf, drawSiteBuilding, fitted, heightOf, shadowOf } from './buildings.js'
-import { COVER_VARIANTS, ROAD_EDGE, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
+import { drawFlag } from './flags.js'
+import { COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const construction = {
@@ -16,10 +17,13 @@ export const construction = {
         return drawSiteBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
       case 'fence':
         return drawFence(Number(a), n)
+      case 'flower':
+        return drawFlag(Number(a), n, p.color)
       case 'tile':
         if (a === 'yard') return drawGround(n, p.tone)
         if (a === 'trail') return drawTrail(n, p.links || 0, p.tone)
         if (a === 'road') return drawRoad(n)
+        if (a === 'bed') return drawBed(n, p.tone)
         return null
       case 'deco':
         if (a === 'verge') return drawVerge(n, p.tone)

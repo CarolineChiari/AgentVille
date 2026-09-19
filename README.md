@@ -85,8 +85,9 @@ come and go on their own.
 
 **Settings → Theme** dresses the whole village: the countryside village it has always been, or a
 construction site, where every plot is fenced off, each session's building is going up (a timber
-frame, a tower crane, a site office, a digger in its pit) and everybody works in a hard hat and
-hi-vis. Within a theme each folder wears a sub-theme of its own: a farmstead, a market town or a
+frame, a tower crane, a site office, a digger in its pit), everybody works in a hard hat and
+hi-vis, and finished work is a survey flag in each plot's setting-out yard instead of a flower in
+its garden: a pennant for a bug fix, a chequered flag for data work, a windsock for research. Within a theme each folder wears a sub-theme of its own: a farmstead, a market town or a
 stone hamlet in the village; new homes, a high-rise, roadworks, a restoration or an industrial
 park on the site. A folder is handed one by its name; pick another under **Look** in its panel,
 or put every folder in the same one with **Settings → Every folder**. What a building means

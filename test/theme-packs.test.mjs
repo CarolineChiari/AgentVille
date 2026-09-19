@@ -6,6 +6,9 @@ import { generate } from '../src/render/sprites/registry.js'
 import { ACCENTS, PALETTE as P } from '../src/render/sprites/palette.js'
 import { BUILDING_W, DOORSTEP_CLEAR } from '../src/render/sprites/buildings.js'
 import { VILLAGER_H, VILLAGER_W } from '../src/render/sprites/villagers.js'
+import { FLOWER_H, FLOWER_W } from '../src/render/sprites/flowers.js'
+import { PETALS } from '../src/render/sprites/palette.js'
+import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { PACKS, packFor } from '../src/render/themes/index.js'
 import { THEMES, THEME_IDS, dress } from '../src/sim/themes.js'
 import { KINDS } from '../src/sim/building.js'
@@ -188,6 +191,35 @@ for (const id of THEME_IDS) {
       const share = n / 6400
       assert.ok(share > 0.005 && share < 0.4, `${ground}: ${(share * 100).toFixed(1)}% of tiles have something on them`)
       for (const [k] of kinds) assert.ok(opaque(at(`deco.${k}`, 0, { tone })) > 3, `${ground}: ${k} draws nothing`)
+    })
+  })
+
+  test(`${id}: finished work is the size of a flower, stands on its spot at every stage, and says what kind of work it was`, () => {
+    FLOWER_KINDS.forEach((k, kind) => {
+      for (let stage = 0; stage <= 2; stage++) {
+        for (const color of [PETALS[kind % PETALS.length], P.petalWhite]) {
+          const pc = at(`flower.${kind}.${stage}`, 0, { color })
+          assert.equal(pc.w, FLOWER_W, k.name)
+          assert.equal(pc.h, FLOWER_H, k.name)
+          assert.ok(opaque(pc) > 3, `${k.name} ${stage} is empty`)
+          // The renderer puts pixel (4, 11) on the spot, and picks it by the box round it.
+          assert.ok([3, 4, 5].some((x) => pc.opaque(x, 11)), `${k.name} ${stage} doesn't stand on its spot`)
+        }
+      }
+      assert.ok(!same(at(`flower.${kind}.1`, 0, { color: PETALS[0] }), at(`flower.${kind}.2`, 0, { color: PETALS[0] })), `${k.name}: an open PR looks finished`)
+    })
+    // One of each kind of work, in one colour: no two alike.
+    const firsts = WORK.map((w) => at(`flower.${FLOWER_KINDS.findIndex((k) => k.work === w.id)}.2`, 0, { color: PETALS[1] }))
+    firsts.forEach((a, i) => firsts.forEach((b, j) => i < j && assert.ok(!same(a, b), `${WORK[i].id} and ${WORK[j].id} look alike`)))
+  })
+
+  test(`${id}: the field finished work stands in is full tiles in every ground`, () => {
+    dims.yard.forEach((ground, tone) => {
+      for (const v of [0, 1]) {
+        const pc = at(`tile.bed.${v}`, 0, { tone })
+        assert.equal(opaque(pc), 256, `${ground} field ${v} has holes`)
+      }
+      assert.ok(!same(at('tile.bed.0', 0, { tone }), at('tile.bed.1', 0, { tone })), `${ground}: a field's top row and the rows below are the same`)
     })
   })
 

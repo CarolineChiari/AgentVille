@@ -1,8 +1,9 @@
 // A contact sheet of a theme's art, as a PNG, drawn under Node with no browser: a small plot in
-// each of its sub-themes, then every building at every stage, every fence join, the ground, and
-// villagers in their work clothes. For working on a theme: draw, look, adjust, draw again.
+// each of its sub-themes, then every building at every stage, every fence join, the ground,
+// finished work (the village's flowers), and villagers in their work clothes. For working on a
+// theme: draw, look, adjust, draw again.
 //
-//   npm run sheet -- [theme] [--only plots,buildings,fences,ground,villagers] [--scale 3] [--out file.png]
+//   npm run sheet -- [theme] [--only plots,buildings,fences,ground,finished,villagers] [--scale 3] [--out file.png]
 //
 // Writes data/sheets/<theme>.png unless --out says otherwise, and prints what each band shows.
 // The plots are composed the way the renderer bakes a chunk, less the night, the weather and the
@@ -24,14 +25,14 @@ import { KINDS } from '../src/sim/building.js'
 import { DECO, TILE } from '../src/sim/plot.js'
 import { hashString } from '../src/sim/rng.js'
 import { lookFor } from '../src/sim/villager.js'
-import { FLOWER_KINDS } from '../src/sim/flowers.js'
+import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { WEAR } from '../src/sim/wear.js'
 import { World } from '../src/sim/world.js'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const T = 16
 const GAP = 8
-const SECTIONS = ['plots', 'buildings', 'fences', 'ground', 'villagers']
+const SECTIONS = ['plots', 'buildings', 'fences', 'ground', 'finished', 'villagers']
 
 const TILE_NAME = {
   [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
@@ -151,7 +152,7 @@ function plotPanel(theme, sub) {
         let links = 0
         SIDES.forEach(([dx, dy], side) => PATHS.has(tileAt(x + dx, y + dy)) && (links |= SIDE_LINK[side]))
         params = { links, tone }
-      } else if (kind === TILE.YARD) params = { tone }
+      } else if (kind === TILE.YARD || kind === TILE.BED) params = { tone }
       blit(pc, sprite(theme, `tile.${name}.${variant}`, 0, params), lx * T, ly * T)
       if (kind === TILE.YARD && !decoAt(x, y) && !underfoot.has(`${x},${y}`)) {
         const cover = pack.cover(x, y, tone)
@@ -212,7 +213,7 @@ function plotPanel(theme, sub) {
   }])
   for (const f of frame.flowers) items.push([f.y, () => {
     const color = PETALS[f.color % PETALS.length]
-    blit(pc, generate(`flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), Math.round((f.x - x0) * T - 4), Math.round((f.y - y0) * T - 11))
+    blit(pc, sprite(theme, `flower.${f.kind}.${f.open ? 1 : 2}`, 0, { color }), Math.round((f.x - x0) * T - 4), Math.round((f.y - y0) * T - 11))
   }])
   for (const b of frame.boards) items.push([b.y, () => blit(pc, sprite(theme, `static.board.${Math.min(6, b.count)}`), (b.x - x0) * T - 8, (b.y - y0) * T - 22)])
   threads.forEach((t, i) => {
@@ -332,6 +333,28 @@ function groundBand(theme) {
   return stack(rows)
 }
 
+/**
+ * Finished work, a row per kind of work: each of its kinds sprouting, as an open PR's bud, and
+ * finished in three colours, then white (an unlabeled PR), on the plot's field.
+ */
+function finished(theme) {
+  const rows = WORK.map((w) => {
+    const cells = []
+    FLOWER_KINDS.forEach((k, kind) => {
+      if (k.work !== w.id) return
+      const shows = [[0, 0], [1, 3], [2, 0], [2, 5], [2, 9], [2, -1]]
+      for (const [stage, c] of shows) {
+        const pc = new PixelCanvas(12, 16)
+        blit(pc, sprite(theme, `tile.bed.1`, 0, { tone: 0 }), -2, 0)
+        blit(pc, sprite(theme, `flower.${kind}.${stage}`, 0, { color: c < 0 ? P.petalWhite : PETALS[c % PETALS.length] }), 2, 2)
+        cells.push(pc)
+      }
+    })
+    return row(cells, 1)
+  })
+  return stack(rows)
+}
+
 /** Villagers from each sub-theme in its work clothes, in every pose. */
 function villagers(theme) {
   const poses = [['idle', 's', 0], ['walk', 'e', 1], ['walk', 'w', 3], ['walk', 'n', 0], ['hammer', 's', 0], ['hammer', 's', 1], ['sit', 's', 0], ['jump', 's', 1], ['wave', 's', 0], ['slump', 's', 0]]
@@ -350,12 +373,13 @@ function villagers(theme) {
   return stack(rows)
 }
 
-const BANDS = { plots, buildings, fences, ground: groundBand, villagers }
+const BANDS = { plots, buildings, fences, ground: groundBand, finished, villagers }
 const LEGEND = {
   plots: 'a plot in each sub-theme, in order: %s',
   buildings: `a row per kind (${KINDS.join(', ')}): stages 0, 1, 2; finished ×5 (wall and paint vary); lit; any other animation frames; wear gleaming→derelict; down a courtyard's side`,
   fences: 'a row per fence (%s): its sixteen joins by mask, then a small ring of it',
   ground: 'a band per ground (%s): six tiles, five footpaths, six roads, sixteen fringes on a road, what lies about; then a stretch of it with its patches',
+  finished: `a row per kind of work (${WORK.map((w) => w.id).join(', ')}): each kind sprouting, as an open PR's bud, in bloom in three colours, then white`,
   villagers: 'a row per sub-theme: four villagers in ten poses',
 }
 
