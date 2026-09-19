@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import { createApiMiddleware } from './server/api.mjs'
+import { DEV_HEADERS } from './server/headers.mjs'
 
 /** Serves /api from inside the Vite dev server, so `npm run dev` is the whole app. */
 const api = () => ({
@@ -13,6 +14,6 @@ export default defineConfig({
   plugins: [api()],
   // PORT lets a second copy run alongside the first. Loopback only: the API reads your
   // session transcripts and can ask the OS to open things.
-  server: { host: '127.0.0.1', port: Number(process.env.PORT) || 5274, strictPort: false },
+  server: { host: '127.0.0.1', port: Number(process.env.PORT) || 5274, strictPort: false, headers: DEV_HEADERS },
   build: { target: 'esnext' },
 })

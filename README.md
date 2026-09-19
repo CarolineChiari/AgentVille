@@ -236,8 +236,11 @@ another browser).
 ## Keeping it local
 
 The server binds `127.0.0.1`, refuses requests whose `Host` is not local (DNS rebinding), and
-refuses state-changing requests without a local `Origin` (cross-site POST). A bare `curl` POST
-needs `-H 'Origin: http://localhost:5274'`.
+refuses state-changing requests that don't come from its own page: the exact `Origin`, port
+and all, so another page on `localhost` can't either, and a JSON body, which a browser won't
+send to another site without asking it first. No other page can put the village in a frame,
+and the built app's page runs nothing but its own files. A bare `curl` POST needs
+`-H 'Origin: http://localhost:5274' -H 'Content-Type: application/json'`, to that same host.
 
 Found a way around any of that? Please report it privately, as [SECURITY.md](SECURITY.md)
 describes, rather than in a public issue.

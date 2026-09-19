@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { commandScript, openInTerminal, shq } from '../server/terminal.mjs'
+import { commandScript, openInTerminal, promptArg, shq } from '../server/terminal.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 test('single-quoting survives quotes, dollars and backticks', () => {
@@ -32,6 +32,18 @@ test('on macOS the prompt goes to its own file and `open` gets the script', asyn
   const promptFile = files.find((f) => f.endsWith('.prompt.txt'))
   assert.equal(fs.readFileSync(path.join(home, 'launch', promptFile), 'utf8'), prompt)
   assert.ok(!script.includes('pwned'), 'the prompt never appears in the script')
+})
+
+test('a prompt that starts with a dash is never read as an option', async (t) => {
+  assert.equal(promptArg('--settings={"hooks":{}}'), ' --settings={"hooks":{}}')
+  assert.equal(promptArg('- fix the login bug'), ' - fix the login bug')
+  assert.equal(promptArg('fix it - quickly'), 'fix it - quickly')
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const spawn = () => ({ on() {}, unref() {} })
+  await openInTerminal({ exe: '/bin/claude', args: [], cwd: home, prompt: '--mcp-config=x' }, { dataDir: home, platform: 'darwin', spawn })
+  const promptFile = fs.readdirSync(path.join(home, 'launch')).find((f) => f.endsWith('.prompt.txt'))
+  assert.equal(fs.readFileSync(path.join(home, 'launch', promptFile), 'utf8'), ' --mcp-config=x')
 })
 
 test('on Windows cmd-special paths are refused and the prompt is left to the clipboard', async () => {

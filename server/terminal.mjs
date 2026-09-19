@@ -14,6 +14,13 @@ import path from 'node:path'
 /** POSIX single-quoting: the only character that needs care inside '…' is ' itself. */
 export const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`
 
+/**
+ * The prompt as the CLI's argument. One that starts with `-` would be read as an option, and an
+ * option like `--settings=…` can have the CLI run a command, so it gets a leading space. Not a
+ * `--` before it: that only works with no flag in front, and `copilot -i <prompt>` has one.
+ */
+export const promptArg = (prompt) => (prompt.startsWith('-') ? ` ${prompt}` : prompt)
+
 // cmd.exe expands or splits on these even inside quotes; a path containing one is refused.
 const CMD_SPECIAL = /["%^&|<>!\r\n]/
 
@@ -62,7 +69,7 @@ export async function openInTerminal(spec, { dataDir, platform = process.platfor
     const id = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`
     const self = path.join(dir, `${id}.command`)
     const promptFile = prompt ? path.join(dir, `${id}.prompt.txt`) : undefined
-    if (promptFile) await fsp.writeFile(promptFile, prompt, { mode: 0o600 })
+    if (promptFile) await fsp.writeFile(promptFile, promptArg(prompt), { mode: 0o600 })
     const promptArgs = Array.isArray(spec.promptArgs) ? spec.promptArgs.map(String) : []
     await fsp.writeFile(self, commandScript({ cwd, exe, args, promptArgs, promptFile, self }), { mode: 0o700 })
     // `open` hands a .command file to whatever terminal the person uses for them (Terminal by default).

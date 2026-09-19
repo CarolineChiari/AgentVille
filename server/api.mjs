@@ -11,11 +11,11 @@ import { openInTerminal } from './terminal.mjs'
 const MAX_BODY = 4 * 1024 * 1024
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
-/** Hostname out of a `Host` header or an `Origin` URL; '' when unparsable. */
-export function hostnameOf(value, isOrigin = false) {
+/** Hostname out of a `Host` header; '' when unparsable. */
+export function hostnameOf(value) {
   if (typeof value !== 'string' || !value) return ''
   try {
-    return new URL(isOrigin ? value : `http://${value}`).hostname.toLowerCase()
+    return new URL(`http://${value}`).hostname.toLowerCase()
   } catch {
     return ''
   }
@@ -27,13 +27,27 @@ export function hostnameOf(value, isOrigin = false) {
  *   us as a same-origin page, but it still arrives with `Host: their-domain`.
  * - Origin: a cross-site `fetch` with a text/plain body is not preflighted, so any open page
  *   could POST here. Browsers always send Origin on POST/PUT, so a missing one is refused too.
+ *   It must be this very origin, port and all, not just a local one: any page on localhost
+ *   would pass that, such as the dev server of a repo you just cloned.
+ * - Content-Type: application/json makes a cross-origin request preflighted, and the preflight
+ *   is never answered, so a browser doesn't send the request at all.
  */
 export function isLocalRequest(req, extraHosts = new Set()) {
   const allowed = (h) => LOCAL_HOSTS.has(h) || extraHosts.has(h)
   if (!allowed(hostnameOf(req.headers.host))) return false
   const method = (req.method || 'GET').toUpperCase()
   if (method === 'GET' || method === 'HEAD') return true
-  return allowed(hostnameOf(req.headers.origin, true))
+  const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase()
+  return type === 'application/json' && Boolean(req.headers.origin) && req.headers.origin === originOf(req.headers.host)
+}
+
+/** The origin a page served under this `Host` sends, written the way browsers write it. */
+function originOf(host) {
+  try {
+    return new URL(`http://${host}`).origin
+  } catch {
+    return ''
+  }
 }
 
 function send(res, status, body) {

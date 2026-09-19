@@ -4,6 +4,7 @@ import http from 'node:http'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { createApiMiddleware } from './api.mjs'
+import { HEADERS } from './headers.mjs'
 import { DEFAULT_DATA_DIR, DEFAULT_DIST_DIR } from './paths.mjs'
 
 const TYPES = {
@@ -58,6 +59,7 @@ async function serveStatic(distDir, req, res) {
 export function createServer({ port = 5274, host = '127.0.0.1', dataDir = DEFAULT_DATA_DIR, distDir = DEFAULT_DIST_DIR, log = console.log, ...apiOpts } = {}) {
   const api = createApiMiddleware({ dataDir, ...apiOpts })
   const server = http.createServer((req, res) => {
+    for (const [name, value] of Object.entries(HEADERS)) res.setHeader(name, value)
     if ((req.url || '').startsWith('/api/')) return api(req, res, null)
     serveStatic(distDir, req, res)
   })

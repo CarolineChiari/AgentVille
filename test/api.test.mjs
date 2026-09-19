@@ -78,6 +78,20 @@ test('five concurrent PUTs on one base give one 200 and four 409s', async () => 
 test('a state-changing request without Origin, or from another origin, is refused', async () => {
   assert.equal((await put({}, { 'Content-Type': 'application/json' })).status, 403)
   assert.equal((await put({}, { Origin: 'https://evil.example', 'Content-Type': 'application/json' })).status, 403)
+  assert.equal((await put({}, { Origin: 'null', 'Content-Type': 'application/json' })).status, 403)
+})
+
+test('another page on this machine is refused: same host, different port or scheme', async () => {
+  const { port } = new URL(base)
+  for (const origin of [`http://127.0.0.1:${Number(port) + 1}`, 'http://localhost:3000', `https://127.0.0.1:${port}`, 'http://127.0.0.1']) {
+    assert.equal((await post('/api/new-session', { harness: 'fake', folder: os.tmpdir() }, { Origin: origin, 'Content-Type': 'application/json' })).status, 403, origin)
+  }
+})
+
+test('a state-changing request that is not JSON is refused, since only JSON is preflighted', async () => {
+  assert.equal((await put({}, { Origin: base })).status, 403)
+  assert.equal((await put({}, { Origin: base, 'Content-Type': 'text/plain' })).status, 403)
+  assert.equal((await put({}, { Origin: base, 'Content-Type': 'application/json; charset=utf-8' })).status, 200)
 })
 
 test('a foreign Host is refused even for GET', async () => {
