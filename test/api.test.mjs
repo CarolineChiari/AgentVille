@@ -13,7 +13,12 @@ const fakeHarness = {
   name: 'Fake',
   detect: async () => true,
   scanThreads: async () => [{ id: 'fake:1', title: 'One', lastActivityAt: 1, ref: { sid: '1' } }],
-  openThread: (ref) => (ref?.sid === '1' ? { ok: true, url: 'fake://1' } : { ok: false, error: 'nope' }),
+  openThread: (ref) =>
+    ref?.sid === '1'
+      ? { ok: true, url: 'fake://1' }
+      : ref?.sid === 'two'
+        ? { ok: true, where: 'VS Code', url: 'fake://chat', urls: ['fake://folder', 'fake://chat'] }
+        : { ok: false, error: 'nope' },
   newSession: (dir) => ({ ok: true, url: `fake://new?${dir}` }),
   targets: async () => [{ id: 'vscode', label: 'VS Code', note: '' }, { id: 'terminal', label: 'Terminal', note: '' }],
 }
@@ -23,6 +28,7 @@ before(async () => {
   const opener = {
     platform: 'test',
     launch: (u) => (launched.push(u), { ok: true }),
+    launchAll: async (urls) => (urls.forEach((u) => launched.push(u)), { ok: true }),
     reveal: (d) => (launched.push(d), { ok: true }),
   }
   const prStore = { get: async () => ({ repos: {}, updating: false, available: true, warnings: [] }) }
@@ -117,6 +123,24 @@ test('open hands the adapter URL to the opener', async () => {
   assert.equal(launched.at(-1), 'fake://1')
   assert.equal((await post('/api/open', { harness: 'fake', ref: { sid: '2' } })).status, 400)
   assert.equal((await post('/api/open', { harness: 'nope', ref: {} })).status, 400)
+})
+
+test('a two-link open sends both in order and offers the chat link again on its own', async () => {
+  const r = await post('/api/open', { harness: 'fake', ref: { sid: 'two' } })
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).chatAgain, true)
+  assert.deepEqual(launched.slice(-2), ['fake://folder', 'fake://chat'])
+  const again = await post('/api/open', { harness: 'fake', ref: { sid: 'two' }, only: 'chat' })
+  assert.equal(again.status, 200)
+  assert.equal(launched.at(-1), 'fake://chat')
+  assert.notEqual(launched.at(-2), 'fake://folder') // the folder link is not repeated
+})
+
+test('only: chat is ignored where the adapter gave a single link', async () => {
+  const r = await post('/api/open', { harness: 'fake', ref: { sid: '1' }, only: 'chat' })
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).chatAgain, false)
+  assert.equal(launched.at(-1), 'fake://1')
 })
 
 test('reveal and new-session refuse relative or missing folders', async () => {

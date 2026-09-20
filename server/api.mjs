@@ -175,9 +175,14 @@ export function createApiMiddleware(opts = {}) {
       const target = body?.target === 'vscode' ? 'vscode' : 'app'
       const result = await h.openThread(body?.ref, { target })
       if (!result?.ok) return [400, { ok: false, error: result?.error || 'Cannot open this thread.' }]
-      const launched = await launch(result)
+      // Where the adapter gave several links, the last one is the one that opens the chat in
+      // whichever window is up by then. `only: 'chat'` sends that one again and nothing else, for
+      // when the window came up too late to catch it — the page offers it on the toast.
+      const links = Array.isArray(result.urls) ? result.urls : []
+      const again = links.length > 1
+      const launched = again && body?.only === 'chat' ? await opener.launch(links.at(-1)) : await launch(result)
       if (!launched.ok) return [500, { ok: false, error: launched.error }]
-      return [200, { ok: true, url: result.url, where: result.where || '', note: result.note }]
+      return [200, { ok: true, url: result.url, where: result.where || '', note: result.note, chatAgain: again }]
     },
 
     'POST /api/new-session': async (body) => {

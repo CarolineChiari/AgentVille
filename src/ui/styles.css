@@ -253,6 +253,9 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 /* ---------- toasts ---------- */
 .toasts { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; }
 .toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 999px;
@@ -261,6 +264,18 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   animation: toast-in 0.18s ease-out;
 }
 .toast.error { border-color: var(--danger); }
+.toast .act {
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--panel-border);
+  margin: -7px -14px -7px 0; /* the button takes the toast's own padding, so its hit area is the full height */
+  padding: 7px 14px;
+  border-radius: 0 999px 999px 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.toast .act:hover { background: var(--panel-border); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ---------- settings / help ---------- */

@@ -44,7 +44,7 @@ export async function saveState(local, base) {
   throw new Error('Could not save: the village kept changing underneath this tab.')
 }
 
-export const openThread = (harness, ref, target) => post('/api/open', { harness, ref, target }).then((r) => r.body)
+export const openThread = (harness, ref, target, only = '') => post('/api/open', { harness, ref, target, only }).then((r) => r.body)
 export const newSession = (folder, { harness, target, prompt = '', model = '', effort = '' } = {}) =>
   post('/api/new-session', { folder, harness, target, prompt, model, effort }).then((r) => r.body)
 export const fetchTranscript = (harness, ref, limit = 300) => post('/api/transcript', { harness, ref, limit }).then((r) => r.body)

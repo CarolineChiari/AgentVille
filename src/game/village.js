@@ -526,7 +526,22 @@ export class Village {
     if (!t.canOpen) return this.toast(`This thread has nothing ${t.harnessName || 'Claude'} can open.`, 'error')
     try {
       const r = await api.openThread(t.harness, t.ref, this.settings.openIn)
-      this.toast(r.note || `Opening “${t.title}”${r.where ? ` in ${r.where}` : ''}`)
+      const said = r.note || `Opening “${t.title}”${r.where ? ` in ${r.where}` : ''}`
+      // Two links went out: the folder, then the chat. If the window came up after the chat link
+      // had already gone by — a cold editor on a slow machine — this sends the chat link again.
+      this.toast(said, 'info', r.chatAgain ? { label: 'Open the chat again', run: () => this.openChatAgain(id) } : null)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
+  /** The chat link on its own, into the window that is up by now. */
+  async openChatAgain(id = this.selected) {
+    const t = this.thread(id)
+    if (!t) return
+    try {
+      const r = await api.openThread(t.harness, t.ref, this.settings.openIn, 'chat')
+      this.toast(`Opening the chat${r.where ? ` in ${r.where}` : ''}`)
     } catch (err) {
       this.toast(err.message, 'error')
     }
