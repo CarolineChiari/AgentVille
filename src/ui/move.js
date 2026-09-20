@@ -32,3 +32,25 @@ export function heading(held) {
   if (x && y) return { x: x * Math.SQRT1_2, y: y * Math.SQRT1_2 }
   return { x, y }
 }
+
+// ---------- press, drag, click ----------
+
+/** How far a press may wander before it counts as a drag rather than a click, in CSS pixels. */
+export const DRAG_THRESHOLD = 5
+
+/**
+ * Has this press become a drag? Once it has it stays one, so a hand that wobbles back to where it
+ * started doesn't finish as a click.
+ */
+export const isDrag = (press, x, y, threshold = DRAG_THRESHOLD) =>
+  Boolean(press) && (press.dragging || Math.hypot(x - press.x, y - press.y) > threshold)
+
+/**
+ * Should this drag move the camera? Not while a room fills the canvas: there is nothing behind it
+ * to drag into view. The press is still recorded in there, though — it is what tells a click from
+ * a drag, and without one nothing in a room could ever be clicked.
+ */
+export const pansCamera = (press, inRoom) => Boolean(press?.dragging) && !inRoom
+
+/** Did this press end as a click on whatever is under it? */
+export const isClick = (press) => Boolean(press) && !press.dragging

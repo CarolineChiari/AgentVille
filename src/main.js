@@ -16,12 +16,11 @@ import { createTranscript } from './ui/transcript.js'
 import { createRoomPanel } from './ui/room.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
-import { heading, isMoveKey } from './ui/move.js'
+import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
-const DRAG_THRESHOLD = 5 // CSS px before a press becomes a drag rather than a click
 const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send many small ones
 // How long stepping through a door takes. Long enough to read as going inside, short enough that
 // it never stands between you and the log you came to read.
@@ -228,17 +227,17 @@ function applyUiVisible() {
 
 let press = null
 canvas.addEventListener('pointerdown', (e) => {
-  if (village.focused) return // a room fills the canvas; there is nothing to drag it over
   canvas.setPointerCapture(e.pointerId)
+  // A press is recorded in a room as well as outside one: see `pansCamera` in ui/move.js.
   press = { x: e.clientX, y: e.clientY, world: camera.toWorld(e.clientX, e.clientY), dragging: false }
 })
 canvas.addEventListener('pointermove', (e) => {
   if (press) {
-    if (!press.dragging && Math.hypot(e.clientX - press.x, e.clientY - press.y) > DRAG_THRESHOLD) {
+    if (!press.dragging && isDrag(press, e.clientX, e.clientY, DRAG_THRESHOLD)) {
       press.dragging = true
       canvas.classList.add('dragging')
     }
-    if (press.dragging) camera.pin(press.world, e.clientX, e.clientY)
+    if (pansCamera(press, village.focused)) camera.pin(press.world, e.clientX, e.clientY)
     return
   }
   if (village.focused) {
@@ -259,7 +258,7 @@ canvas.addEventListener('pointerup', (e) => {
   const was = press
   press = null
   canvas.classList.remove('dragging')
-  if (!was || was.dragging) return
+  if (!isClick(was)) return
   if (village.focused) {
     // Inside, the room is the interface: the board's lines and tabs, and the door.
     const hit = room && renderer.pickInRoom(room, e.clientX, e.clientY)
