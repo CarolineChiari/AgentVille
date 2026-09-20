@@ -6,8 +6,9 @@ import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
 
 const GAP = 18
-/** Issues listed on a board's card; the rest are a link away on GitHub. */
+/** Issues listed on a board's card to start with, and how many more each Load more adds. */
 const ISSUE_CARD_MAX = 8
+const ISSUE_CARD_STEP = 8
 
 export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
@@ -18,6 +19,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let shownKey = ''
   let tasksOpen = false // the task list stays open across re-renders of the same thread
   let handTo = '' // on a board's card: which free villager Send goes to, kept across re-renders
+  let issuesShown = ISSUE_CARD_MAX // how far down a board's issue list we've loaded, reset per board
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
@@ -40,6 +42,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'recruit') {
       const bd = village.board(village.selected)
       if (bd) onRecruit(bd.project, village.issuePrompt(b.dataset.issue))
+    } else if (act === 'moreIssues') {
+      const bd = village.board(village.selected)
+      if (bd) {
+        issuesShown += ISSUE_CARD_STEP
+        const top = card.querySelector('ul.issues')?.scrollTop || 0
+        fillBoard(bd)
+        const list = card.querySelector('ul.issues')
+        if (list) list.scrollTop = top // the refill resets it; stay where the reader was
+      }
     } else if (act === 'issuesPage') {
       const bd = village.board(village.selected)
       if (bd) village.openIssuesPage(bd.project)
@@ -214,8 +225,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       ${who}
-      <ul class="issues">${b.issues.slice(0, ISSUE_CARD_MAX).map(row).join('')}</ul>
-      ${n > ISSUE_CARD_MAX ? `<button class="btn link" data-act="issuesPage">+${n - ISSUE_CARD_MAX} more on GitHub</button>` : ''}`
+      <ul class="issues">${b.issues.slice(0, issuesShown).map(row).join('')}</ul>
+      ${n > issuesShown
+        ? `<button class="btn link" data-act="moreIssues">Load ${Math.min(ISSUE_CARD_STEP, n - issuesShown)} more · ${n - issuesShown} left</button>`
+        : n > ISSUE_CARD_MAX ? `<button class="btn link" data-act="issuesPage">All ${n} on GitHub</button>` : ''}`
     const g = card.querySelector('canvas.avatar').getContext('2d')
     g.drawImage(sprites.get(`static.board.${Math.min(6, n)}`), 0, 1)
   }
@@ -236,6 +249,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       if (bd) {
         const key = `board|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
+          if (id !== shownId) issuesShown = ISSUE_CARD_MAX
           fillBoard(bd)
           shownId = id
           shownKey = key
