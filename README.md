@@ -14,7 +14,8 @@ thread opens in the Claude desktop app.
 It reads Claude Code's own session files, on your own machine. Nothing is uploaded, there is
 no account, and it never writes to Claude Code's files. Everything it writes goes in `data/`.
 The one thing that touches the network is the PR gardens and issue boards, which ask GitHub
-through your own `gh` login; turn them off in Settings and nothing leaves the machine.
+through your own `gh` login — and, while either is on, a once-a-day look at whether a newer
+AgentVille has been released. Turn them off in Settings and nothing leaves the machine.
 
 ## Run it
 
@@ -255,6 +256,14 @@ the PRs, and cached in `data/issues.json`. A board only goes up on a plot that i
 map.
 
 ![A repo's notice board selected: its card lists five open issues, each with Open, Send and Recruit, and a menu to pick which villager to send one to](docs/screenshots/issues.png)
+
+### A newer release
+
+Once a day, through the same `gh`, AgentVille asks its own repo for the latest release and
+compares it with the version running. If yours is older, the sidebar's footer says
+*0.40.0 available*; clicking it opens the release notes. It only ever tells you — nothing is
+downloaded or installed. The answer is cached in `data/release.json`, and the check is off
+whenever both the PR gardens and the issue boards are off.
 
 ## Keys
 

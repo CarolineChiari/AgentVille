@@ -50,6 +50,8 @@ export class Village {
     this._boardIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.counted = { repos: {}, updating: false } // each repo's lines of code, as the server counted them
+    // Whether a newer AgentVille has been released than the one running. `newer` false until told.
+    this.release = { current: '', latest: '', url: '', newer: false }
     this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
     this.selected = null
     this.selectedPlot = null
@@ -95,6 +97,8 @@ export class Village {
           this.settings.prGardens && this.pollPrs(false),
           this.settings.issueBoards && this.pollIssues(false),
           this.settings.repoLines && this.pollRepos(false),
+          // The same switch that lets anything reach the network at all covers the release check.
+          (this.settings.prGardens || this.settings.issueBoards) && this.pollVersion(false),
         ])
       }
       this.apply()
@@ -115,6 +119,31 @@ export class Village {
       if (apply) this.apply()
     } catch {
       // PRs are decoration; a failure here must never stop the village.
+    }
+  }
+
+  /**
+   * Whether a newer release exists. The server asks GitHub once a day and answers from its cache,
+   * so polling this on every scan costs nothing.
+   */
+  async pollVersion(apply = true) {
+    if (this.demo) return
+    try {
+      this.release = await api.fetchVersion()
+      if (apply) this.apply()
+    } catch {
+      // Hearing about a release is a courtesy; a failure here must never stop the village.
+    }
+  }
+
+  /** The release notes for the version on offer, in the browser. */
+  async openRelease() {
+    if (!this.release.url) return
+    try {
+      await api.openUrl(this.release.url)
+      this.toast(`Opening the ${this.release.latest} release notes`)
+    } catch (err) {
+      this.toast(err.message, 'error')
     }
   }
 

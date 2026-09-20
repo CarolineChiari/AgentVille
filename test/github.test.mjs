@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createIssueStore, createPrStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote } from '../server/github.mjs'
+import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote } from '../server/github.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 test('GitHub remotes in every common form', () => {
@@ -183,5 +183,66 @@ test('without gh the issue store stops trying too', async (t) => {
   const r = await store.get([{ name: 'app', path: repo }])
   await store.settle()
   assert.equal(r.available, false)
+  assert.equal(calls, 1)
+})
+
+test('the release check asks once a day, remembers the answer, and only reports a newer one', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  let clock = 1000
+  const calls = []
+  const gh = async (args) => {
+    calls.push(args)
+    return JSON.stringify({ tagName: 'v0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0' })
+  }
+  const opts = { dataDir: home, repo: 'me/app', gh, now: () => clock, version: () => '0.39.0' }
+  const store = createReleaseStore(opts)
+  const first = await store.get()
+  assert.equal(first.newer, false, 'nothing is claimed before the first answer is in')
+  await store.settle()
+  assert.deepEqual(calls[0], ['release', 'view', '--repo', 'me/app', '--json', 'tagName,url'])
+  const known = await store.get()
+  assert.equal(known.latest, '0.40.0')
+  assert.equal(known.current, '0.39.0')
+  assert.equal(known.newer, true)
+  assert.equal(known.url, 'https://github.com/me/app/releases/tag/v0.40.0')
+  clock += 60 * 60 * 1000 // an hour later: still the same day's answer
+  await store.get()
+  await store.settle()
+  assert.equal(calls.length, 1)
+  clock += 24 * 60 * 60 * 1000
+  await store.get()
+  await store.settle()
+  assert.equal(calls.length, 2, 'a day on, it asks again')
+  const restarted = createReleaseStore({ ...opts, gh: async () => { throw new Error('offline') } })
+  const offline = await restarted.get()
+  assert.equal(offline.latest, '0.40.0', 'the answer survives a restart')
+  assert.equal((await createReleaseStore({ ...opts, version: () => '0.40.0' }).get()).newer, false, 'the current version is not news')
+})
+
+test('a release nobody can read leaves the notice off, and a missing gh stops the asking', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const opts = { dataDir: home, repo: 'me/app', version: () => '0.39.0' }
+  const junk = createReleaseStore({ ...opts, gh: async () => JSON.stringify({ tagName: 'nightly', url: 'javascript:alert(1)' }) })
+  await junk.get()
+  await junk.settle()
+  const r = await junk.get()
+  assert.equal(r.latest, '')
+  assert.equal(r.newer, false)
+  assert.equal(r.url, 'https://github.com/me/app/releases/latest', 'a link that is not this repo\'s release page is dropped')
+
+  const { home: home2, cleanup: cleanup2 } = tmpHome()
+  t.after(cleanup2)
+  let calls = 0
+  const none = createReleaseStore({
+    ...opts, dataDir: home2, ttlMs: 0,
+    gh: async () => { calls++; throw Object.assign(new Error('gh is not installed'), { code: 'ENOENT' }) },
+  })
+  await none.get()
+  await none.settle()
+  const after = await none.get()
+  await none.settle()
+  assert.equal(after.available, false)
   assert.equal(calls, 1)
 })

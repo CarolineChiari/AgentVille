@@ -1,11 +1,14 @@
 // Pull requests, for the gardens: merged ones bloom, open ones wait as glittering buds. Open
-// issues, for each plot's notice board.
+// issues, for each plot's notice board. And, once a day, whether AgentVille itself has a newer
+// release than the one running.
 // This is the one part of AgentVille that talks to the network, and it does so only through the
 // `gh` CLI the user has already signed in to — no tokens are read or stored here. Results are
-// cached in data/prs.json and data/issues.json so a reload is instant and works offline.
+// cached in data/prs.json, data/issues.json and data/release.json so a reload is instant and works
+// offline.
 import { spawn as nodeSpawn } from 'node:child_process'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
+import { appVersion, isNewerVersion, versionOf } from './version.mjs'
 
 /** How long a repo's list is trusted before it is fetched again. PRs merge a few times a day at most. */
 export const PR_TTL_MS = 10 * 60 * 1000
@@ -21,6 +24,10 @@ export const ISSUE_LIMIT = 200
 // blow the timeout. Not `body` either: it is never shown and can be huge.
 export const ISSUE_FIELDS = 'number,title,labels,state,createdAt,updatedAt,author,url,assignees,milestone'
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+/** A day. Every push to main publishes a release; hearing about one within a day is soon enough. */
+export const RELEASE_TTL_MS = 24 * 60 * 60 * 1000
+/** AgentVille's own repo: this check is about the app itself, never about the repos in the village. */
+export const RELEASE_REPO = 'CarolineChiari/AgentVille'
 
 /** `owner/repo` from any common GitHub remote form, else null. */
 export function parseGithubRemote(url) {
@@ -232,3 +239,76 @@ export const createIssueStore = ({ ttlMs = ISSUE_TTL_MS, ...opts }) =>
     ...opts, ttlMs, file: 'issues.json', key: 'issues', normalize: normalizeIssue,
     argv: (slug) => ['issue', 'list', '--repo', slug, '--state', 'open', '--limit', String(ISSUE_LIMIT), '--json', ISSUE_FIELDS],
   })
+
+/**
+ * The newest published AgentVille release, asked for once a day through the same `gh`, kept in
+ * `dataDir/release.json` so a restart doesn't ask again. It only ever tells you: nothing is
+ * downloaded or installed.
+ * @param {{ dataDir: string, repo?: string, version?: () => Promise<string>|string,
+ *           gh?: (args: string[]) => Promise<string>, now?: () => number, ttlMs?: number }} opts
+ */
+export function createReleaseStore({ dataDir, repo = RELEASE_REPO, version = appVersion, gh = runGh, now = Date.now, ttlMs = RELEASE_TTL_MS }) {
+  const file = path.join(dataDir, 'release.json')
+  let cache = null // { checkedAt, latest, url, error }
+  let available = true
+  let inFlight = false
+  let seq = 0
+
+  async function load() {
+    if (cache) return cache
+    try {
+      const raw = JSON.parse(await fsp.readFile(file, 'utf8'))
+      cache = raw && typeof raw === 'object' && raw.release && typeof raw.release === 'object' ? raw.release : {}
+    } catch {
+      cache = {}
+    }
+    return cache
+  }
+
+  async function save() {
+    await fsp.mkdir(dataDir, { recursive: true })
+    const tmp = `${file}.${process.pid}.${++seq}.tmp`
+    await fsp.writeFile(tmp, JSON.stringify({ version: 1, release: cache }) + '\n')
+    await fsp.rename(tmp, file)
+  }
+
+  function refresh() {
+    if (inFlight || !available) return
+    inFlight = true
+    lane = lane.then(async () => {
+      try {
+        const out = JSON.parse(await gh(['release', 'view', '--repo', repo, '--json', 'tagName,url']))
+        const url = typeof out?.url === 'string' && out.url.startsWith(`https://github.com/${repo}/`) ? out.url : ''
+        cache = { checkedAt: now(), latest: versionOf(out?.tagName), url, error: '' }
+      } catch (err) {
+        if (err.code === 'ENOENT') available = false
+        // Keep what we had; note the failure so the next try waits a full day rather than hammering.
+        cache = { ...cache, checkedAt: now(), error: String(err.message || err) }
+      } finally {
+        inFlight = false
+      }
+      await save().catch(() => {})
+    })
+    return lane
+  }
+
+  /** `{ current, latest, url, newer, checkedAt, available, error }`, with a refresh once a day. */
+  async function get() {
+    await load()
+    if (!cache.checkedAt || now() - cache.checkedAt > ttlMs) refresh()
+    const current = String((await version()) || '')
+    const latest = cache.latest || ''
+    return {
+      current,
+      latest,
+      // A release with no page of its own still has one to send people to.
+      url: cache.url || `https://github.com/${repo}/releases/latest`,
+      newer: isNewerVersion(latest, current),
+      checkedAt: cache.checkedAt || 0,
+      available,
+      error: cache.error || '',
+    }
+  }
+
+  return { get, refresh, settle: () => lane, file }
+}

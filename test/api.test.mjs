@@ -35,7 +35,8 @@ before(async () => {
   const terminal = async (spec) => (terminals.push(spec), { ok: true, promptPassed: true })
   const issueStore = { get: async (list) => ({ repos: {}, updating: false, available: true, warnings: [], asked: list.length }) }
   const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, terminal })
+  const releaseStore = { get: async () => ({ current: '0.39.0', latest: '0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0', newer: true }) }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, terminal })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -266,4 +267,17 @@ test('the repos endpoint counts only the folders the scan found', async () => {
   assert.equal(body.updating, false)
   // The fake harness's thread has no folder, so there is nothing to count.
   assert.deepEqual(body.repos, {})
+})
+
+test('the version endpoint says what is running and what has been released', async () => {
+  const r = await fetch(`${base}/api/version`)
+  assert.equal(r.status, 200)
+  const body = await r.json()
+  assert.equal(body.current, '0.39.0')
+  assert.equal(body.latest, '0.40.0')
+  assert.equal(body.newer, true)
+  // The page opens that link through /api/open-url, which takes only github.com.
+  const opened = await post('/api/open-url', { url: body.url })
+  assert.equal(opened.status, 200)
+  assert.equal(launched.at(-1), body.url)
 })

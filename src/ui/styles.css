@@ -206,6 +206,7 @@ kbd { font: 10px var(--mono); opacity: 0.6; margin-left: 4px; }
 .foot .spacer { flex: 1; }
 .foot button { all: unset; cursor: pointer; color: var(--muted); }
 .foot button:hover { color: var(--text); }
+.foot .update { color: var(--accent); }
 
 /* ---------- thread card ---------- */
 .card {
