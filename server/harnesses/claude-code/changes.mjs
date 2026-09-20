@@ -8,6 +8,13 @@ const EXCERPT_MAX = 160
 export const ENTRIES_MAX = 400
 /** Files listed on a card. Beyond this the list stops being a summary. */
 export const FILES_MAX = 50
+/**
+ * What one file's text is allowed to carry when it is read for review: each side of a hunk, and
+ * how many of a file's edits are kept. A whole session's bodies would be far too much to hold or
+ * to send, so they are only ever read for the one file being looked at, newest edits first.
+ */
+const BODY_MAX = 8000
+export const EDITS_MAX = 40
 
 /** Tools that write a file, and what a call to each one does to it. */
 const FILE_TOOLS = { Write: 'created', Edit: 'edited', MultiEdit: 'edited', NotebookEdit: 'edited' }
@@ -101,21 +108,39 @@ function fromBash(part) {
   return null
 }
 
-/** What one file-writing tool call did: the file it wrote, and a short before → after. */
+const body = (s) => {
+  const t = String(s ?? '')
+  return t.length > BODY_MAX ? t.slice(0, BODY_MAX) + '\n… cut here; the rest is in the file itself' : t
+}
+
+/**
+ * What one file-writing tool call did: the file it wrote, a short before → after, and the text on
+ * either side of each thing it replaced. A `Write` replaced nothing, so its before is empty and
+ * the whole file reads as new; a `MultiEdit` did several replacements in one call, so it has one
+ * hunk each.
+ */
 function fromFileTool(name, input) {
   const kind = FILE_TOOLS[name]
   const file = input.file_path ?? input.notebook_path ?? ''
   if (!kind || !file) return null
   let excerpt = ''
-  if (name === 'Write') excerpt = firstLine(input.content)
-  else if (name === 'Edit') excerpt = `${firstLine(input.old_string)} → ${firstLine(input.new_string)}`
-  else if (name === 'NotebookEdit') excerpt = firstLine(input.new_source)
-  else if (name === 'MultiEdit') {
+  let hunks = []
+  if (name === 'Write') {
+    excerpt = firstLine(input.content)
+    hunks = [{ before: '', after: body(input.content) }]
+  } else if (name === 'Edit') {
+    excerpt = `${firstLine(input.old_string)} → ${firstLine(input.new_string)}`
+    hunks = [{ before: body(input.old_string), after: body(input.new_string) }]
+  } else if (name === 'NotebookEdit') {
+    excerpt = firstLine(input.new_source)
+    hunks = [{ before: '', after: body(input.new_source) }]
+  } else if (name === 'MultiEdit') {
     const edits = Array.isArray(input.edits) ? input.edits : []
     const one = edits[0] || {}
     excerpt = `${edits.length} edit${edits.length === 1 ? '' : 's'}${one.old_string ? `: ${firstLine(one.old_string)} → ${firstLine(one.new_string)}` : ''}`
+    hunks = edits.map((e) => ({ before: body(e?.old_string), after: body(e?.new_string) }))
   }
-  return { file, kind, excerpt: clip(excerpt, EXCERPT_MAX) }
+  return { file, kind, excerpt: clip(excerpt, EXCERPT_MAX), hunks }
 }
 
 /**
@@ -128,10 +153,11 @@ function fromFileTool(name, input) {
  * with no result yet is kept, because that is what a session still working looks like.
  *
  * @param {object[]} records  parsed transcript lines, in file order
- * @param {{ root?: string }} [opts]  the repo root; paths are relative to it
+ * @param {{ root?: string, bodiesFor?: string }} [opts]  the repo root, and the one path whose
+ *        before-and-after text to keep. Every other entry carries only its one-line excerpt.
  * @returns {{ entries: object[], commits: object[], dropped: number }}
  */
-export function changeLog(records, { root = '' } = {}) {
+export function changeLog(records, { root = '', bodiesFor = '' } = {}) {
   const entries = []
   const commits = []
   const failed = new Set()
@@ -168,7 +194,12 @@ export function changeLog(records, { root = '' } = {}) {
         continue
       }
       const did = fromFileTool(b.name, input)
-      if (did) push({ at, ...relativePath(did.file, root), kind: did.kind, tool: b.name, excerpt: did.excerpt, id })
+      if (!did) continue
+      const where = relativePath(did.file, root)
+      const entry = { at, ...where, kind: did.kind, tool: b.name, excerpt: did.excerpt, id }
+      // Only the file being reviewed carries its text: everything else would be megabytes.
+      if (bodiesFor && where.path === bodiesFor) entry.hunks = did.hunks
+      push(entry)
     }
   }
 

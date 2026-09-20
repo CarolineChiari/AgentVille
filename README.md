@@ -157,10 +157,25 @@ bookshelf, a pinboard, a desk and a bed](docs/screenshots/inside.png)
 The change log is written up on the board across the back wall — in the room, not in a panel beside
 it. It opens on **By file**, the file it touched most recently at the top, with `+` for a file it
 created, `·` for one it edited, `−` for one it deleted and `→` for one it moved, and how many times
-it wrote each one. Click a file to unfold its own edits, and click *open this file* to open it in
-your editor. **In order** lays the whole session out as it happened, with the commits in between.
-The wheel scrolls the board, and it re-reads itself every few seconds while the session is still
-going.
+it wrote each one. Click a file to unfold its own edits. **In order** lays the whole session out as
+it happened, with the commits in between. The wheel scrolls the board, and it re-reads itself every
+few seconds while the session is still going.
+
+#### Reading the changes themselves
+
+*read the changes* on any file walks you up to the board, where every edit the session made to that
+file is laid out as a diff: what it took out in red, what it put in green, the untouched lines
+around it for context, and `+3 −2` for each one. Long stretches that nothing touched are folded
+away with a count. `Esc`, or *back to the log*, steps away again.
+
+![Standing at the board reading one file's changes: each edit as a diff, red for the lines that
+went and green for the lines that arrived](docs/screenshots/review.png)
+
+It is still only the transcript being read. Claude Code records the exact string each `Edit`
+matched and the string it wrote in its place, so the diff is the edit itself — no `git diff`, no
+commands run in your folder, and nothing read from the file on disk. Only the file you are looking
+at is fetched, because a whole session's text would be far too much to carry about; *open this file
+in the editor* is there when you want the real thing.
 
 ### Transcripts and new sessions
 

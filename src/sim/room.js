@@ -8,6 +8,7 @@
 // The change log is in here too, on the board across the back wall — the work is what the room is
 // about, so it is read in the room rather than in a panel beside it.
 import { hashString } from './rng.js'
+import { countDiff, diffLines, foldContext } from './diff.js'
 
 /** The floor, in tiles. Wide enough for the board, a desk, a bed and a way between them. */
 export const ROOM_W = 16
@@ -23,6 +24,11 @@ export const SHELF_MAX = SHELF_COLS * SHELF_ROWS
 export const PIN_MAX = 8
 /** Lines of log the board holds at once. Past that it scrolls. */
 export const BOARD_ROWS = 14
+/**
+ * Lines the board holds when it is read close up, reviewing one file's changes. The board is the
+ * same board; it is only that you have walked up to it, so the writing can be smaller.
+ */
+export const REVIEW_ROWS = 28
 /** Edits shown under one unfolded file: the last few are the ones you came to read. */
 const EDITS_OPEN = 8
 
@@ -109,18 +115,60 @@ export function logRows(log, { view = 'files', scroll = 0, open = '', rows = BOA
       for (const e of (log.entries || []).filter((x) => x.path === f.path).slice(-EDITS_OPEN)) {
         all.push({ type: 'edit', kind: e.kind, text: e.excerpt || e.tool, when: since(e.at, now) })
       }
-      all.push({ type: 'open', path: f.path, outside: f.outside, act: f.outside ? '' : 'open', text: f.outside ? 'outside this repo' : 'open this file' })
+      all.push({ type: 'review', path: f.path, act: 'review', text: `read the ${f.edits === 1 ? 'change' : `${f.edits} changes`}` })
+      all.push({ type: 'open', path: f.path, outside: f.outside, act: f.outside ? '' : 'open', text: f.outside ? 'outside this repo' : 'open this file in the editor' })
     }
   } else {
     const items = timeline(log)
     if (!items.length) all.push({ type: 'note', text: 'Nothing written down yet.' })
     for (const it of items) {
       if (it.row === 'commit') all.push({ type: 'commit', text: it.message || '(no message)', when: since(it.at, now) })
-      else all.push({ type: 'entry', path: it.path, kind: it.kind, text: it.excerpt || it.tool, when: since(it.at, now), outside: it.outside, act: it.outside ? '' : 'open' })
+      else all.push({ type: 'entry', path: it.path, kind: it.kind, text: it.excerpt || it.tool, when: since(it.at, now), outside: it.outside, act: 'review' })
     }
   }
   if (log?.more) all.push({ type: 'note', text: `${log.more} more not shown.` })
   // Clamped here rather than by whoever scrolls, so the board can never be scrolled past its end.
+  const max = Math.max(0, all.length - rows)
+  const from = Math.max(0, Math.min(Math.round(scroll), max))
+  return { lines: all.slice(from, from + rows), total: all.length, scroll: from, rows }
+}
+
+/**
+ * The lines of one file's changes, read close up: each edit the session made to it, in order, as
+ * the diff between what it matched and what it put there. A `Write` replaced nothing, so it reads
+ * as a file arriving whole.
+ *
+ * @param {{ ok?: boolean, path?: string, edits?: object[], error?: string }} file  from readChanges
+ * @param {{ scroll?: number, rows?: number, now?: number }} opts
+ */
+export function reviewRows(file, { scroll = 0, rows = REVIEW_ROWS, now = Date.now() } = {}) {
+  const all = [{ type: 'back', text: '← back to the log', act: 'back' }]
+  if (!file) all.push({ type: 'note', text: 'Reading the changes…' })
+  else if (!file.ok) all.push({ type: 'note', text: file.error || 'Nothing to read.' })
+  else if (!file.edits?.length) all.push({ type: 'note', text: 'Nothing was written to this file that can be read back.' })
+  else {
+    // Newest first: the last thing done to a file is the thing you came to look at.
+    const edits = [...file.edits].reverse()
+    for (const [i, e] of edits.entries()) {
+      const rowsOf = e.hunks.map((h) => foldContext(diffLines(h.before, h.after)))
+      const sum = rowsOf.reduce((acc, r) => {
+        const c = countDiff(r)
+        return { added: acc.added + c.added, removed: acc.removed + c.removed }
+      }, { added: 0, removed: 0 })
+      all.push({
+        type: 'edit-head',
+        text: `${e.tool}${e.hunks.length > 1 ? ` · ${e.hunks.length} places` : ''}`,
+        when: since(e.at, now),
+        added: sum.added,
+        removed: sum.removed,
+      })
+      for (const [h, hunk] of rowsOf.entries()) {
+        if (h) all.push({ type: 'hunk', text: '⋯' })
+        for (const line of hunk) all.push({ type: 'diff', sign: line.sign, text: line.text })
+      }
+      if (i < edits.length - 1) all.push({ type: 'gap', text: '' })
+    }
+  }
   const max = Math.max(0, all.length - rows)
   const from = Math.max(0, Math.min(Math.round(scroll), max))
   return { lines: all.slice(from, from + rows), total: all.length, scroll: from, rows }
@@ -156,7 +204,11 @@ export function roomFrame(thread, { style, look = null, variant = 0, log = null,
     { kind: 'bed', ...SPOTS.bed, slept: status === 'sleeping' },
   ]
   const view = board.view === 'order' ? 'order' : 'files'
-  const page = logRows(log, { view, scroll: board.scroll ?? 0, open: board.open ?? '', now })
+  // Reviewing one file takes the board over: you are standing at it, reading the changes.
+  const review = board.review || ''
+  const page = review
+    ? reviewRows(board.file, { scroll: board.scroll ?? 0, now })
+    : logRows(log, { view, scroll: board.scroll ?? 0, open: board.open ?? '', now })
   return {
     id: thread?.id || '',
     w: ROOM_W,
@@ -176,10 +228,13 @@ export function roomFrame(thread, { style, look = null, variant = 0, log = null,
     board: {
       ...SPOTS.board,
       view,
+      review,
       open: board.open ?? '',
-      heading: thread?.title || 'Untitled',
-      sub: [thread?.project, thread?.gitBranch, thread?.model, since(thread?.lastActivityAt, now)].filter(Boolean).join(' · '),
-      tabs: [
+      heading: review || thread?.title || 'Untitled',
+      sub: review
+        ? `${thread?.project || ''}${board.file?.edits?.length ? ` · ${board.file.edits.length} change${board.file.edits.length === 1 ? '' : 's'}` : ''}`
+        : [thread?.project, thread?.gitBranch, thread?.model, since(thread?.lastActivityAt, now)].filter(Boolean).join(' · '),
+      tabs: review ? [] : [
         { key: 'files', label: `By file${files.length ? ` (${files.length})` : ''}`, on: view === 'files' },
         { key: 'order', label: `In order${commits.length ? ` · ${commits.length} commit${commits.length === 1 ? '' : 's'}` : ''}`, on: view === 'order' },
       ],

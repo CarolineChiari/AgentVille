@@ -48,7 +48,7 @@ export const openThread = (harness, ref, target, only = '') => post('/api/open',
 export const newSession = (folder, { harness, target, prompt = '', model = '', effort = '' } = {}) =>
   post('/api/new-session', { folder, harness, target, prompt, model, effort }).then((r) => r.body)
 export const fetchTranscript = (harness, ref, limit = 300) => post('/api/transcript', { harness, ref, limit }).then((r) => r.body)
-export const fetchChanges = (harness, ref, detail = false) => post('/api/changes', { harness, ref, detail }).then((r) => r.body)
+export const fetchChanges = (harness, ref, detail = false, path = '') => post('/api/changes', { harness, ref, detail, path }).then((r) => r.body)
 export const openFile = (folder, path, editor) => post('/api/open-file', { folder, path, editor }).then((r) => r.body)
 export const fetchPrs = async () => (await json(await fetch('/api/prs'))).body
 export const fetchIssues = async () => (await json(await fetch('/api/issues'))).body

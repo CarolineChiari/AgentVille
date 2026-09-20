@@ -31,6 +31,11 @@ const NOTE_STEP = 10
  */
 const BOARD = { pad: 8, head: 8, sub: 6, tabs: 8, row: 4, gutter: 3 }
 /**
+ * Reading one file's changes close up: smaller writing, because you are standing at the board and
+ * every line of the change has to fit on it.
+ */
+const REVIEW = { row: 2.3, sign: 2, head: 4.5, sub: 3.2 }
+/**
  * The columns of a row, in room pixels from the board's inner edge: the mark, then the path, and
  * the time right-aligned at the far end. Room pixels rather than fractions of the width, so the
  * mark stays beside what it marks however wide the board is drawn.
@@ -45,6 +50,8 @@ const KIND_INK = {
   edited: P.mithril,
   commit: BADGE.waiting,
 }
+/** A diff's own colours: what arrived, what went, and what was already there. */
+const DIFF_INK = { '+': BADGE.done, '-': BADGE.blocked, ' ': P.mithril, '…': P.metalDark }
 const MARK = { created: '+', edited: '·', deleted: '−', renamed: '→' }
 
 /**
@@ -147,24 +154,64 @@ export class RoomRenderer {
     ctx.fillRect(layout.ox, seam.y - scale, room.w * T * scale, scale)
 
     this.hot = []
-    this._board(room, layout)
+    const review = Boolean(room.board.review)
+    if (!review) this._board(room, this._wallRect(room, layout), layout.scale)
+    else {
+      // Reviewing: the board itself is drawn blank on the wall, and the one you read is the same
+      // board stood in front of you, so the room is still there behind it.
+      const wall = this._wallRect(room, layout)
+      ctx.drawImage(sprites.get('interior.logboard'), wall.x, wall.y, wall.w, wall.h)
+    }
     for (const prop of room.props) this._prop(room, layout, prop)
     this._villager(room, layout, time)
     if (room.lamp) this._lamp(room, layout)
+    if (review) {
+      ctx.fillStyle = rgba(P.interior, 0.72)
+      ctx.fillRect(0, 0, view.width, view.height)
+      const rect = this._closeRect(room, view)
+      this._board(room, rect, rect.s)
+    }
     ctx.restore()
   }
 
-  /** The change log, written up on the wall. */
-  _board(room, layout) {
+  /** Where the board hangs on the wall, in device pixels. */
+  _wallRect(room, layout) {
+    const b = room.board
+    const p = at(layout, room, b.x, b.y)
+    const s = layout.scale
+    return { x: Math.round(p.x), y: Math.round(p.y), w: b.w * T * s, h: b.h * T * s, s }
+  }
+
+  /**
+   * Where the board goes when you walk up to it: as big as the window allows, still a whole
+   * number of pixels per pixel so the frame stays crisp.
+   */
+  _closeRect(room, view) {
+    const b = room.board
+    const wPx = b.w * T
+    const hPx = b.h * T
+    const free = Math.max(1, view.width - (view.insetLeft || 0) - (view.insetRight || 0))
+    const tall = Math.max(1, view.height - (view.insetTop || 0))
+    const s = Math.max(MIN_SCALE, Math.floor(Math.min((free - MARGIN) / wPx, (tall - MARGIN) / hPx)))
+    return {
+      x: Math.round((view.insetLeft || 0) + (free - wPx * s) / 2),
+      y: Math.round((view.insetTop || 0) + (tall - hPx * s) / 2),
+      w: wPx * s,
+      h: hPx * s,
+      s,
+    }
+  }
+
+  /** The change log, written on the board — wherever the board happens to be. */
+  _board(room, rect, s) {
     const ctx = this.ctx
     const b = room.board
-    const s = layout.scale
-    const top = at(layout, room, b.x, b.y)
-    ctx.drawImage(sprites.get('interior.logboard'), Math.round(top.x), Math.round(top.y), b.w * T * s, b.h * T * s)
+    this.boardRect = rect
+    ctx.drawImage(sprites.get('interior.logboard'), rect.x, rect.y, rect.w, rect.h)
 
-    const x0 = top.x + BOARD.pad * s
+    const x0 = rect.x + BOARD.pad * s
     const w = (b.w * T - BOARD.pad * 2) * s
-    let y = top.y + BOARD.pad * s
+    let y = rect.y + BOARD.pad * s
     const font = (px, weight = 400) => {
       ctx.font = `${weight} ${Math.max(7, Math.round(px * s * 0.78))}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`
     }
@@ -174,50 +221,93 @@ export class RoomRenderer {
     ctx.textBaseline = 'middle'
     ctx.textAlign = 'left'
 
-    // Which session's room this is, so the board says it without a panel having to.
-    font(BOARD.head, 600)
+    // Which session's room this is — or which file you are reading — so the board says it itself.
+    const headH = b.review ? REVIEW.head : BOARD.head
+    const subH = b.review ? REVIEW.sub : BOARD.sub
+    font(headH, 600)
     ctx.fillStyle = P.white
-    ctx.fillText(clipText(ctx, b.heading, w), x0, y + (BOARD.head / 2) * s)
-    y += BOARD.head * s
-    font(BOARD.sub)
+    ctx.fillText(clipText(ctx, b.heading, w), x0, y + (headH / 2) * s)
+    y += headH * s
+    font(subH)
     ctx.fillStyle = P.mithril
-    ctx.fillText(clipText(ctx, b.sub, w), x0, y + (BOARD.sub / 2) * s)
-    y += (BOARD.sub + 1) * s
+    ctx.fillText(clipText(ctx, b.sub, w), x0, y + (subH / 2) * s)
+    y += (subH + 1) * s
 
-    // Tabs: the two ways of reading the same log.
+    // Tabs: the two ways of reading the same log. A board being read close up has none, but it
+    // still keeps the row if there is a "how far down" to put in it.
+    const tabsH = b.tabs.length ? BOARD.tabs : b.total > b.rows ? subH : 0
     font(BOARD.tabs - 2, 600)
     let tx = x0
     for (const tab of b.tabs) {
       const tw = ctx.measureText(tab.label).width + 6 * s
-      const rect = { x0: tx, y0: y, x1: tx + tw, y1: y + BOARD.tabs * s, act: 'tab', tab: tab.key }
+      const rect = { x0: tx, y0: y, x1: tx + tw, y1: y + tabsH * s, act: 'tab', tab: tab.key }
       ctx.fillStyle = tab.on ? rgba(P.glitter, 0.22) : this._isHover(rect) ? rgba(P.white, 0.1) : rgba(P.outline, 0.35)
-      ctx.fillRect(rect.x0, rect.y0, tw, BOARD.tabs * s)
+      ctx.fillRect(rect.x0, rect.y0, tw, tabsH * s)
       ctx.fillStyle = tab.on ? P.glitter : P.mithril
-      ctx.fillText(tab.label, tx + 3 * s, y + (BOARD.tabs / 2) * s)
+      ctx.fillText(tab.label, tx + 3 * s, y + (tabsH / 2) * s)
       this.hot.push(rect)
       tx += tw + 3 * s
     }
     // How far down a scrolling log you are, said plainly rather than with a bar too thin to see.
     if (b.total > b.rows) {
-      font(BOARD.sub)
+      font(subH)
       ctx.fillStyle = P.mithril
       ctx.textAlign = 'right'
-      ctx.fillText(`${b.scroll + 1}–${Math.min(b.total, b.scroll + b.rows)} of ${b.total} · scroll`, x0 + w, y + (BOARD.tabs / 2) * s)
+      ctx.fillText(`${b.scroll + 1}–${Math.min(b.total, b.scroll + b.rows)} of ${b.total} · scroll`, x0 + w, y + (tabsH / 2) * s)
       ctx.textAlign = 'left'
     }
-    y += (BOARD.tabs + 1) * s
+    y += (tabsH + 1) * s
 
+    const rowH = (b.review ? REVIEW.row : BOARD.row) * s
     for (const line of b.lines) {
-      const rect = { x0, y0: y, x1: x0 + w, y1: y + BOARD.row * s, act: line.act || '', line }
-      const mid = y + (BOARD.row / 2) * s
+      const rect = { x0, y0: y, x1: x0 + w, y1: y + rowH, act: line.act || '', line }
+      const mid = y + rowH / 2
       if (line.act && this._isHover(rect)) {
         ctx.fillStyle = rgba(P.white, 0.09)
-        ctx.fillRect(x0 - 2 * s, y, w + 4 * s, BOARD.row * s)
+        ctx.fillRect(x0 - 2 * s, y, w + 4 * s, rowH)
       }
-      const indent = line.type === 'edit' || line.type === 'open' ? BOARD.gutter * s : 0
+      const indent = line.type === 'edit' || line.type === 'open' || line.type === 'review' ? BOARD.gutter * s : 0
       const textX = x0 + COL.text * s
       const textW = w - (COL.text + COL.tail) * s
-      if (line.type === 'file') {
+      if (line.type === 'diff') {
+        // A line of the change itself: its sign in the margin, the line as it is written.
+        mono(REVIEW.row)
+        ctx.fillStyle = DIFF_INK[line.sign] || P.mithril
+        if (line.sign === '+' || line.sign === '-') {
+          ctx.fillStyle = rgba(DIFF_INK[line.sign], 0.13)
+          ctx.fillRect(x0 - 2 * s, y, w + 4 * s, rowH)
+          ctx.fillStyle = DIFF_INK[line.sign]
+        }
+        ctx.fillText(line.sign === '…' ? '' : line.sign, x0, mid)
+        ctx.fillStyle = line.sign === ' ' ? P.mithril : line.sign === '…' ? P.metalDark : P.white
+        ctx.fillText(clipText(ctx, line.text, w - REVIEW.sign * s), x0 + REVIEW.sign * s, mid)
+      } else if (line.type === 'edit-head') {
+        // Which call this was, and what it came to: +n −n, the way a diff is counted.
+        font(REVIEW.row + 0.4, 600)
+        ctx.fillStyle = P.white
+        ctx.fillText(clipText(ctx, line.text, textW), x0, mid)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = KIND_INK.created
+        const plus = `+${line.added}`
+        const minus = ` −${line.removed}`
+        const when = `  ${line.when}`
+        const wWhen = ctx.measureText(when).width
+        const wMinus = ctx.measureText(minus).width
+        ctx.fillStyle = P.mithril
+        ctx.fillText(when, x0 + w, mid)
+        ctx.fillStyle = KIND_INK.deleted
+        ctx.fillText(minus, x0 + w - wWhen, mid)
+        ctx.fillStyle = KIND_INK.created
+        ctx.fillText(plus, x0 + w - wWhen - wMinus, mid)
+        ctx.textAlign = 'left'
+      } else if (line.type === 'hunk' || line.type === 'gap') {
+        ctx.fillStyle = rgba(P.white, 0.12)
+        ctx.fillRect(x0, y + rowH / 2, w, Math.max(1, Math.round(s * 0.2)))
+      } else if (line.type === 'back') {
+        font(b.review ? REVIEW.row + 0.6 : BOARD.row, 600)
+        ctx.fillStyle = P.glitter
+        ctx.fillText(line.text, x0, mid)
+      } else if (line.type === 'file') {
         mono(BOARD.row)
         ctx.fillStyle = KIND_INK[line.kind] || P.mithril
         ctx.fillText(line.open ? '▾' : MARK[line.kind] || '·', x0, mid)
@@ -259,12 +349,12 @@ export class RoomRenderer {
         ctx.fillText(line.when, x0 + w, mid)
         ctx.textAlign = 'left'
       } else {
-        font(BOARD.row)
-        ctx.fillStyle = line.type === 'open' ? P.glitter : P.mithril
+        font(b.review ? REVIEW.row : BOARD.row)
+        ctx.fillStyle = line.act ? P.glitter : P.mithril
         ctx.fillText(clipText(ctx, line.text, textW - indent), textX + indent, mid)
       }
       if (rect.act) this.hot.push(rect)
-      y += BOARD.row * s
+      y += rowH
     }
   }
 
@@ -291,13 +381,11 @@ export class RoomRenderer {
 
   /** Is this point over the board at all? That is what the wheel scrolls. */
   overBoard(room, cssX, cssY, dpr = 1) {
-    if (!this.layout) return false
-    const b = room.board
-    const p = at(this.layout, room, b.x, b.y)
-    const s = T * this.layout.scale
+    const r = this.boardRect
+    if (!r) return false
     const x = cssX * dpr
     const y = cssY * dpr
-    return x >= p.x && x <= p.x + b.w * s && y >= p.y && y <= p.y + b.h * s
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h
   }
 
   /** One piece of furniture, its feet at the bottom of its own tile. */

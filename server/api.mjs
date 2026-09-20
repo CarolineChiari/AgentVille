@@ -235,7 +235,9 @@ export function createApiMiddleware(opts = {}) {
     'POST /api/changes': async (body) => {
       const h = harnessById(body?.harness, harnesses)
       if (!h?.readChanges) return [400, { ok: false, error: 'This agent doesn’t record what it changed.' }]
-      const r = await h.readChanges(body?.ref, { detail: body?.detail === true })
+      // `path` asks for one file's own before-and-after text; the harness decides what that means.
+      const wanted = typeof body?.path === 'string' ? body.path.slice(0, 400) : ''
+      const r = await h.readChanges(body?.ref, { detail: body?.detail === true, path: wanted })
       return [r.ok ? 200 : 404, r]
     },
 

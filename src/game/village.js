@@ -33,7 +33,31 @@ const DEMO_FILES = [
 ]
 const DEMO_COMMITS = ['Lay out the frame', 'Draw it, and test the layout']
 
-function demoChanges(t) {
+/** A demo file's edits, so the board can be read close up without a transcript to read from. */
+const DEMO_HUNKS = {
+  'src/sim/frame.js': [
+    {
+      before: 'export function frameOf(world) {\n  const plots = world.plots\n  return { plots }\n}',
+      after: 'export function frameOf(world, { selected = null } = {}) {\n  const plots = world.plots\n  // A frame says what is selected, so a renderer never has to ask.\n  return { plots, selected }\n}',
+    },
+    { before: 'const TILE = 16', after: 'const TILE = 16\nconst WALL = 7' },
+  ],
+  'src/render/room.js': [
+    { before: '', after: '// The inside of a building.\nexport function drawRoom(ctx, room) {\n  ctx.save()\n  ctx.restore()\n}' },
+  ],
+}
+
+function demoChanges(t, path = '') {
+  if (path) {
+    const hunks = DEMO_HUNKS[path]
+    if (!hunks) return { ok: true, root: t.projectPath, path, edits: [] }
+    return {
+      ok: true,
+      root: t.projectPath,
+      path,
+      edits: hunks.map((h, i) => ({ at: t.lastActivityAt - (hunks.length - i) * 600_000, kind: h.before ? 'edited' : 'created', tool: h.before ? 'Edit' : 'Write', hunks: [h] })),
+    }
+  }
   const step = 9 * 60 * 1000
   const at = (i) => t.lastActivityAt - (DEMO_FILES.length - i) * step
   const files = DEMO_FILES.map(([path, edits, kind], i) => ({ path, edits, kind, at: at(i), outside: false }))
@@ -898,14 +922,15 @@ export class Village {
 
   /**
    * What a thread changed on disk, as its own records tell it. `detail` asks for the entry-by-entry
-   * log as well as the list of files.
+   * log as well as the list of files; `path` asks instead for that one file's edits, each with the
+   * text it replaced and the text it put there.
    */
-  async changes(id, detail = false) {
+  async changes(id, detail = false, path = '') {
     const t = this.thread(id)
     if (!t) return { ok: false, error: 'Unknown thread.' }
-    if (this.demo) return demoChanges(t)
+    if (this.demo) return demoChanges(t, path)
     try {
-      return await api.fetchChanges(t.harness, t.ref, detail)
+      return await api.fetchChanges(t.harness, t.ref, detail, path)
     } catch (err) {
       return { ok: false, error: err.message }
     }

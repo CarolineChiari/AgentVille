@@ -73,7 +73,7 @@ let room = null // the RoomFrame being drawn, rebuilt each frame from the thread
 let roomLog = null // what the focused session changed: its shelves, and the board on its wall
 // Which page of the board is up: which view, how far down it is scrolled, and the one file
 // unfolded into its own edits. Reset on the way in, kept while you are in there.
-let board = { view: 'files', scroll: 0, open: '' }
+let board = { view: 'files', scroll: 0, open: '', review: '', file: null }
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
 const card = createCard(hudRoot, village, {
@@ -128,7 +128,7 @@ function syncFocus() {
     const b = v?.building
     if (b) camera.flyTo((b.x + b.w / 2) * TILE_PX, (b.y + b.h) * TILE_PX)
     roomLog = null
-    board = { view: 'files', scroll: 0, open: '' }
+    board = { view: 'files', scroll: 0, open: '', review: '', file: null }
     readLog()
   } else if (!inside && outside) {
     camera.scale = outside.scale
@@ -152,6 +152,19 @@ async function readLog() {
   const t = village.thread(id)
   const live = t && (t.status === 'working' || t.status === 'waiting' || t.status === 'blocked')
   if (live) logTimer = setTimeout(readLog, LOG_REFRESH_MS)
+}
+
+/**
+ * Walk up to the board and read one file's changes: every edit the session made to it, as the
+ * difference between what it matched and what it wrote. The text of a file is only ever read when
+ * it is asked for — a whole session's would be far too much to carry about.
+ */
+async function review(path) {
+  const id = village.focused
+  if (!id || !path) return
+  board = { ...board, review: path, file: null, scroll: 0 }
+  const r = await village.changes(id, true, path)
+  if (village.focused === id && board.review === path) board = { ...board, file: r }
 }
 
 /** Notifications were just turned on: ask for permission now, from that click, and turn them back off if refused. */
@@ -252,8 +265,10 @@ canvas.addEventListener('pointerup', (e) => {
     const hit = room && renderer.pickInRoom(room, e.clientX, e.clientY)
     if (hit?.act === 'leave') village.leave()
     else if (hit?.act === 'tab') board = { ...board, view: hit.tab, scroll: 0 }
-    else if (hit?.act === 'fold') board = { ...board, open: board.open === hit.line.path ? '' : hit.line.path }
+    else if (hit?.act === 'fold') board = { ...board, open: board.open === hit.line.path ? '' : hit.line.path, scroll: board.scroll }
     else if (hit?.act === 'open') village.openFile(village.focused, hit.line.path)
+    else if (hit?.act === 'review') review(hit.line.path)
+    else if (hit?.act === 'back') board = { ...board, review: '', file: null, scroll: 0 }
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
@@ -363,6 +378,7 @@ addEventListener('keydown', (e) => {
     case '?': hud.showSheet('help'); break
     case 'Escape':
       if (hud.sheetOpen) hud.closeSheet()
+      else if (board.review && village.focused) board = { ...board, review: '', file: null, scroll: 0 }
       else if (village.focused) village.leave()
       else if (transcript.openId) transcript.close()
       else if (village.selected) village.select(null)
@@ -475,7 +491,10 @@ async function boot() {
     toast('Press ? for keys. Villagers with a ? over their heads are waiting on you.')
   }
 }
-// A handle for poking at the running village from devtools; stripped from production builds.
-if (import.meta.env?.DEV) window.__agentville = { world, camera, village, settings, renderer }
+// A handle for poking at the running village from devtools, and for the README's screenshots:
+// `review` reads a file at the board, `setBoard` puts any page of the log up.
+if (import.meta.env?.DEV) {
+  window.__agentville = { world, camera, village, settings, renderer, review, setBoard: (next) => (board = { ...board, ...next }) }
+}
 
 boot()

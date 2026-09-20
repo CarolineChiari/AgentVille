@@ -35,6 +35,14 @@ const SCENES = [
       const t = village.view.live.find((x) => x.status === 'working') || village.view.live[0]
       village.enter(t.id)`,
   },
+  // Reading one file's changes at the board: the diff itself, not just that there was one.
+  {
+    name: 'review',
+    script: `const { village } = window.__agentville
+      const t = village.view.live.find((x) => x.status === 'working') || village.view.live[0]
+      village.enter(t.id)
+      setTimeout(() => window.__agentville.review('src/sim/frame.js'), 800)`,
+  },
   // A plot's landmark and its panel: what the work there has raised, and where the points came from.
   {
     name: 'landmark',

@@ -181,6 +181,33 @@ test('readChanges lists what a session touched, relative to its folder', async (
   assert.equal((await a.readChanges({ cliSessionId: [uuid(22)] })).ok, false, 'ids are type-checked')
 })
 
+test('readChanges reads one file\'s own before and after when asked for it', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const call = (name, input, id) => assistantRecord([{ type: 'tool_use', id, name, input }])
+  writeTranscript(home, {
+    id: uuid(23),
+    records: [
+      userRecord('do the work'),
+      call('Write', { file_path: '/work/repo/src/a.js', content: 'const a = 1\n' }, 'w1'),
+      call('Edit', { file_path: '/work/repo/src/a.js', old_string: 'const a = 1', new_string: 'const a = 2' }, 'e1'),
+      call('Edit', { file_path: '/work/repo/src/b.js', old_string: 'x', new_string: 'y' }, 'e2'),
+    ],
+    mtime: NOW - 1000,
+  })
+  const a = adapterFor(home)
+  const r = await a.readChanges({ cliSessionId: uuid(23), cwd: '/work/repo' }, { path: 'src/a.js' })
+  assert.equal(r.ok, true)
+  assert.equal(r.path, 'src/a.js')
+  assert.deepEqual(r.edits.map((e) => e.tool), ['Write', 'Edit'])
+  assert.deepEqual(r.edits[0].hunks, [{ before: '', after: 'const a = 1\n' }])
+  assert.deepEqual(r.edits[1].hunks, [{ before: 'const a = 1', after: 'const a = 2' }])
+  // Only the file asked about carries its text; the log of everything carries none of it.
+  const log = await a.readChanges({ cliSessionId: uuid(23), cwd: '/work/repo' }, { detail: true })
+  assert.equal(log.entries.every((e) => e.hunks === undefined), true)
+  assert.deepEqual((await a.readChanges({ cliSessionId: uuid(23), cwd: '/work/repo' }, { path: 'nope.js' })).edits, [])
+})
+
 test('VS Code new session prefills a prompt, capped in length', async () => {
   const a = adapterFor('/nowhere')
   const r = await a.newSession('/work/app', { target: 'vscode', prompt: 'Fix the bug & add tests' })

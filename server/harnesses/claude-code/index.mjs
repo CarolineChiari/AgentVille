@@ -11,7 +11,7 @@ import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mj
 import { decodeProjectDir } from './project.mjs'
 import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
-import { changeLog, filesTouched } from './changes.mjs'
+import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
 
 const NAME = 'Claude Code'
@@ -293,11 +293,21 @@ export function createClaudeCodeAdapter(opts = {}) {
    * ref rather than from anything the page chose, so a file is only ever called "inside the repo"
    * because the session itself said it was working there.
    */
-  async function readChanges(ref, { detail = false } = {}) {
+  async function readChanges(ref, { detail = false, path: wanted = '' } = {}) {
     const found = await locateTranscript(ref)
     if (!found.ok) return found
     const { file, st, key } = found
     const root = ref && typeof ref.cwd === 'string' && path.isAbsolute(ref.cwd) ? ref.cwd : ''
+    // One file's own text, for reading the edits themselves. Read fresh rather than cached: the
+    // bodies are far too big to keep, and this only happens when somebody asks for that file.
+    if (typeof wanted === 'string' && wanted) {
+      const log = changeLog(jsonLines(await fsp.readFile(file, 'utf8')), { root, bodiesFor: wanted })
+      const edits = log.entries
+        .filter((e) => e.path === wanted && e.hunks?.length)
+        .slice(-EDITS_MAX)
+        .map((e) => ({ at: e.at, kind: e.kind, tool: e.tool, hunks: e.hunks }))
+      return { ok: true, root, path: wanted, edits, updatedAt: st.mtimeMs }
+    }
     let hit = changeCache.get(file)
     if (!hit || hit.key !== key || hit.root !== root) {
       hit = { key, root, log: changeLog(jsonLines(await fsp.readFile(file, 'utf8')), { root }) }

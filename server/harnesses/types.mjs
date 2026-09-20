@@ -45,9 +45,10 @@
  *
  * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
  *           Optional: the conversation, for the transcript panel.
- * @property {(ref: object, opts?: { detail?: boolean }) => Promise<ChangesResult>} [readChanges]
+ * @property {(ref: object, opts?: { detail?: boolean, path?: string }) => Promise<ChangesResult>} [readChanges]
  *           Optional: what the session changed on disk, read from its own records — never by
- *           running anything in the repo. `detail` adds the entry-by-entry log and the commits.
+ *           running anything in the repo. `detail` adds the entry-by-entry log and the commits;
+ *           `path` asks instead for that one file's edits, with the text on either side of each.
  * @property {(ref: object, opts: { prompt: string }) => Promise<OpenResult>} [continueThread]
  *           Optional: send one more prompt into an existing thread. A harness without it, or one
  *           that refuses, gets the prompt as a fresh session in the thread's folder instead.
@@ -61,7 +62,10 @@
  * `more` counts what was left out of both lists. `root` is the folder the paths are relative to.
  * @typedef {{ path: string, outside: boolean, edits: number, kind: string, at: number }} ChangedFile
  * @typedef {{ at: number, path: string, outside: boolean, kind: 'created'|'edited'|'deleted'|'renamed', tool: string, excerpt: string }} ChangeEntry
- * @typedef {{ ok: boolean, error?: string, root?: string, files?: ChangedFile[], more?: number, entries?: ChangeEntry[], commits?: { at: number, message: string }[], updatedAt?: number }} ChangesResult
+ * One edit as it can be read back: `hunks` is what it put in place of what, so a reader can see
+ * the change itself and not only that there was one.
+ * @typedef {{ at: number, kind: string, tool: string, hunks: { before: string, after: string }[] }} FileEdit
+ * @typedef {{ ok: boolean, error?: string, root?: string, files?: ChangedFile[], more?: number, entries?: ChangeEntry[], commits?: { at: number, message: string }[], path?: string, edits?: FileEdit[], updatedAt?: number }} ChangesResult
  *
  * `urls`, when present, are opened in order with a short pause between them. `terminal` instead
  * asks for a terminal window running `exe` (see server/terminal.mjs). `where` finishes the
