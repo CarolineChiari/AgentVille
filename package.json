@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -24,7 +24,7 @@
   "devDependencies": {
     "electron": "^44.4.2",
     "electron-builder": "^26.15.3",
-    "vite": "^7.1.0"
+    "vite": "^8.3.0"
   },
   "build": {
     "appId": "dev.agentville.app",
