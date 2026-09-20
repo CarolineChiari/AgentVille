@@ -19,18 +19,43 @@ const SAVE_DELAY = 500
 /** Which editor's `…://file/` link opens a file, per harness. The server checks this list again. */
 const EDITOR_SCHEME = { 'claude-code': 'vscode', copilot: 'vscode', cursor: 'cursor', antigravity: 'antigravity-ide' }
 
-/** Demo mode reads no transcripts, so the files a demo villager "changed" are made up here. */
-const demoChanges = (t) => ({
-  ok: true,
-  root: t.projectPath,
-  files: [
-    { path: 'src/sim/frame.js', edits: 4, kind: 'edited', at: t.lastActivityAt, outside: false },
-    { path: 'test/frame.test.mjs', edits: 2, kind: 'created', at: t.lastActivityAt, outside: false },
-  ],
-  more: 0,
-  entries: [],
-  commits: [],
-})
+/**
+ * Demo mode reads no transcripts, so a demo villager's work is made up here — the README's
+ * screenshots come from the demo village, and none of them may show a real repo or path.
+ */
+const DEMO_FILES = [
+  ['src/sim/frame.js', 5, 'edited'],
+  ['src/render/room.js', 3, 'created'],
+  ['src/ui/panel.js', 2, 'edited'],
+  ['test/frame.test.mjs', 2, 'created'],
+  ['README.md', 1, 'edited'],
+  ['src/old/legacy.js', 1, 'deleted'],
+]
+const DEMO_COMMITS = ['Lay out the frame', 'Draw it, and test the layout']
+
+function demoChanges(t) {
+  const step = 9 * 60 * 1000
+  const at = (i) => t.lastActivityAt - (DEMO_FILES.length - i) * step
+  const files = DEMO_FILES.map(([path, edits, kind], i) => ({ path, edits, kind, at: at(i), outside: false }))
+  const entries = files.flatMap((f, i) =>
+    Array.from({ length: f.edits }, (_, n) => ({
+      at: f.at + n * 60_000,
+      path: f.path,
+      outside: false,
+      kind: n === 0 ? f.kind : 'edited',
+      tool: f.kind === 'deleted' ? 'Bash' : n === 0 && f.kind === 'created' ? 'Write' : 'Edit',
+      excerpt: n === 0 ? 'a demo village has no transcript to quote' : `line ${10 + n * 7} → line ${11 + n * 7}`,
+    })).map((e) => ({ ...e, i })))
+  return {
+    ok: true,
+    root: t.projectPath,
+    files,
+    more: 0,
+    entries: entries.sort((a, b) => a.at - b.at).map(({ i, ...e }) => e),
+    commits: DEMO_COMMITS.map((message, i) => ({ at: at(2 + i * 2), message })),
+    updatedAt: t.lastActivityAt,
+  }
+}
 
 const emptyState = () => ({
   version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, spots: {}, progress: {}, settings: null,
@@ -54,6 +79,8 @@ export class Village {
     this.notify = notify
     this.state = emptyState()
     this.base = emptyState()
+    /** The thread whose room is open, or null out in the village. */
+    this.focused = null
     this.threads = []
     this.byId = new Map()
     this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
@@ -243,6 +270,9 @@ export class Village {
     }
     const sel = this.selected
     if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
+    // A building you were standing in that is no longer standing — archived, finished, gone from
+    // the scan — puts you back out in the village rather than in a room that isn't there.
+    if (this.focused && !this.world.villager(this.focused)) this.focused = null
     if (dirty) this.queueSave()
     this.onChange()
   }
@@ -525,6 +555,38 @@ export class Village {
     this.onChange()
   }
 
+  /**
+   * Step inside a thread's building: `focused` is the one switch the whole page reads, so the HUD,
+   * the card and the transcript panel follow it the way they follow the selection.
+   * Only a live thread has a building to go into; a finished one left a flower behind instead.
+   * @returns {boolean} whether it went in
+   */
+  enter(id = this.selected) {
+    if (!this.thread(id) || this.isFinished(id) || this.board(id)) return false
+    this.focused = id
+    this.select(id)
+    return true
+  }
+
+  /** Back out to the village. The selection is left as it was, so you come out where you went in. */
+  leave() {
+    if (!this.focused) return false
+    this.focused = null
+    this.onChange()
+    return true
+  }
+
+  /**
+   * What a room needs beyond the thread itself: the plot's style (so the room is built from what
+   * the building is built from), the villager's look, and the building's own variant.
+   */
+  roomOf(id = this.focused) {
+    const v = this.world.villager(id)
+    if (!v) return null
+    const plot = this.world.plots.get(v.building?.plot)
+    return { style: plot?.style ?? null, look: this.world._look(v), variant: v.building?.variant ?? 0 }
+  }
+
   selectPlot(name) {
     this.selectedPlot = name
     if (!name) this.selected = null
@@ -606,6 +668,7 @@ export class Village {
     if (!this.state.archived.includes(id)) this.state.archived.push(id)
     this.state.archivedAt[id] = Date.now()
     if (this.selected === id) this.selected = null
+    if (this.focused === id) this.focused = null
     this.apply()
     this.queueSave()
     this.toast(`Archived “${t.title}”`)

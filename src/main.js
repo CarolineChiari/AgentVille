@@ -13,14 +13,19 @@ import { createCard } from './ui/card.js'
 import { createToasts } from './ui/toast.js'
 import { createNotices } from './ui/notices.js'
 import { createTranscript } from './ui/transcript.js'
+import { createRoomPanel } from './ui/room.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
 import { heading, isMoveKey } from './ui/move.js'
+import { roomFrame, isDoor } from './sim/room.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
 const DRAG_THRESHOLD = 5 // CSS px before a press becomes a drag rather than a click
 const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send many small ones
+// How long stepping through a door takes. Long enough to read as going inside, short enough that
+// it never stands between you and the log you came to read.
+const DOOR_FADE_S = 0.35
 
 const canvas = document.getElementById('world')
 const hudRoot = document.getElementById('hud')
@@ -47,6 +52,19 @@ const notices = createNotices({
 })
 const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, preview })
 const transcript = createTranscript(hudRoot, village)
+const roomPanel = createRoomPanel(hudRoot, village, {
+  // The conversation reads in its own panel, out in the village: both would want the same edge
+  // of the screen, so asking for one steps back outside first.
+  onTranscript: (id) => {
+    village.leave()
+    transcript.open(id)
+  },
+})
+// Where the camera was standing when you went in, so leaving puts you back exactly there.
+let outside = null
+let doorFade = 0 // 0 outside, 1 all the way inside
+let room = null // the RoomFrame being drawn, rebuilt each frame from the thread and its log
+let roomLog = { files: [], commits: [] } // what the focused session changed, for its shelves
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
 const card = createCard(hudRoot, village, {
@@ -82,7 +100,34 @@ const ui = {
     hud.render()
     card.update()
     transcript.refresh()
+    roomPanel.sync()
+    syncFocus()
   },
+}
+
+/**
+ * Going in and coming out. Entering remembers where the camera stood and flies it to the door;
+ * leaving puts it back, with the same thread still selected, so the village is where you left it.
+ */
+function syncFocus() {
+  const inside = Boolean(village.focused)
+  document.body.classList.toggle('inside', inside)
+  if (inside && !outside) {
+    outside = { x: camera.x, y: camera.y, scale: camera.scale }
+    transcript.close()
+    const v = world.villager(village.focused)
+    const b = v?.building
+    if (b) camera.flyTo((b.x + b.w / 2) * TILE_PX, (b.y + b.h) * TILE_PX)
+    // Its shelves want the log; the panel reads it too, and the server answers both from one cache.
+    roomLog = { files: [], commits: [] }
+    village.changes(village.focused, true).then((r) => {
+      if (village.focused && r.ok) roomLog = r
+    })
+  } else if (!inside && outside) {
+    camera.scale = outside.scale
+    camera.flyTo(outside.x, outside.y)
+    outside = null
+  }
 }
 
 /** Notifications were just turned on: ask for permission now, from that click, and turn them back off if refused. */
@@ -116,6 +161,14 @@ function fly(target) {
   }
 }
 
+/** The room of the thread you are inside, rebuilt each frame so it follows what the session does. */
+function roomOf(night) {
+  const t = village.thread(village.focused)
+  const bits = village.roomOf(village.focused)
+  if (!t || !bits) return null
+  return roomFrame(t, { ...bits, files: roomLog.files || [], commits: roomLog.commits || [], night })
+}
+
 function home() {
   camera.scale = camera.defaultScale()
   camera.flyTo(world.gate.x * TILE_PX, world.gate.y * TILE_PX)
@@ -135,6 +188,7 @@ function applyUiVisible() {
 
 let press = null
 canvas.addEventListener('pointerdown', (e) => {
+  if (village.focused) return // a room fills the canvas; there is nothing to drag it over
   canvas.setPointerCapture(e.pointerId)
   press = { x: e.clientX, y: e.clientY, world: camera.toWorld(e.clientX, e.clientY), dragging: false }
 })
@@ -147,9 +201,14 @@ canvas.addEventListener('pointermove', (e) => {
     if (press.dragging) camera.pin(press.world, e.clientX, e.clientY)
     return
   }
+  if (village.focused) {
+    const tile = room && renderer.pickInRoom(room, e.clientX, e.clientY)
+    canvas.classList.toggle('pointing', Boolean(tile && isDoor(room, tile.x, tile.y)))
+    return
+  }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
-  hovered = hit?.villager || hit?.flower || hit?.board || (hit?.landmark ? `landmark:${hit.landmark}` : null)
-  hoverPlot = hit?.villager ? world.villager(hit.villager)?.building?.plot
+  hovered = hit?.villager || hit?.building || hit?.flower || hit?.board || (hit?.landmark ? `landmark:${hit.landmark}` : null)
+  hoverPlot = hit?.villager || hit?.building ? world.villager(hit.villager || hit.building)?.building?.plot
     : hit?.flower ? world.flower(hit.flower)?.plot
     : hit?.board ? world.board(hit.board)?.plot
     : hit?.landmark || hit?.plot || null
@@ -160,8 +219,15 @@ canvas.addEventListener('pointerup', (e) => {
   press = null
   canvas.classList.remove('dragging')
   if (!was || was.dragging) return
+  if (village.focused) {
+    // Inside, the only thing to click is the way out.
+    const tile = room && renderer.pickInRoom(room, e.clientX, e.clientY)
+    if (tile && isDoor(room, tile.x, tile.y)) village.leave()
+    return
+  }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
-  if (hit?.villager) village.select(hit.villager)
+  if (hit?.building) village.enter(hit.building)
+  else if (hit?.villager) village.select(hit.villager)
   else if (hit?.flower) village.select(hit.flower)
   else if (hit?.board) village.select(hit.board)
   else if (hit?.landmark) {
@@ -184,6 +250,7 @@ canvas.addEventListener(
   'wheel',
   (e) => {
     e.preventDefault()
+    if (village.focused) return
     wheelAcc += e.deltaY * (e.deltaMode === 1 ? 30 : 1)
     while (Math.abs(wheelAcc) >= WHEEL_STEP) {
       camera.zoomAt(e.clientX, e.clientY, wheelAcc > 0 ? -1 : 1)
@@ -227,7 +294,17 @@ addEventListener('keydown', (e) => {
     // Well away from WASD, so a slip while moving never archives anything.
     case 'Backspace': case 'Delete': village.archive(); break
     case 'c': case 'C': newSession.open(); break
+    case 'b': case 'B':
+      if (village.focused) village.leave()
+      else if (!village.enter()) toast('Pick a villager first — B steps inside its building.')
+      break
     case 't': case 'T': {
+      const id0 = village.focused
+      if (id0) {
+        village.leave()
+        transcript.open(id0)
+        break
+      }
       const f = village.flower(village.selected)
       // A notice board has no transcript; a PR's is its thread's, if one opened it.
       const id = f?.pr ? f.threadId : village.board(village.selected) ? null : village.selected
@@ -247,6 +324,7 @@ addEventListener('keydown', (e) => {
     case '?': hud.showSheet('help'); break
     case 'Escape':
       if (hud.sheetOpen) hud.closeSheet()
+      else if (village.focused) village.leave()
       else if (transcript.openId) transcript.close()
       else if (village.selected) village.select(null)
       else village.selectPlot(null)
@@ -293,13 +371,26 @@ function loop(now) {
   camera.update(dt)
   lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot })
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()
+  const night = 1 - dayFactor(hour)
   renderer.render(lastFrame, {
-    night: 1 - dayFactor(hour),
+    night,
     dusk: duskFactor(hour),
     hoverPlot,
     selectedPlot: village.selectedPlot,
     allNames: !settings.quietNames,
   })
+  // Inside: the village is still drawn underneath, and the room fades up over it on the way in
+  // and back down on the way out, so a door is something you walk through rather than a cut.
+  doorFade = Math.max(0, Math.min(1, doorFade + (village.focused ? dt : -dt) / DOOR_FADE_S))
+  room = village.focused ? roomOf(night) : doorFade > 0 ? room : null
+  if (room && doorFade > 0) {
+    renderer.renderRoom(room, {
+      alpha: doorFade,
+      time: lastFrame.time,
+      insetLeft: (innerWidth > 720 ? roomPanel.rightEdge : 0) * camera.dpr,
+      insetRight: camera.insetRight,
+    })
+  }
   const sel = village.selected
   const board = sel && world.board(sel)
   const v = sel && (world.villager(sel) || world.flower(sel) || board)
@@ -309,7 +400,7 @@ function loop(now) {
   // Above a flower, so it never covers the garden it is about. Beside a board, like a villager:
   // its card lists issues and is too tall to fit above.
   const above = isFlower && !board
-  card.place(v ? camera.toScreen(v.x * TILE_PX, (v.y - (above ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, above, panelEdge)
+  card.place(v && !village.focused ? camera.toScreen(v.x * TILE_PX, (v.y - (above ? 0.6 : 1)) * TILE_PX) : null, innerWidth - sidebarWidth(), innerWidth <= 720, above, panelEdge)
   requestAnimationFrame(loop)
 }
 

@@ -8,6 +8,7 @@ import { DECO_VARIANTS, LINK, STATIC_FRAMES, tileVariant } from './sprites/tiles
 import { lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { BUILDING_W } from './sprites/buildings.js'
+import { RoomRenderer, roomPick } from './room.js'
 import { landmarkShapes, packFor } from './themes/index.js'
 import { DEFAULT_THEME } from '../sim/themes.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
@@ -114,6 +115,22 @@ export class Canvas2dRenderer {
     this.gleaming = [] // [sprite, x, y, seed] of each gleaming building drawn this frame, for its sparkles
     this.solids = new WeakMap() // sprite → its opaque pixels, so sparkles land on the building
     this.theme = DEFAULT_THEME // the village's theme: its countryside, its square, and any plot without its own
+    this.room = new RoomRenderer(this.ctx) // the inside of a building, drawn on this same canvas
+  }
+
+  /**
+   * Draw a room over the village. `alpha` is the fade as you step through the door; at 1 the room
+   * covers the canvas entirely, so the village underneath it is never seen again until you leave.
+   * @param {object} room  a RoomFrame from src/sim/room.js
+   */
+  renderRoom(room, { alpha = 1, time = 0, insetLeft = 0, insetRight = 0 } = {}) {
+    const cam = this.camera
+    this.room.render(room, { width: cam.width, height: cam.height, insetLeft, insetRight }, { alpha, time })
+  }
+
+  /** What is under a CSS-pixel point inside a room: its tile, or null outside the room. */
+  pickInRoom(room, cssX, cssY) {
+    return this.room.layout ? roomPick(room, this.room.layout, cssX, cssY, this.camera.dpr) : null
   }
 
   /**
@@ -1025,7 +1042,7 @@ export class Canvas2dRenderer {
     return hit
   }
 
-  /** What is under a CSS-pixel point: a villager, a notice board, a flower, a landmark, a building's villager, else a plot. */
+  /** What is under a CSS-pixel point: a villager, a notice board, a flower, a landmark, a building, else a plot. */
   pick(cssX, cssY, frame) {
     const w = this.camera.toWorld(cssX, cssY)
     const byY = [...frame.villagers].sort((a, b) => b.y - a.y)
@@ -1058,7 +1075,10 @@ export class Canvas2dRenderer {
       const y1 = (b.y + b.h) * T
       const B = packFor(b.style?.theme ?? frame.theme).buildings
       const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
-      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - B.heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) return { villager: b.id }
+      // A finished building is a room you can step into; one still going up is only its thread.
+      if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - B.heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) {
+        return b.stage >= 3 ? { building: b.id } : { villager: b.id }
+      }
     }
     const tx = Math.floor(w.x / T)
     const ty = Math.floor(w.y / T)

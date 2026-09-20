@@ -41,6 +41,7 @@ const HELP = [
   ['⌫', 'Archive it'],
   ['C', 'New session (optionally with a first prompt)'],
   ['T', 'Transcript of the selected thread'],
+  ['B', 'Step inside its building (Esc comes back out)'],
   ['H', 'Hide the panels'],
   [',', 'Settings'],
   ['Esc', 'Deselect'],

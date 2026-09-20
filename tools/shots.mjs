@@ -28,6 +28,13 @@ const SCENES = [
   { name: 'issues', keys: ['i'] },
   { name: 'construction', query: 'theme=construction' },
   { name: 'elvish', query: 'theme=elvish' },
+  // Inside one building: the room a session works in, and the log of everything it changed.
+  {
+    name: 'inside',
+    script: `const { village } = window.__agentville
+      const t = village.view.live.find((x) => x.status === 'working') || village.view.live[0]
+      village.enter(t.id)`,
+  },
   // A plot's landmark and its panel: what the work there has raised, and where the points came from.
   {
     name: 'landmark',

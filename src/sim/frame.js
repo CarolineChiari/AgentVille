@@ -41,7 +41,8 @@
  *
  * @typedef {object} Renderer
  * @property {(frame: Frame) => void} render
- * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, flower?: string, board?: string, landmark?: string, plot?: string } | null} pick
+ * @property {(sx: number, sy: number, frame: Frame) => { villager?: string, flower?: string, board?: string, landmark?: string, building?: string, plot?: string } | null} pick
+ *           `building` is a finished building's thread id: a click there steps inside it (src/sim/room.js).
  * @property {() => void} resize
  */
 export {}

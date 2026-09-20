@@ -14,6 +14,9 @@
 //                                        windows after dark; busy, somebody on its plot is in; frames
 //                                        from its pack's landmark.frames)
 //         flower.<kind>.<stage>         (params: color)
+//         interior.<piece>.<variant>    (inside a building: the floor and wall of a room, and its
+//                                        furniture. A variant means something different per piece;
+//                                        see INTERIOR_VARIANTS in interiors.js)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
 //         fx.bunting                    (the arrival square's, the size of its cell; two frames;
@@ -31,6 +34,7 @@ import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 import { drawLandmark } from './landmarks.js'
+import { drawInterior } from './interiors.js'
 import { PACKS } from '../themes/index.js'
 
 const memo = new Map()
@@ -58,6 +62,8 @@ export function generate(name, frame, p) {
       return drawLandmark({ tier: Number(a), stage: Number(b), variant: p.variant, accent: p.accent, wall: p.wall, roofs: p.roofs, lit: p.lit, busy: p.busy, frame })
     case 'static':
       return drawStatic(a, Number(b || 0), { ...p, frame })
+    case 'interior':
+      return drawInterior(a, Number(b || 0))
     case 'fx':
       if (a === 'badge') return drawBadge(b)
       if (a === 'z') return drawZ()

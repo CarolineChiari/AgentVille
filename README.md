@@ -143,6 +143,22 @@ is never run and never asked: no `git status`, no commands in your folder. An ed
 refused doesn't count, and a file the session reached outside its own repo is listed for what it
 says but can't be opened from here.
 
+### Step inside a building
+
+Click a finished building — or press `B` with its villager selected, or **Go inside** on its card —
+and you go in. The village fades and its room takes the screen: the plot's own walls and floor,
+a desk with the monitor lit while the session is working, a bed it is asleep in when it isn't, a
+bookshelf with one spine per file it has touched (fatter the more it has been worked over), and a
+pinboard with a note for every commit. `Esc`, or the door, puts you back exactly where you were.
+
+![Inside a villager's building: a room with a bookshelf, pinboard, desk and bed, and a panel
+listing every file the session changed](docs/screenshots/inside.png)
+
+The panel beside it is the change log in full. **By file** groups it, most recently touched first,
+and each file unfolds into its own edits with a link that opens it in your editor. **In order**
+lays the whole session out as it happened, with the commits in between. It refreshes itself every
+few seconds while the session is still going.
+
 ### Transcripts and new sessions
 
 **Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:
@@ -289,6 +305,7 @@ whenever both the PR gardens and the issue boards are off.
 | `Enter` / `⌫` / `V` | Open / archive / mark reviewed the selected thread |
 | `C` | New session, with an optional first prompt |
 | `T` | Transcript of the selected thread |
+| `B` | Step inside the selected thread's building |
 | `H` | Hide the panels |
 | `,` | Settings |
 | `Esc` | Deselect |

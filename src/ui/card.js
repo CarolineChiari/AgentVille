@@ -45,6 +45,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'openPr') village.openPr()
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
+    else if (act === 'inside') village.enter(village.selected)
     else if (act === 'close') village.select(null)
     else if (act === 'file') village.openFile(builtId, b.dataset.path)
     else if (act === 'moreFiles') {
@@ -109,6 +110,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
+        <button class="btn" data-act="inside" title="Step inside and see everything it has changed">Go inside<kbd>B</kbd></button>
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
@@ -311,6 +313,12 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   return {
     /** Content: called when the selection or the scan changes. */
     update() {
+      // Inside a building the room's own panel says everything the card would, in more room.
+      if (village.focused) {
+        card.hidden = true
+        shownId = null
+        return
+      }
       const id = village.selected
       const bd = id && village.board(id)
       if (bd) {
