@@ -48,7 +48,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <input type="text" data-f="other" placeholder="/full/path/to/folder" ${pre === OTHER ? '' : 'hidden'} spellcheck="false">
       <label class="stack" ${list.length > 1 ? '' : 'hidden'}>Agent
         <select data-f="harness">${options(list.map((x) => [x.id, x.name]), h.id)}</select></label>
-      <div class="row3" data-f="row"></div>
+      <div class="menus" data-f="row"></div>
       <div class="chips" data-f="chips" title="Fill in a ready-made task"></div>
       <label class="stack">First prompt <span class="hint-inline">optional</span>
         <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>

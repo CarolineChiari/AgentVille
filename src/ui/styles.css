@@ -322,7 +322,11 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 }
 .newsession textarea { resize: vertical; min-height: 70px; }
 .newsession [hidden] { display: none; }
-.newsession .row3 { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; }
+/* The menus share the row, however many of them a target has: a harness with no model or
+   effort menu gives 'Open in' the whole width rather than a third of it, too narrow to read. */
+.newsession .menus { display: flex; gap: 8px; }
+.newsession .menus label.stack { flex: 1 1 0; min-width: 0; }
+.newsession .menus label.stack:has(select[data-f="model"]) { flex-grow: 1.4; }
 .newsession .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 4px; }
 .newsession .chips .btn { font-size: 11px; padding: 2px 8px; }
 .newsession .hint-inline { color: var(--muted); font-size: 11px; margin-left: 4px; }
