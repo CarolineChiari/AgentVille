@@ -17,7 +17,7 @@ import { createRoomPanel } from './ui/room.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
 import { heading, isMoveKey } from './ui/move.js'
-import { roomFrame, isDoor } from './sim/room.js'
+import { roomFrame } from './sim/room.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
@@ -26,6 +26,12 @@ const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send m
 // How long stepping through a door takes. Long enough to read as going inside, short enough that
 // it never stands between you and the log you came to read.
 const DOOR_FADE_S = 0.35
+// How often the board re-reads the log of a session that is still working.
+const LOG_REFRESH_MS = 3000
+// Lines of log one notch of the wheel moves. Three is the usual step for a list this dense.
+const BOARD_SCROLL_LINES = 3
+// Room the bar of buttons above a room needs, in CSS pixels, so it never sits over the board.
+const ROOM_BAR_PX = 56
 
 const canvas = document.getElementById('world')
 const hudRoot = document.getElementById('hud')
@@ -64,7 +70,10 @@ const roomPanel = createRoomPanel(hudRoot, village, {
 let outside = null
 let doorFade = 0 // 0 outside, 1 all the way inside
 let room = null // the RoomFrame being drawn, rebuilt each frame from the thread and its log
-let roomLog = { files: [], commits: [] } // what the focused session changed, for its shelves
+let roomLog = null // what the focused session changed: its shelves, and the board on its wall
+// Which page of the board is up: which view, how far down it is scrolled, and the one file
+// unfolded into its own edits. Reset on the way in, kept while you are in there.
+let board = { view: 'files', scroll: 0, open: '' }
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
 const card = createCard(hudRoot, village, {
@@ -118,16 +127,31 @@ function syncFocus() {
     const v = world.villager(village.focused)
     const b = v?.building
     if (b) camera.flyTo((b.x + b.w / 2) * TILE_PX, (b.y + b.h) * TILE_PX)
-    // Its shelves want the log; the panel reads it too, and the server answers both from one cache.
-    roomLog = { files: [], commits: [] }
-    village.changes(village.focused, true).then((r) => {
-      if (village.focused && r.ok) roomLog = r
-    })
+    roomLog = null
+    board = { view: 'files', scroll: 0, open: '' }
+    readLog()
   } else if (!inside && outside) {
     camera.scale = outside.scale
     camera.flyTo(outside.x, outside.y)
     outside = null
   }
+}
+
+/**
+ * Read what the focused session changed, for its shelves and the board on its wall. Read again
+ * every few seconds while it is still going, so the board fills up as the work lands.
+ */
+let logTimer = null
+async function readLog() {
+  clearTimeout(logTimer)
+  const id = village.focused
+  if (!id) return
+  const r = await village.changes(id, true)
+  if (village.focused !== id) return
+  roomLog = r
+  const t = village.thread(id)
+  const live = t && (t.status === 'working' || t.status === 'waiting' || t.status === 'blocked')
+  if (live) logTimer = setTimeout(readLog, LOG_REFRESH_MS)
 }
 
 /** Notifications were just turned on: ask for permission now, from that click, and turn them back off if refused. */
@@ -166,7 +190,10 @@ function roomOf(night) {
   const t = village.thread(village.focused)
   const bits = village.roomOf(village.focused)
   if (!t || !bits) return null
-  return roomFrame(t, { ...bits, files: roomLog.files || [], commits: roomLog.commits || [], night })
+  const next = roomFrame(t, { ...bits, log: roomLog, board, night })
+  // logRows clamps the scroll to what there is to read, so the wheel can't run off the end.
+  if (next.board.scroll !== board.scroll) board = { ...board, scroll: next.board.scroll }
+  return next
 }
 
 function home() {
@@ -202,8 +229,9 @@ canvas.addEventListener('pointermove', (e) => {
     return
   }
   if (village.focused) {
-    const tile = room && renderer.pickInRoom(room, e.clientX, e.clientY)
-    canvas.classList.toggle('pointing', Boolean(tile && isDoor(room, tile.x, tile.y)))
+    const hit = room && renderer.pickInRoom(room, e.clientX, e.clientY)
+    renderer.roomHover = hit
+    canvas.classList.toggle('pointing', Boolean(hit?.act))
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
@@ -220,9 +248,12 @@ canvas.addEventListener('pointerup', (e) => {
   canvas.classList.remove('dragging')
   if (!was || was.dragging) return
   if (village.focused) {
-    // Inside, the only thing to click is the way out.
-    const tile = room && renderer.pickInRoom(room, e.clientX, e.clientY)
-    if (tile && isDoor(room, tile.x, tile.y)) village.leave()
+    // Inside, the room is the interface: the board's lines and tabs, and the door.
+    const hit = room && renderer.pickInRoom(room, e.clientX, e.clientY)
+    if (hit?.act === 'leave') village.leave()
+    else if (hit?.act === 'tab') board = { ...board, view: hit.tab, scroll: 0 }
+    else if (hit?.act === 'fold') board = { ...board, open: board.open === hit.line.path ? '' : hit.line.path }
+    else if (hit?.act === 'open') village.openFile(village.focused, hit.line.path)
     return
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
@@ -250,7 +281,15 @@ canvas.addEventListener(
   'wheel',
   (e) => {
     e.preventDefault()
-    if (village.focused) return
+    if (village.focused) {
+      // Over the board the wheel reads the log; anywhere else in a room it does nothing, because
+      // there is nothing behind the room to zoom into.
+      if (room && renderer.overRoomBoard(room, e.clientX, e.clientY)) {
+        const lines = Math.sign(e.deltaY) * BOARD_SCROLL_LINES * (e.deltaMode === 1 ? 3 : 1)
+        board = { ...board, scroll: Math.max(0, board.scroll + lines) }
+      }
+      return
+    }
     wheelAcc += e.deltaY * (e.deltaMode === 1 ? 30 : 1)
     while (Math.abs(wheelAcc) >= WHEEL_STEP) {
       camera.zoomAt(e.clientX, e.clientY, wheelAcc > 0 ? -1 : 1)
@@ -387,8 +426,10 @@ function loop(now) {
     renderer.renderRoom(room, {
       alpha: doorFade,
       time: lastFrame.time,
-      insetLeft: (innerWidth > 720 ? roomPanel.rightEdge : 0) * camera.dpr,
+      // The room has the window to itself; only the sidebar and the room's own bar take space.
+      insetLeft: 0,
       insetRight: camera.insetRight,
+      insetTop: ROOM_BAR_PX * camera.dpr,
     })
   }
   const sel = village.selected

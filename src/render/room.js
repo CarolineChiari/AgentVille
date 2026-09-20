@@ -1,8 +1,11 @@
 // Drawing the inside of a building. The room comes from src/sim/room.js in tile units; this puts
 // it on the same canvas the village uses, centred in whatever the panels leave free, at a whole
 // number of device pixels per world pixel so nothing blurs.
+//
+// The change log is part of the room: it is written on the board across the back wall, in text
+// rather than in pixels — a path has to be readable — and the lines on it are what you click.
 import { sprites } from './sprites/registry.js'
-import { PALETTE as P, TILE_PX as T, rgba } from './sprites/palette.js'
+import { PALETTE as P, TILE_PX as T, BADGE, rgba } from './sprites/palette.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_FOR } from '../sim/status.js'
 
@@ -22,20 +25,44 @@ const NOTE_Y = [4, 15]
 const NOTE_STEP = 10
 
 /**
+ * The board's own measurements, in room pixels, so they scale with the room like everything else.
+ * A row is 4px tall: at the size a room is normally drawn that is a comfortable line of text, and
+ * at any size it stays in proportion with the furniture.
+ */
+const BOARD = { pad: 8, head: 8, sub: 6, tabs: 8, row: 4, gutter: 3 }
+/**
+ * The columns of a row, in room pixels from the board's inner edge: the mark, then the path, and
+ * the time right-aligned at the far end. Room pixels rather than fractions of the width, so the
+ * mark stays beside what it marks however wide the board is drawn.
+ */
+const COL = { text: 5, tail: 14 }
+
+/** Line colours: the same meanings the card and the village use. */
+const KIND_INK = {
+  created: BADGE.done,
+  deleted: BADGE.blocked,
+  renamed: BADGE.working,
+  edited: P.mithril,
+  commit: BADGE.waiting,
+}
+const MARK = { created: '+', edited: '·', deleted: '−', renamed: '→' }
+
+/**
  * How big the room is drawn and where its top-left corner goes, in device pixels.
  * @param {object} room  a RoomFrame
  * @param {{ width: number, height: number, insetLeft?: number, insetRight?: number }} view  device pixels
  */
-export function roomLayout(room, { width, height, insetLeft = 0, insetRight = 0 }) {
+export function roomLayout(room, { width, height, insetLeft = 0, insetRight = 0, insetTop = 0 }) {
   const wPx = room.w * T
   const hPx = (room.h + room.wallH) * T
   const free = Math.max(1, width - insetLeft - insetRight)
-  const fit = Math.min((free - MARGIN) / wPx, (height - MARGIN) / hPx)
+  const tall = Math.max(1, height - insetTop)
+  const fit = Math.min((free - MARGIN) / wPx, (tall - MARGIN) / hPx)
   const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.floor(fit)))
   return {
     scale,
     ox: Math.round(insetLeft + (free - wPx * scale) / 2),
-    oy: Math.round((height - hPx * scale) / 2),
+    oy: Math.round(insetTop + (tall - hPx * scale) / 2),
     wPx,
     hPx,
   }
@@ -56,16 +83,34 @@ export function roomPick(room, layout, cssX, cssY, dpr = 1) {
   return { x: Math.floor(tx), y: Math.floor(ty) }
 }
 
+/** `text`, cut with an ellipsis to fit `max` device pixels. */
+function clipText(ctx, text, max) {
+  const s = String(text ?? '')
+  if (!s || ctx.measureText(s).width <= max) return s
+  let lo = 0
+  let hi = s.length
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (ctx.measureText(s.slice(0, mid) + '…').width <= max) lo = mid
+    else hi = mid - 1
+  }
+  return lo > 0 ? s.slice(0, lo) + '…' : ''
+}
+
 export class RoomRenderer {
   /** @param {CanvasRenderingContext2D} ctx  the village's own context, so both draw on one canvas */
   constructor(ctx) {
     this.ctx = ctx
     this.layout = null
+    /** Device-pixel rectangles of everything on the board that can be clicked, rebuilt each frame. */
+    this.hot = []
+    /** What the pointer is over: one of the entries in `hot`, or null. */
+    this.hover = null
   }
 
   /**
    * @param {object} room     a RoomFrame from src/sim/room.js
-   * @param {object} view     { width, height, insetLeft, insetRight, dpr } in device pixels
+   * @param {object} view     { width, height, insetLeft, insetRight } in device pixels
    * @param {{ alpha?: number, time?: number }} [opts]  `alpha` fades the room in over the village
    */
   render(room, view, { alpha = 1, time = 0 } = {}) {
@@ -81,7 +126,7 @@ export class RoomRenderer {
     ctx.fillRect(0, 0, view.width, view.height)
 
     const wallV = room.style?.wall ?? 0
-    const draw = (img, x, y, w = img.width * scale, h = img.height * scale) => ctx.drawImage(img, Math.round(x), Math.round(y), Math.round(w), Math.round(h))
+    const draw = (img, x, y) => ctx.drawImage(img, Math.round(x), Math.round(y), img.width * scale, img.height * scale)
 
     // Wall, then floor.
     for (let y = -room.wallH; y < 0; y++) {
@@ -101,14 +146,162 @@ export class RoomRenderer {
     ctx.fillStyle = P.outline
     ctx.fillRect(layout.ox, seam.y - scale, room.w * T * scale, scale)
 
-    for (const prop of room.props) this._prop(room, layout, prop, time)
+    this.hot = []
+    this._board(room, layout)
+    for (const prop of room.props) this._prop(room, layout, prop)
     this._villager(room, layout, time)
     if (room.lamp) this._lamp(room, layout)
     ctx.restore()
   }
 
+  /** The change log, written up on the wall. */
+  _board(room, layout) {
+    const ctx = this.ctx
+    const b = room.board
+    const s = layout.scale
+    const top = at(layout, room, b.x, b.y)
+    ctx.drawImage(sprites.get('interior.logboard'), Math.round(top.x), Math.round(top.y), b.w * T * s, b.h * T * s)
+
+    const x0 = top.x + BOARD.pad * s
+    const w = (b.w * T - BOARD.pad * 2) * s
+    let y = top.y + BOARD.pad * s
+    const font = (px, weight = 400) => {
+      ctx.font = `${weight} ${Math.max(7, Math.round(px * s * 0.78))}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`
+    }
+    const mono = (px) => {
+      ctx.font = `${Math.max(7, Math.round(px * s * 0.74))}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`
+    }
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = 'left'
+
+    // Which session's room this is, so the board says it without a panel having to.
+    font(BOARD.head, 600)
+    ctx.fillStyle = P.white
+    ctx.fillText(clipText(ctx, b.heading, w), x0, y + (BOARD.head / 2) * s)
+    y += BOARD.head * s
+    font(BOARD.sub)
+    ctx.fillStyle = P.mithril
+    ctx.fillText(clipText(ctx, b.sub, w), x0, y + (BOARD.sub / 2) * s)
+    y += (BOARD.sub + 1) * s
+
+    // Tabs: the two ways of reading the same log.
+    font(BOARD.tabs - 2, 600)
+    let tx = x0
+    for (const tab of b.tabs) {
+      const tw = ctx.measureText(tab.label).width + 6 * s
+      const rect = { x0: tx, y0: y, x1: tx + tw, y1: y + BOARD.tabs * s, act: 'tab', tab: tab.key }
+      ctx.fillStyle = tab.on ? rgba(P.glitter, 0.22) : this._isHover(rect) ? rgba(P.white, 0.1) : rgba(P.outline, 0.35)
+      ctx.fillRect(rect.x0, rect.y0, tw, BOARD.tabs * s)
+      ctx.fillStyle = tab.on ? P.glitter : P.mithril
+      ctx.fillText(tab.label, tx + 3 * s, y + (BOARD.tabs / 2) * s)
+      this.hot.push(rect)
+      tx += tw + 3 * s
+    }
+    // How far down a scrolling log you are, said plainly rather than with a bar too thin to see.
+    if (b.total > b.rows) {
+      font(BOARD.sub)
+      ctx.fillStyle = P.mithril
+      ctx.textAlign = 'right'
+      ctx.fillText(`${b.scroll + 1}–${Math.min(b.total, b.scroll + b.rows)} of ${b.total} · scroll`, x0 + w, y + (BOARD.tabs / 2) * s)
+      ctx.textAlign = 'left'
+    }
+    y += (BOARD.tabs + 1) * s
+
+    for (const line of b.lines) {
+      const rect = { x0, y0: y, x1: x0 + w, y1: y + BOARD.row * s, act: line.act || '', line }
+      const mid = y + (BOARD.row / 2) * s
+      if (line.act && this._isHover(rect)) {
+        ctx.fillStyle = rgba(P.white, 0.09)
+        ctx.fillRect(x0 - 2 * s, y, w + 4 * s, BOARD.row * s)
+      }
+      const indent = line.type === 'edit' || line.type === 'open' ? BOARD.gutter * s : 0
+      const textX = x0 + COL.text * s
+      const textW = w - (COL.text + COL.tail) * s
+      if (line.type === 'file') {
+        mono(BOARD.row)
+        ctx.fillStyle = KIND_INK[line.kind] || P.mithril
+        ctx.fillText(line.open ? '▾' : MARK[line.kind] || '·', x0, mid)
+        ctx.fillStyle = P.white
+        ctx.fillText(clipText(ctx, line.path, textW), textX, mid)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = P.mithril
+        ctx.fillText(`${line.count > 1 ? `${line.count}× ` : ''}${line.when}`, x0 + w, mid)
+        ctx.textAlign = 'left'
+      } else if (line.type === 'entry') {
+        mono(BOARD.row)
+        ctx.fillStyle = KIND_INK[line.kind] || P.mithril
+        ctx.fillText(MARK[line.kind] || '·', x0, mid)
+        ctx.fillStyle = P.white
+        const pathW = Math.min(textW * 0.55, ctx.measureText(line.path).width)
+        ctx.fillText(clipText(ctx, line.path, textW * 0.55), textX, mid)
+        font(BOARD.row)
+        ctx.fillStyle = P.mithril
+        ctx.fillText(clipText(ctx, line.text, textW - pathW - 2 * s), textX + pathW + 2 * s, mid)
+        ctx.textAlign = 'right'
+        ctx.fillText(line.when, x0 + w, mid)
+        ctx.textAlign = 'left'
+      } else if (line.type === 'commit') {
+        mono(BOARD.row)
+        ctx.fillStyle = KIND_INK.commit
+        ctx.fillText('✦', x0, mid)
+        font(BOARD.row, 600)
+        ctx.fillStyle = KIND_INK.commit
+        ctx.fillText(clipText(ctx, line.text, textW), textX, mid)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = P.mithril
+        ctx.fillText(line.when, x0 + w, mid)
+        ctx.textAlign = 'left'
+      } else if (line.type === 'edit') {
+        font(BOARD.row)
+        ctx.fillStyle = P.mithril
+        ctx.fillText(clipText(ctx, line.text, textW - indent), textX + indent, mid)
+        ctx.textAlign = 'right'
+        ctx.fillText(line.when, x0 + w, mid)
+        ctx.textAlign = 'left'
+      } else {
+        font(BOARD.row)
+        ctx.fillStyle = line.type === 'open' ? P.glitter : P.mithril
+        ctx.fillText(clipText(ctx, line.text, textW - indent), textX + indent, mid)
+      }
+      if (rect.act) this.hot.push(rect)
+      y += BOARD.row * s
+    }
+  }
+
+  _isHover(rect) {
+    const h = this.hover
+    return Boolean(h && h.y0 === rect.y0 && h.x0 === rect.x0)
+  }
+
+  /**
+   * What is under a CSS-pixel point: a line or tab of the board, the door, or nothing.
+   * @returns {{ act: string, tab?: string, line?: object } | { act: 'leave' } | null}
+   */
+  hit(room, cssX, cssY, dpr = 1) {
+    const x = cssX * dpr
+    const y = cssY * dpr
+    for (const rect of this.hot) {
+      if (x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y < rect.y1) return rect
+    }
+    if (!this.layout) return null
+    const tile = roomPick(room, this.layout, cssX, cssY, dpr)
+    if (tile && tile.x === room.door.x && tile.y === room.door.y) return { act: 'leave' }
+    return null
+  }
+
+  /** Is this point over the board at all? That is what the wheel scrolls. */
+  overBoard(room, cssX, cssY, dpr = 1) {
+    if (!this.layout) return false
+    const b = room.board
+    const p = at(this.layout, room, b.x, b.y)
+    const s = T * this.layout.scale
+    const x = cssX * dpr
+    const y = cssY * dpr
+    return x >= p.x && x <= p.x + b.w * s && y >= p.y && y <= p.y + b.h * s
+  }
+
   /** One piece of furniture, its feet at the bottom of its own tile. */
-  _prop(room, layout, prop, time) {
+  _prop(room, layout, prop) {
     const { scale } = layout
     const ctx = this.ctx
     const foot = at(layout, room, prop.x, prop.y + 1)
@@ -138,7 +331,7 @@ export class RoomRenderer {
       const img = sprites.get('interior.pinboard')
       put(img, 0, 4)
       const top = foot.y - (img.height - 4) * scale
-      for (const [i, n] of prop.notes.entries()) {
+      for (const [i] of prop.notes.entries()) {
         const note = sprites.get(`interior.note.${i % 3}`)
         ctx.drawImage(
           note,
@@ -190,7 +383,7 @@ export class RoomRenderer {
   /** The warm pool a working desk throws across the floor. */
   _lamp(room, layout) {
     const ctx = this.ctx
-    const c = at(layout, room, 3.5, 3)
+    const c = at(layout, room, 4.5, 3)
     const r = 5 * T * layout.scale
     const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r)
     // Brighter the darker it is outside, like the village's own lit windows.

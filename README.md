@@ -146,18 +146,21 @@ says but can't be opened from here.
 ### Step inside a building
 
 Click a finished building — or press `B` with its villager selected, or **Go inside** on its card —
-and you go in. The village fades and its room takes the screen: the plot's own walls and floor,
-a desk with the monitor lit while the session is working, a bed it is asleep in when it isn't, a
+and you go in. The village fades and its room takes the screen: the plot's own walls and floor, a
+desk with the monitor lit while the session is working, a bed it is asleep in when it isn't, a
 bookshelf with one spine per file it has touched (fatter the more it has been worked over), and a
 pinboard with a note for every commit. `Esc`, or the door, puts you back exactly where you were.
 
-![Inside a villager's building: a room with a bookshelf, pinboard, desk and bed, and a panel
-listing every file the session changed](docs/screenshots/inside.png)
+![Inside a villager's building: a room with the change log written up on a board on the wall, a
+bookshelf, a pinboard, a desk and a bed](docs/screenshots/inside.png)
 
-The panel beside it is the change log in full. **By file** groups it, most recently touched first,
-and each file unfolds into its own edits with a link that opens it in your editor. **In order**
-lays the whole session out as it happened, with the commits in between. It refreshes itself every
-few seconds while the session is still going.
+The change log is written up on the board across the back wall — in the room, not in a panel beside
+it. It opens on **By file**, the file it touched most recently at the top, with `+` for a file it
+created, `·` for one it edited, `−` for one it deleted and `→` for one it moved, and how many times
+it wrote each one. Click a file to unfold its own edits, and click *open this file* to open it in
+your editor. **In order** lays the whole session out as it happened, with the commits in between.
+The wheel scrolls the board, and it re-reads itself every few seconds while the session is still
+going.
 
 ### Transcripts and new sessions
 

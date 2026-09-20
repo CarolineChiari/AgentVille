@@ -8,7 +8,7 @@ import { DECO_VARIANTS, LINK, STATIC_FRAMES, tileVariant } from './sprites/tiles
 import { lawnTone, tintMeadow } from './ground.js'
 import { PLAIN_STYLE, cellStyles } from '../sim/style.js'
 import { BUILDING_W } from './sprites/buildings.js'
-import { RoomRenderer, roomPick } from './room.js'
+import { RoomRenderer } from './room.js'
 import { landmarkShapes, packFor } from './themes/index.js'
 import { DEFAULT_THEME } from '../sim/themes.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
@@ -123,14 +123,27 @@ export class Canvas2dRenderer {
    * covers the canvas entirely, so the village underneath it is never seen again until you leave.
    * @param {object} room  a RoomFrame from src/sim/room.js
    */
-  renderRoom(room, { alpha = 1, time = 0, insetLeft = 0, insetRight = 0 } = {}) {
+  renderRoom(room, { alpha = 1, time = 0, insetLeft = 0, insetRight = 0, insetTop = 0 } = {}) {
     const cam = this.camera
-    this.room.render(room, { width: cam.width, height: cam.height, insetLeft, insetRight }, { alpha, time })
+    this.room.render(room, { width: cam.width, height: cam.height, insetLeft, insetRight, insetTop }, { alpha, time })
   }
 
-  /** What is under a CSS-pixel point inside a room: its tile, or null outside the room. */
+  /**
+   * What is under a CSS-pixel point inside a room: a line or a tab of the board on the wall, the
+   * door, or nothing. `{ act: 'leave' }` is the door.
+   */
   pickInRoom(room, cssX, cssY) {
-    return this.room.layout ? roomPick(room, this.room.layout, cssX, cssY, this.camera.dpr) : null
+    return this.room.hit(room, cssX, cssY, this.camera.dpr)
+  }
+
+  /** Is the pointer over the board? The wheel scrolls the log there rather than zooming. */
+  overRoomBoard(room, cssX, cssY) {
+    return this.room.overBoard(room, cssX, cssY, this.camera.dpr)
+  }
+
+  /** What the pointer is over in the room, so the next frame can light it up. */
+  set roomHover(hit) {
+    this.room.hover = hit && hit.act && hit.act !== 'leave' ? hit : null
   }
 
   /**

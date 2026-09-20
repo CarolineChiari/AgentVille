@@ -23,6 +23,7 @@ export const INTERIOR_SIZE = {
   bed: [32, 26],
   rug: [48, 28],
   door: [16, 26],
+  logboard: [160, 96],
 }
 /** Variants each kind draws. A kind whose look follows the plot's wall material has one per material. */
 export const INTERIOR_VARIANTS = {
@@ -38,6 +39,7 @@ export const INTERIOR_VARIANTS = {
   bed: 2, // made, and slept in
   rug: 3,
   door: 1,
+  logboard: 1,
 }
 
 /** Book cloth, in the order a spine's colour index picks them. */
@@ -253,7 +255,26 @@ function door() {
   return pc.outline(P.outline)
 }
 
-const DRAW = { floor, wall, shelf, book, pinboard, note, window, desk, chair, bed, rug, door }
+/**
+ * The board the change log is written on: a big slate in a frame, hung across the back wall. It is
+ * drawn empty — the renderer writes the log onto it, because text is text and not pixels.
+ */
+function logboard() {
+  const [w, h] = INTERIOR_SIZE.logboard
+  const pc = new PixelCanvas(w, h)
+  pc.rect(0, 0, w, h, P.wood)
+  pc.rect(1, 1, w - 2, h - 2, P.woodDark)
+  pc.rect(3, 3, w - 6, h - 6, P.slate)
+  // A wiped-clean sheen across the top of the slate, so it reads as a surface and not a hole.
+  pc.rect(3, 3, w - 6, 2, shade(P.slate, 0.12))
+  pc.hline(3, w - 4, h - 4, shade(P.slate, -0.15))
+  // The rail it stands on, and a stick of chalk.
+  pc.rect(2, h - 3, w - 4, 2, P.woodLight)
+  pc.rect(w - 18, h - 4, 7, 2, P.white)
+  return pc.outline(P.outline)
+}
+
+const DRAW = { floor, wall, shelf, book, pinboard, note, window, desk, chair, bed, rug, door, logboard }
 
 /**
  * One piece of a room, by name. `interior.<kind>.<variant>`; what each variant means is in

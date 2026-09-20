@@ -369,47 +369,23 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 
 /* ---------- transcript ---------- */
 /* ---------- inside a building ---------- */
-.roompanel {
+/* The room says everything else itself; this is only the handful of actions it can't. */
+.roombar {
   position: absolute;
-  left: 12px;
+  left: 50%;
   top: 12px;
-  bottom: 12px;
-  width: min(420px, calc(100vw - 48px));
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
   backdrop-filter: blur(10px);
-  overflow: hidden;
 }
-.roompanel[hidden] { display: none; }
-.r-head { display: flex; gap: 8px; align-items: center; padding: 12px; border-bottom: 1px solid var(--panel-border); flex-wrap: wrap; }
-.r-head b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px; gap: 10px; }
-.r-body .meta { margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
-.r-body .meta li { display: flex; justify-content: space-between; gap: 8px; }
-.r-body .meta li span:last-child { color: var(--text); font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-tabs { display: flex; gap: 6px; }
-.r-list { flex: 1; overflow: auto; -webkit-user-select: text; user-select: text; }
-.r-file { border-top: 1px solid var(--panel-border); }
-.r-row { display: flex; width: 100%; gap: 6px; align-items: baseline; padding: 4px 2px; background: none; border-color: transparent; color: var(--text); text-align: left; }
-.r-row:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
-.r-arrow { flex: none; color: var(--muted); }
-.r-path { flex: 1; min-width: 0; font: 12px/1.4 var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-count { flex: none; font-size: 11px; color: var(--muted); }
-.r-log { padding: 2px 2px 8px 18px; }
-.r-entry, .r-commit { display: flex; gap: 6px; align-items: baseline; font-size: 11px; color: var(--muted); padding: 1px 0; }
-.r-commit { border-top: 1px solid var(--panel-border); padding: 5px 2px; }
-.r-kind { flex: none; font: 10px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-.r-kind.created { color: var(--ok); }
-.r-kind.deleted { color: var(--danger); }
-.r-kind.renamed { color: var(--info); }
-.r-kind.commit { color: var(--accent); }
-.r-when { flex: none; }
-.r-tool { flex: none; color: var(--info); font-family: var(--mono); }
-.r-excerpt, .r-message { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-message { color: var(--text); }
+.roombar[hidden] { display: none; }
+.rb-status { font-size: 12px; color: var(--muted); padding: 0 2px; }
 
 .transcript {
   position: absolute;
