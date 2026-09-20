@@ -51,10 +51,15 @@ function colours(look) {
   const hat = kind === 'hardhat' ? P.hardHat[HARD_HATS[(look.hatColor || 0) % HARD_HATS.length]]
     // A circlet is mithril whoever wears it: an elf's own hat colour on it read as a headband.
     : kind === 'circlet' ? P.mithril
-      : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+      // A witch's hat is felt-black whoever wears it, for the same reason: in a villager's own
+      // hat colour it read as a party hat rather than as a witch's.
+      : kind === 'witchhat' ? P.felt
+        : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
   const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
   // A theme's second uniform colour, on the same draw as the vest's: greenleaf or twilight.
   const cloak = P.elfCloak[(look.vest || 0) % P.elfCloak.length]
+  // And again for a Halloween cape: a witch's purple or a vampire's crimson.
+  const cape = P.cape[(look.vest || 0) % P.cape.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -68,6 +73,7 @@ function colours(look) {
     second, secondS: shade(second, -0.2),
     vest, vestS: shade(vest, -0.18),
     cloak, cloakS: shade(cloak, -0.22), cloakL: shade(cloak, 0.2),
+    cape, capeS: shade(cape, -0.25), capeL: shade(cape, 0.2),
   }
 }
 
@@ -390,6 +396,23 @@ function hat(pc, c, look, dy, view) {
     pc.px(x, 5 + dy, c.hatL)
     pc.px(x + o, 5 + dy, c.hat)
     pc.px(x + o, 4 + dy, c.hatL)
+  } else if (kind === 'witchhat') {
+    // A wide brim and a crown that leans over as it tapers. The lean is not decoration: a cone
+    // standing straight and tall enough to read as a witch's ran off the top of the 24 px frame
+    // whenever a villager took a stride, since a stride lifts the whole body a row.
+    const dx = side ? -1 : 0
+    pc.hline(1 + dx, 14 + dx, 5 + dy, c.hat)
+    pc.hline(2 + dx, 13 + dx, 6 + dy, c.hatS)
+    // The crown, bottom row up: its left edge climbs away while its point stays out to the right.
+    for (const [x0, x1, y] of [[4, 11, 4], [5, 11, 3], [7, 11, 2], [9, 12, 1], [11, 12, 0]]) {
+      pc.hline(x0 + dx, x1 + dx, y + dy, c.hat)
+      pc.px(x0 + dx, y + dy, P.feltLight)
+    }
+    // The ribbon round the foot of the crown, and a bone buckle on it.
+    pc.hline(4 + dx, 11 + dx, 4 + dy, P.feltBand)
+    pc.px(4 + dx, 4 + dy, P.feltLight)
+    pc.px(7 + dx, 4 + dy, P.boneWhite)
+    pc.px(8 + dx, 4 + dy, P.boneShade)
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
@@ -447,6 +470,30 @@ function topFront(pc, c, look, dy, back) {
       pc.px(8, 12 + dy, P.mithrilDark)
     }
   }
+  if (t === 'cape') {
+    // A cape: a collar standing up either side of the neck, and the cloth falling from the
+    // shoulders to a pointed hem. Worn open down the front, as the cloak is, so the villager
+    // keeps the shirt colour that tells it from the next one.
+    if (back) {
+      pc.rect(4, 12 + dy, 8, 7, c.cape)
+      pc.hline(4, 11, 12 + dy, c.capeL)
+      pc.vline(11, 13 + dy, 18 + dy, c.capeS)
+      pc.hline(4, 11, 18 + dy, c.capeS)
+      for (const x of [5, 10]) pc.px(x, 19 + dy, c.capeS)
+      pc.hline(3, 12, 11 + dy, c.capeL) // the collar, standing up behind the head
+      for (const x of [3, 12]) pc.px(x, 10 + dy, c.cape)
+    } else {
+      for (const [x, k] of [[3, c.capeS], [4, c.cape], [11, c.cape], [12, c.capeS]]) pc.vline(x, 12 + dy, 18 + dy, k)
+      for (const x of [4, 11]) pc.px(x, 19 + dy, c.capeS)
+      for (const x of [4, 11]) {
+        pc.px(x, 11 + dy, c.capeL)
+        pc.px(x, 10 + dy, c.cape)
+      }
+      pc.hline(5, 10, 12 + dy, c.cape)
+      pc.px(7, 12 + dy, P.boneWhite) // the clasp at the throat
+      pc.px(8, 12 + dy, P.boneShade)
+    }
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -479,6 +526,16 @@ function topSide(pc, c, look, dy) {
     pc.vline(11, 13 + dy, 18 + dy, c.cloakS)
     pc.hline(6, 10, 12 + dy, c.cloakL)
     pc.px(5, 13 + dy, P.mithril)
+  }
+  if (t === 'cape') {
+    // Side on, the cape is a panel down the back with the collar standing at the shoulder.
+    pc.vline(10, 12 + dy, 18 + dy, c.cape)
+    pc.vline(11, 12 + dy, 17 + dy, c.capeS)
+    pc.px(10, 19 + dy, c.capeS)
+    pc.px(10, 11 + dy, c.capeL)
+    pc.px(11, 10 + dy, c.cape)
+    pc.hline(6, 10, 12 + dy, c.capeL)
+    pc.px(5, 12 + dy, P.boneWhite)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)

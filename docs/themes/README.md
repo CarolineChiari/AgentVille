@@ -99,6 +99,38 @@ gets lanterns on crooks, a stone seat, urns of fern and toadstools, and two sapl
 
 ---
 
+## Halloween night · `halloween`
+
+The last night of October: lanes of dark setts under the fallen leaves, gabled houses shingled and
+boarded, a jack-o'-lantern on every step, and cobwebs in every corner.
+
+![Five plots side by side on Halloween night: a pumpkin patch of leaf mould behind corn stooks, a haunted manor on old flagstones behind iron railings, a graveyard of grey stone in the fog, a witch's hollow of daubed cottages and cauldrons, and a trick-or-treat lane of brick fronts behind a string of orange lanterns](halloween.png)
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Pumpkin patch | `pumpkin-patch` | Corn stooks, straw and leaf mould, and pumpkins everywhere |
+| Haunted manor | `haunted-manor` | Tall shingled houses behind iron railings, boarded windows lit green |
+| Graveyard | `graveyard` | Grey stone and wrought iron, headstones and fog in the hollows |
+| Witch's hollow | `witchs-hollow` | Crooked daubed cottages, cauldrons on the boil and toadstools |
+| Trick-or-treat lane | `trick-or-treat` | Cheerful brick fronts, paper bats and a string of orange lights |
+
+**Built from** — fences: crooked pickets, wrought iron, corn stalks, a string of lanterns · ground:
+frosted grass, leaf mould, turf under fog, old flagstones · walls: weatherboard, churchyard
+granite, sooty brick, daub and timber, fish-scale shingles · five families of paint.
+**Finished work**: a **jack-o'-lantern** carved and lit in the **pumpkin patch** (☻) — a grinning
+lantern for a bug fix, a grid-carved one for data, a little gourd for tests, an owl for research.
+An open pull request's pumpkin is grown but not yet cut open.
+**Work clothes**: a witch's hat and a cape.
+**Landmark**: a heap of lanterns, a scarecrow, a lych-gate, a gnarled oak hung with lanterns, a
+witch's tower with a cauldron at its foot, and a belfry with the bats going out of it; the fence
+line gets an iron lamp post with a lantern on its crook, a weathered bench, a barrel of corn
+stalks and a tub of gourds, and two posts hung with bunting.
+**Depicted**: the graveyard's headstones are plain tablets and its gate a lych-gate, with no
+religious symbols carved on them, and nothing of Día de los Muertos, which has a theme of its own
+coming. Costume stays on the hat and the cape.
+
+![The demo village on Halloween night](../screenshots/halloween.png)
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).

@@ -110,9 +110,17 @@ a travelling cloak, and finished work is a lantern lit on its stand in each plot
 a teardrop lamp for a bug fix, a rune lantern for data work, a seeker's lamp for research. Its
 landmarks grow from a fairy ring of glowing toadstools to a white tower with a star-crystal in its crown.
 
+Or Halloween night, where the lanes are dark setts under the fallen leaves, the houses are gabled
+and shingled with a jack-o'-lantern on every step, everybody works in a witch's hat and a cape,
+and finished work is a lantern carved and lit in each plot's pumpkin patch: a grinning lantern for
+a bug fix, a grid-carved one for data work, an owl for research. Its landmarks climb from a heap
+of pumpkins to a belfry with the bats going out of it.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
-greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm. A
+greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
+pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
+Halloween night. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -122,6 +130,8 @@ bloomed) is the same in every theme.
 ![The same demo village as a construction site: fenced plots of bare earth, a tower crane and a timber frame going up, villagers in hard hats, and rows of survey flags where the gardens were](docs/screenshots/construction.png)
 
 ![The same demo village as an elvish realm: plots of glade and moss behind briars and runestones, houses built into living trees under swept roofs, a slender spire, and rows of lit lanterns where the gardens were](docs/screenshots/elvish.png)
+
+![The same demo village on Halloween night: plots of leaf mould and old flagstones behind corn stooks and iron railings, gabled houses with lanterns on the step, a belfry and a witch's tower, and rows of carved jack-o'-lanterns where the gardens were](docs/screenshots/halloween.png)
 
 #### Every theme
 

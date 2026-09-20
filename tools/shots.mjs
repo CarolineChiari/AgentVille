@@ -28,6 +28,7 @@ const SCENES = [
   { name: 'issues', keys: ['i'] },
   { name: 'construction', query: 'theme=construction' },
   { name: 'elvish', query: 'theme=elvish' },
+  { name: 'halloween', query: 'theme=halloween' },
   // Inside one building: the room a session works in, and the log of everything it changed.
   {
     name: 'inside',

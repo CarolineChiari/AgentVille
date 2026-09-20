@@ -147,6 +147,41 @@ export const THEMES = {
     // shrine with a star hung in it, a silver tree, a hall under a crystal dome, a white tower.
     landmark: { one: 'landmark', tiers: ['Fairy ring', 'Moonstone', 'Star shrine', 'Silver tree', 'Crystal hall', 'Starwatch'] },
   },
+  halloween: {
+    label: 'Halloween night',
+    dims: {
+      fence: ['crooked', 'ironwork', 'cornstalk', 'lights'],
+      yard: ['frost', 'mulch', 'mist', 'flagstone'],
+      wall: ['clapboard', 'graystone', 'sootbrick', 'daub', 'scallop'],
+      // Pumpkin orange, witch's purple, poison green, bone, blood red, midnight blue, candy pink
+      // and moon yellow, in five families of three (ROOF_FAMILIES in the pack's buildings).
+      roofs: 5,
+    },
+    subthemes: [
+      { id: 'pumpkin-patch', label: 'Pumpkin patch', blurb: 'Corn stooks, straw and leaf mould, and pumpkins everywhere', fence: ['cornstalk', 'crooked'], yard: ['mulch'], wall: ['clapboard', 'daub'], roofs: [0] },
+      { id: 'haunted-manor', label: 'Haunted manor', blurb: 'Tall shingled houses behind iron railings, boarded windows lit green', fence: ['ironwork'], yard: ['flagstone', 'mist'], wall: ['scallop', 'clapboard'], roofs: [1] },
+      { id: 'graveyard', label: 'Graveyard', blurb: 'Grey stone and wrought iron, headstones and fog in the hollows', fence: ['ironwork', 'crooked'], yard: ['mist'], wall: ['graystone'], roofs: [2] },
+      { id: 'witchs-hollow', label: "Witch's hollow", blurb: 'Crooked daubed cottages, cauldrons on the boil and toadstools', fence: ['crooked', 'cornstalk'], yard: ['mulch', 'mist'], wall: ['daub', 'graystone'], roofs: [4], outfit: { vest: 0 } },
+      { id: 'trick-or-treat', label: 'Trick-or-treat lane', blurb: 'Cheerful brick fronts, paper bats and a string of orange lights', fence: ['lights'], yard: ['frost'], wall: ['sootbrick', 'scallop'], roofs: [3, 0], outfit: { vest: 1 } },
+    ],
+    auto: ['pumpkin-patch', 'haunted-manor', 'graveyard', 'witchs-hollow', 'trick-or-treat'],
+    outfit: { hat: 'witchhat', top: 'cape' },
+    // Finished work is a jack-o'-lantern carved and lit in the plot's pumpkin patch. What was
+    // carved into it says what kind of work it was; an open PR's pumpkin is grown but not yet
+    // cut. The glyph is a grinning face, which is what a jack-o'-lantern is; the flower's bloom
+    // and the open issues' flag are both already taken.
+    finished: {
+      one: "jack-o'-lantern", many: "jack-o'-lanterns", place: 'pumpkin patch', glyph: '☻', grow: "Carve lanterns for pull requests",
+      names: {
+        fix: 'Grinning lantern', feature: 'Star-eyed lantern', refactor: 'Curl-carved lantern', docs: 'Scroll lantern',
+        test: 'Little gourd', ui: 'Filigree lantern', infra: 'Iron-hooped lantern', data: 'Grid-carved lantern',
+        perf: 'Comet lantern', review: 'Wide-eyed lantern', research: 'Owl lantern', misc: 'Turnip lantern',
+      },
+    },
+    // What a plot's work raises on Halloween night: a heap of pumpkins, then a scarecrow, a
+    // roofed gate, the old oak, a witch's tower, and a belfry with bats pouring out of it.
+    landmark: { one: 'landmark', tiers: ['Lantern heap', 'Scarecrow', 'Lych-gate', 'Gnarled oak', "Witch's tower", 'Belfry'] },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

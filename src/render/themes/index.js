@@ -11,6 +11,7 @@ import { heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow 
 import { lawnCover } from '../ground.js'
 import { construction } from './construction/index.js'
 import { elvish } from './elvish/index.js'
+import { halloween } from './halloween/index.js'
 
 /**
  * @typedef {object} ThemePack
@@ -65,7 +66,7 @@ export const village = {
 }
 
 /** @type {Record<string, ThemePack>} */
-export const PACKS = { village, construction, elvish }
+export const PACKS = { village, construction, elvish, halloween }
 
 /** A theme's pack; the village's for a theme with none. */
 export const packFor = (id) => PACKS[id] || village

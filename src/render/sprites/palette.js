@@ -331,6 +331,108 @@ export const PALETTE = {
   shardDark: '#5fa3b8',
   acorn: '#a9743f',
 
+  // ---------- the Halloween theme (src/render/themes/halloween/) ----------
+  // Costume. A witch's hat is felt-black whoever wears it: a villager's own hat colour on it read
+  // as a party hat rather than a witch's. The capes come in two, so a plot reads as one party.
+  felt: '#2c2438',
+  feltLight: '#473b5c',
+  feltBand: '#e2892b', // the ribbon round the crown
+  cape: ['#58306e', '#8c2233'], // a witch's purple, a vampire's crimson
+  // Halloween buildings (halloween/buildings.js).
+  // Dark weatherboard, blue-violet in the moonlight rather than grey: a neutral grey house read
+  // as unpainted rather than as a house the night has got into.
+  clapboard: '#4a4257',
+  clapboardDark: '#332d43',
+  clapboardLight: '#615873',
+  // Churchyard granite: cooler and bluer than the village's `stone`, which reads as a warm cottage.
+  graveStone: '#8d8a93',
+  graveStoneDark: '#63616b',
+  graveStoneLight: '#b0adb6',
+  sootBrick: '#6e3f40',
+  sootBrickDark: '#4d2b2d',
+  sootMortar: '#5b5560',
+  daub: '#cfc3a8', // the pale plaster between a hovel's crooked timbers
+  daubShade: '#a99d84',
+  hovelBeam: '#3e3128',
+  scallop: '#5c4a52', // fish-scale shingles, the thing that says gabled manor at a glance
+  scallopDark: '#40323a',
+  scallopLight: '#77626c',
+  // Roofs and paint: pumpkin orange, witch's purple, poison green, bone, blood red, midnight
+  // blue, candy pink, moon yellow. A plot's buildings share a family of three (ROOF_FAMILIES).
+  hallowRoof: ['#e07a26', '#6a3c94', '#57a83f', '#ded4bb', '#9c2f33', '#39406e', '#e07ba8', '#f0c64a'],
+  // Pumpkins, of which there is no shortage.
+  pumpkin: '#e2751f',
+  pumpkinDark: '#b4520f',
+  pumpkinLight: '#f59a3c',
+  pumpkinRib: '#c3621a',
+  gourd: '#e9d9a8', // the pale gourds and turnips among them
+  jackGlow: '#ffd05e', // candlelight behind a carved face
+  jackCore: '#fff2c4',
+  stalk: '#5f7a33',
+  stalkDark: '#425524',
+  bine: '#7a8f3c', // the vine a pumpkin grows on, drier and yellower than a leaf
+  straw: '#d9b567',
+  strawDark: '#a8863f',
+  strawLight: '#eed497',
+  husk: '#c2a15e', // dried corn leaves
+  huskDark: '#8e7238',
+  web: '#e6e3ee',
+  webDim: '#a7a3b5',
+  // Wrought iron: blacker than the village's tool-steel `metal`, so railings read as iron at 1x.
+  ironBar: '#3c3a46',
+  ironBarLight: '#5d5a6a',
+  boneWhite: '#e3dac2',
+  boneShade: '#b4a98d',
+  candleFlame: '#ffbb46',
+  // The green that means something is brewing: a cauldron, a kiln, the gap in a boarded window.
+  // Never a window's own light, which stays the village's warm yellow: a lit window has to mean
+  // the same thing in every theme.
+  poison: '#7ce05a',
+  poisonDeep: '#3f8a32',
+  batWing: '#2b2733',
+  batWingLight: '#464055',
+  crow: '#241f2c',
+  crowBeak: '#c9a13a',
+  // Halloween ground, lanes and fences (halloween/ground.js).
+  // A plot's ground by its yard tone: frosted grass, leaf mould, turf with fog lying on it, and
+  // the old flags of a forecourt. Each is its base, shade, light and deepest; then the same in a
+  // dry patch and a damp one, one for one (see src/render/ground.js). Only the ground is drawn in
+  // these, or the patches would repaint whatever else used them.
+  hallowGround: [
+    ['#6f8069', '#5e6e5a', '#879680', '#4b5849'],
+    ['#6b4f3a', '#56402f', '#856450', '#40301f'],
+    ['#7d8a86', '#6a7773', '#96a29d', '#57625f'],
+    ['#6a6570', '#575360', '#837e8b', '#454250'],
+  ],
+  hallowGroundSunny: [
+    ['#7a8a6a', '#69785b', '#93a082', '#55624a'],
+    ['#78583e', '#624833', '#916e55', '#4a3623'],
+    ['#8a948a', '#768077', '#a3ada1', '#636c63'],
+    ['#75707a', '#615d69', '#8e8994', '#4f4b59'],
+  ],
+  hallowGroundLush: [
+    ['#5f7562', '#506553', '#768a77', '#3f5044'],
+    ['#5c4636', '#48372b', '#735949', '#35291c'],
+    ['#6e817e', '#5c6e6b', '#879992', '#4b5957'],
+    ['#5e5c68', '#4c4a58', '#767384', '#3c3a48'],
+  ],
+  // The lane round a plot: old setts, dark and damp, with the leaves blown into their seams. Well
+  // darker than the flagstone forecourt a plot can be paved in, or the two ran together and a
+  // plot looked like more lane.
+  cobble: '#494653',
+  cobbleDark: '#37343f',
+  cobbleLight: '#65616f',
+  cobbleSeam: '#2b2932',
+  // Fallen leaves, which are everywhere in this theme: russet, rust, gold and dun.
+  fallen: ['#c9662a', '#a8452a', '#d99a3a', '#8a5a2a'],
+  // Bare autumn wood: a dead bough is greyer and colder than the village's living `trunk`.
+  deadBark: '#4e4239',
+  deadBarkDark: '#362d27',
+  deadBarkLight: '#6d5c4e',
+  candyRed: '#e0464f',
+  candyGreen: '#57b06a',
+  wrapper: '#f0eadc',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
