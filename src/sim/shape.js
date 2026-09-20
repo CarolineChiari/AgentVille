@@ -8,8 +8,8 @@
 //   _ . . . . . . . . . . _     the top walkway: every top house's door opens onto it
 //   . F H H # # # # H H F .     #  the field; side houses stand either side of it
 //   . F H H # # # # H H F .
-//   . F . . # L L # . . F .     L  the landmark: at the head of the field where the field is
-//   . F . . # L L # . . F .        deep enough, here pushed down by a shallow one; work grows round it
+//   . F . . # L L # . . F .     L  the landmark, at the head of its field — here a tall one in a
+//   . F . . # L L # . . F .        shallow field, so it stands as high as the houses allow
 //   _ . . B . . . . . . . _     the bottom walkway; B the notice board
 //   . F F F _ F F _ F F F .
 //   R R R R R R R R R R R R
@@ -25,18 +25,26 @@ const PX = 16
 export const LANDMARK_W = 2
 export const LANDMARK_H = 2
 /**
- * Rows of field kept between the top walkway and the landmark. Its tallest tier is 72 px, two and
- * a half tiles above its footprint; two rows keep that clear of the walkway row where the top
- * houses' doors are, and of whoever stands at them.
+ * How tall a landmark of each tier is drawn, in pixels; every theme's pack draws to these (see
+ * src/render/sprites/landmarks.js). The field has them because a landmark's own height decides how
+ * much room it needs above it: a campfire can stand at the head of a shallow field where a keep
+ * cannot, and a field four rows deep has room for one row of keep and three of campfire.
  */
-const LANDMARK_CLEAR = 2
+export const LANDMARK_HEIGHTS = [24, 40, 48, 56, 64, 72]
+const heightOf = (tier) => LANDMARK_HEIGHTS[Math.max(0, Math.min(LANDMARK_HEIGHTS.length - 1, Math.floor(Number(tier) || 0)))]
 /**
- * The band above the landmark's footprint its sprite fills, in tiles: the tallest tier is 72 px
- * (LANDMARK_HEIGHTS in src/render/sprites/landmarks.js), of which two rows stand on the footprint,
- * plus the 2 px a flower's sprite hangs below its own spot. A flower whose spot is in that band,
- * in the two columns the landmark is wide, stands behind it and is hidden by it.
+ * Rows of field kept between the top walkway and a landmark of this tier: enough that its sprite,
+ * which stands on its footprint and rises from there, tops out no higher than the walkway row. Any
+ * higher and it would reach the doorsteps of the houses above, and whoever stands at them. The
+ * field's first row is one below the walkway, hence the extra row here.
  */
-const LANDMARK_RISE = (72 - LANDMARK_H * PX + 2) / PX
+const clearFor = (tier) => Math.max(0, Math.ceil(heightOf(tier) / PX - LANDMARK_H - 1))
+/**
+ * The band above a landmark's footprint its sprite fills, in tiles: its height less the two rows
+ * standing on the footprint, plus the 2 px a flower's sprite hangs below its own spot. A flower
+ * whose spot is in that band, in the two columns the landmark is wide, stands behind it, hidden.
+ */
+const riseFor = (tier) => (heightOf(tier) - LANDMARK_H * PX + 2) / PX
 /**
  * Where a landmark stands in its field. At its head by default: the strip it can hide is then the
  * one between it and the top walkway, and the field grows away from it, in front of it.
@@ -79,8 +87,10 @@ export function isRect(cells) {
  * The courtyard of a rectangle of cells, in world tiles.
  * @param {{ cx: number, cy: number, w: number, h: number }} rect  in cells
  * @param {string} [spot] where its landmark stands in the field; one of LANDMARK_SPOTS
+ * @param {number} [tier] how far its landmark has risen: a taller one needs more room above it,
+ *        so it stands further down a shallow field, and hides more of the field behind it
  */
-export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
+export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT, tier = 0) {
   const x0 = cx * CELL_TILES
   const y0 = cy * CELL_TILES
   const W = w * CELL_TILES
@@ -111,18 +121,21 @@ export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
     rows: Math.floor((bed.h * PX - FLOWER_TOP) / FLOWER_PITCH),
   }
   // The landmark: across the middle of the field, and as far down it as `spot` asks, but never so
-  // near the top walkway that its tallest tier reaches the doorsteps above. A field too shallow
-  // for the spot asked takes the lowest row that fits, so the walkway always wins.
-  const down = { top: LANDMARK_CLEAR, middle: Math.floor((bed.h - LANDMARK_H) / 2), bottom: bed.h - LANDMARK_H }
+  // near the top walkway that it reaches the doorsteps above. A field too shallow for the spot
+  // asked takes the lowest row that fits, so the houses always win: on a field four rows deep, a
+  // keep stands in the one row left to it while a campfire has all three to choose from.
+  const clear = clearFor(tier)
+  const down = { top: clear, middle: Math.floor((bed.h - LANDMARK_H) / 2), bottom: bed.h - LANDMARK_H }
   const landmark = {
     x: bed.x + Math.floor((bed.w - LANDMARK_W) / 2),
-    y: Math.min(bed.y + bed.h - LANDMARK_H, Math.max(bed.y + LANDMARK_CLEAR, bed.y + down[landmarkSpotOf(spot)])),
+    y: Math.min(bed.y + bed.h - LANDMARK_H, Math.max(bed.y + clear, bed.y + down[landmarkSpotOf(spot)])),
     w: LANDMARK_W,
     h: LANDMARK_H,
   }
   // Every spot in the field a flower can stand, in the order they fill: a row at a time, left to
-  // right. None on the landmark's footprint, and the ones in the band its tallest tier rises
-  // through come last, so nothing is planted out of sight behind it while the field has open ground.
+  // right. None on the landmark's footprint, and the ones in the band its sprite rises through
+  // come last, so nothing is planted out of sight behind it while the field has open ground.
+  const rise = riseFor(tier)
   const spots = []
   const behind = []
   for (let row = 0; row < flowers.rows; row++) {
@@ -131,7 +144,7 @@ export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
       const y = bed.y + (FLOWER_TOP + row * FLOWER_PITCH + FLOWER_PITCH - 1) / PX
       const under = x >= landmark.x && x < landmark.x + landmark.w
       if (under && y >= landmark.y && y < landmark.y + landmark.h) continue
-      ;(under && y > landmark.y - LANDMARK_RISE && y < landmark.y ? behind : spots).push({ x, y, row })
+      ;(under && y > landmark.y - rise && y < landmark.y ? behind : spots).push({ x, y, row })
     }
   }
   spots.push(...behind)
@@ -150,15 +163,26 @@ export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
 const capacities = new Map()
 /**
  * How many houses and flowers a plot of w×h cells holds. It holds the same wherever its landmark
- * stands: the footprint covers a whole number of flower rows and columns, and the spots the
- * landmark hides are kept, only taken last. test/shape.test.mjs holds that true, and if it ever
- * parts this and layout.js have to be told where each plot's landmark stands.
+ * stands and however tall it has grown: the footprint covers a whole number of flower rows and
+ * columns, and the spots the landmark hides are kept, only taken last. test/shape.test.mjs holds
+ * that true, and if it ever parts this and layout.js have to be told about each plot's landmark.
  */
 export function capacityOf(w, h) {
   const k = `${w}x${h}`
   if (!capacities.has(k)) {
-    const s = shapeOf({ cx: 0, cy: 0, w, h })
-    capacities.set(k, { slots: s.slots.length, flowers: s.spots.length })
+    // The fewest it can hold: a landmark at the very head of the field covers three rows of spots
+    // and anywhere lower covers four, and a plot must never be handed more flowers than it has
+    // spots for. One cell more of plot is a smaller price than a flower that never appears.
+    let flowers = Infinity
+    let slots = 0
+    for (const spot of LANDMARK_SPOTS) {
+      for (let tier = 0; tier < LANDMARK_HEIGHTS.length; tier++) {
+        const s = shapeOf({ cx: 0, cy: 0, w, h }, spot, tier)
+        flowers = Math.min(flowers, s.spots.length)
+        slots = s.slots.length
+      }
+    }
+    capacities.set(k, { slots, flowers })
   }
   return capacities.get(k)
 }

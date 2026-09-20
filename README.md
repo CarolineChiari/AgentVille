@@ -186,6 +186,9 @@ At the head of every garden stands what the work in that repo has raised. It sta
 campfire and climbs, a tier at a time, to a well, a market cross, a chapel, a town hall and a
 keep. **Settings → Landmarks stand** moves them all to the middle of the garden or to its foot,
 and **Landmark** in a folder's panel stands that one plot's where you like, whatever the rest do.
+A landmark never stands so high that it reaches the houses above it, so the taller it grows the
+further down its garden it steps: a one-cell plot's garden, four rows deep, has three rows to
+stand a campfire in and only one to stand a keep.
 When a repo reaches the next tier the new one goes up in front of you, foundations first,
 and everybody on the plot gets confetti. Each tier also brings something to the plot's fence
 line: a lamp, then a bench, planters at the corners, a rose arch over the gate, and a second lamp.

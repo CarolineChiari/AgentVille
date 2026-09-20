@@ -1,16 +1,20 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_SPOT, LANDMARK_SPOTS, capacityOf, flowerAt, isFenceGap, isRect, isTrail, propsOf, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
+import { DEFAULT_SPOT, LANDMARK_HEIGHTS, LANDMARK_SPOTS, capacityOf, flowerAt, isFenceGap, isRect, isTrail, propsOf, rectOf, shapeOf, tilledRows } from '../src/sim/shape.js'
 import { BUILDING_H, BUILDING_W } from '../src/sim/constants.js'
 import { key } from '../src/sim/grid.js'
 
 const SHAPES = [[1, 1], [2, 1], [1, 2], [2, 2], [3, 2], [4, 3]]
-const at = (w, h, cx = 0, cy = 0, spot = DEFAULT_SPOT) => shapeOf({ cx, cy, w, h }, spot)
-/** The tallest landmark, 72 px of it, over the tiles its footprint covers. */
-const silhouette = (s) => ({ x: s.landmark.x, y: s.landmark.y + s.landmark.h - 72 / 16, w: s.landmark.w, h: 72 / 16 })
+const at = (w, h, cx = 0, cy = 0, spot = DEFAULT_SPOT, tier = 0) => shapeOf({ cx, cy, w, h }, spot, tier)
+const TIERS = LANDMARK_HEIGHTS.map((_, tier) => tier)
+/** A landmark of this tier, standing on its footprint: the tiles its sprite covers. */
+const silhouette = (s, tier) => {
+  const tall = LANDMARK_HEIGHTS[tier] / 16
+  return { x: s.landmark.x, y: s.landmark.y + s.landmark.h - tall, w: s.landmark.w, h: tall }
+}
 /** Is the flower at this spot behind the landmark? Its sprite hangs 2 px below its spot. */
-const hidden = (s, p) => {
-  const l = silhouette(s)
+const hidden = (s, p, tier) => {
+  const l = silhouette(s, tier)
   return p.x >= l.x && p.x < l.x + l.w && p.y + 2 / 16 > l.y && p.y < l.y + l.h
 }
 const inRect = (r, x, y) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h
@@ -96,14 +100,19 @@ for (const [w, h] of SHAPES) {
   })
 
   test(`${w}×${h}: the landmark stands across the middle of the field, clear of the walkway the top houses open onto`, () => {
-    const s = at(w, h, 3, -2)
-    const l = s.landmark
-    for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) assert.ok(inRect(s.bed, x, y), `the landmark reaches ${x},${y}, outside the field`)
-    // Centred across the field, to the tile.
-    assert.ok(Math.abs(l.x - s.bed.x - (s.bed.x + s.bed.w - l.x - l.w)) <= 1, 'not across the middle of the field')
-    // Its tallest tier is 72 px, 4.5 tiles, from the bottom of its footprint: that must stay below
-    // the row where the top houses' doors are, and whoever stands at them.
-    assert.ok(l.y + l.h - 72 / 16 >= s.walkTop + 0.5, `its top reaches ${l.y + l.h - 4.5}, over the doorsteps on row ${s.walkTop}`)
+    for (const spot of LANDMARK_SPOTS) {
+      for (const tier of TIERS) {
+        const s = at(w, h, 3, -2, spot, tier)
+        const l = s.landmark
+        const where = `${spot}, tier ${tier}`
+        for (let y = l.y; y < l.y + l.h; y++) for (let x = l.x; x < l.x + l.w; x++) assert.ok(inRect(s.bed, x, y), `${where}: the landmark reaches ${x},${y}, outside the field`)
+        // Centred across the field, to the tile.
+        assert.ok(Math.abs(l.x - s.bed.x - (s.bed.x + s.bed.w - l.x - l.w)) <= 1, `${where}: not across the middle of the field`)
+        // However tall it is drawn, from the bottom of its footprint, it must top out no higher
+        // than the walkway: above that are the top houses' doors, and whoever stands at them.
+        assert.ok(silhouette(s, tier).y >= s.walkTop, `${where}: its top reaches ${silhouette(s, tier).y}, over the doorsteps on row ${s.walkTop}`)
+      }
+    }
   })
 
   test(`${w}×${h}: what a landmark brings stands in the fence line, clear of every gap, the board and each other`, () => {
@@ -143,7 +152,7 @@ for (const [w, h] of SHAPES) {
       assert.ok(!seen.has(`${x},${y}`), `two flowers at ${x},${y}`)
       seen.add(`${x},${y}`)
     }
-    assert.equal(capacityOf(w, h).flowers, s.spots.length)
+    assert.ok(s.spots.length >= capacityOf(w, h).flowers)
   })
 
   test(`${w}×${h}: every door and every fence gap can be reached from the road`, () => {
@@ -181,11 +190,12 @@ for (const [w, h] of SHAPES) {
   })
 }
 
-test('in a small field the rows beside the landmark are shorter, and the one below starts under it', () => {
+test('in a small field the rows beside the landmark are shorter, and the ones below it run clear across', () => {
   const s = at(1, 1)
   const rows = new Map()
   for (const p of s.spots) rows.set(p.row, (rows.get(p.row) || 0) + 1)
-  assert.deepEqual([...rows.values()], [8, 8, 8, 4, 4, 4, 4])
+  // A campfire stands at the head of this shallow field, so it is the first rows that are short.
+  assert.deepEqual([...rows.values()], [4, 4, 4, 8, 8, 8, 8])
   // Soil follows the flowers: a flower beside the landmark still has ploughed ground under it.
   for (let n = 1; n <= s.spots.length; n++) {
     const { y } = flowerAt(s, n - 1)
@@ -230,37 +240,49 @@ test('the field fills a row at a time and is ploughed one row ahead', () => {
 
 test('a landmark stands where it is asked in the field, and never high enough to reach the doorsteps', () => {
   for (const [w, h] of SHAPES) {
-    const ys = LANDMARK_SPOTS.map((spot) => at(w, h, 0, 0, spot).landmark.y)
-    const [top, middle, bottom] = ys
-    assert.ok(top <= middle && middle <= bottom, `${w}×${h}: the spots are out of order: ${ys}`)
-    for (const [i, spot] of LANDMARK_SPOTS.entries()) {
-      const s = at(w, h, 0, 0, spot)
-      assert.ok(s.landmark.y >= s.bed.y && s.landmark.y + s.landmark.h <= s.bed.y + s.bed.h, `${w}×${h} ${spot}: outside the field`)
-      // Its tallest tier is 72 px: at the head of the field it reaches into the walkway, never past it.
-      assert.ok(silhouette(s).y >= s.walkTop, `${w}×${h} ${spot}: its tallest tier is over the houses`)
-      if (i === 2) assert.equal(s.landmark.y + s.landmark.h, s.bed.y + s.bed.h, `${w}×${h}: not at the foot of the field`)
+    for (const tier of TIERS) {
+      const ys = LANDMARK_SPOTS.map((spot) => at(w, h, 0, 0, spot, tier).landmark.y)
+      const [top, middle, bottom] = ys
+      assert.ok(top <= middle && middle <= bottom, `${w}×${h} tier ${tier}: the spots are out of order: ${ys}`)
+      for (const [i, spot] of LANDMARK_SPOTS.entries()) {
+        const s = at(w, h, 0, 0, spot, tier)
+        assert.ok(s.landmark.y >= s.bed.y && s.landmark.y + s.landmark.h <= s.bed.y + s.bed.h, `${w}×${h} ${spot} tier ${tier}: outside the field`)
+        if (i === 2) assert.equal(s.landmark.y + s.landmark.h, s.bed.y + s.bed.h, `${w}×${h} tier ${tier}: not at the foot of the field`)
+      }
     }
+    // A short landmark stands where a tall one cannot: this is what gives a one-cell plot, whose
+    // field is four rows deep, anywhere to move its landmark to at all.
+    const short = at(w, h, 0, 0, 'top', 0).landmark.y
+    const tall = at(w, h, 0, 0, 'top', LANDMARK_HEIGHTS.length - 1).landmark.y
+    assert.ok(short <= tall, `${w}×${h}: a campfire stands lower than a keep`)
+    assert.ok(h > 1 || short < tall, 'a shallow field has nowhere to move a landmark to')
     // A field with no room for the spot asked puts it as low as it must go, not out of the field.
     assert.equal(at(w, h, 0, 0, 'nonsense').landmark.y, at(w, h).landmark.y, `${w}×${h}: a spot we don't know isn't the default`)
   }
 })
 
-test('a plot holds the same work wherever its landmark stands, so the layout needn’t know', () => {
+test('a plot is never handed more work than its field has room for, wherever its landmark stands', () => {
   for (const [w, h] of SHAPES) {
-    const counts = LANDMARK_SPOTS.map((spot) => at(w, h, 0, 0, spot).spots.length)
-    assert.deepEqual(counts, counts.map(() => capacityOf(w, h).flowers), `${w}×${h}: ${counts}`)
+    for (const spot of LANDMARK_SPOTS) {
+      for (const tier of TIERS) {
+        const spots = at(w, h, 0, 0, spot, tier).spots.length
+        // The layout is told the fewest a plot can hold, so nothing it plants is ever turned away.
+        assert.ok(spots >= capacityOf(w, h).flowers, `${w}×${h} ${spot} tier ${tier}: ${spots} spots, ${capacityOf(w, h).flowers} promised`)
+      }
+    }
   }
 })
 
 test('nothing is planted behind the landmark while the field has open ground', () => {
   for (const spot of LANDMARK_SPOTS) {
     for (const [w, h] of SHAPES) {
-      const s = at(w, h, 0, 0, spot)
-      const behind = s.spots.filter((p) => hidden(s, p))
-      assert.ok(behind.length > 0, `${w}×${h} ${spot}: the landmark hides none of the field`)
-      const firstHidden = s.spots.findIndex((p) => hidden(s, p))
-      assert.ok(s.spots.slice(firstHidden).every((p) => hidden(s, p)), `${w}×${h} ${spot}: an open spot is taken after a hidden one`)
-      assert.equal(behind.length, s.spots.length - firstHidden)
+      for (const tier of TIERS) {
+        const s = at(w, h, 0, 0, spot, tier)
+        const where = `${w}×${h} ${spot} tier ${tier}`
+        const firstHidden = s.spots.findIndex((p) => hidden(s, p, tier))
+        if (firstHidden < 0) continue // a landmark at the head of the field hides none of it
+        assert.ok(s.spots.slice(firstHidden).every((p) => hidden(s, p, tier)), `${where}: an open spot is taken after a hidden one`)
+      }
     }
   }
 })

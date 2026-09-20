@@ -587,10 +587,14 @@ test('a landmark\'s tier brings scenery into its plot\'s fence line, and never s
   w.setRoster(threads, undefined, new Map(), new Map(), new Map([['a', 5]]))
   const props = w.statics.filter((s) => s.plot === 'a')
   assert.deepEqual(props.map((s) => s.sprite).sort(), ['gateway', 'yardbench', 'yardlamp', 'yardlamp', 'yardplanter', 'yardplanter'])
-  // They stand where the fence stood: nothing that was open is closed, and the gateway is walked through.
+  // They stand where the fence stood: nothing that was open is closed, and the gateway is walked
+  // through. The landmark itself is allowed to have moved: a keep needs more room above it than a
+  // campfire, so growing walked it down this shallow field.
+  const l = w.landmark('a')
+  const onLandmark = (x, y) => x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.h
   for (let y = w.map.oy; y < w.map.oy + w.map.h; y++) {
     for (let x = w.map.ox; x < w.map.ox + w.map.w; x++) {
-      if (w.nav.isBlocked(x, y)) assert.ok(blockedBefore.has(`${x},${y}`), `${x},${y} was walkable before the props came`)
+      if (w.nav.isBlocked(x, y) && !onLandmark(x, y)) assert.ok(blockedBefore.has(`${x},${y}`), `${x},${y} was walkable before the props came`)
     }
   }
   const gate = props.find((s) => s.sprite === 'gateway')

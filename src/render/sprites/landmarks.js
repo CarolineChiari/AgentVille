@@ -14,13 +14,15 @@ import { PixelCanvas } from './pixel.js'
 import { BUILDING_W, ROOF_FAMILIES, drawDoor, drawGableRoof, drawWalls, drawWindow } from './buildings.js'
 import { mulberry32 } from '../../sim/rng.js'
 import { WALLS } from '../../sim/style.js'
+import { LANDMARK_HEIGHTS } from '../../sim/shape.js'
 
 export const LANDMARK_W = BUILDING_W
 /**
- * Height by tier. 72 at most: the footprint stands two rows down the field (LANDMARK_CLEAR in
- * src/sim/shape.js), and anything taller would reach the doorsteps of the houses above it.
+ * Height by tier, from the field's own copy: how tall each tier stands is what decides how far
+ * down its field a landmark has to stand to keep the houses above it clear (see src/sim/shape.js).
+ * 72 at most, or the tallest tier would have nowhere to stand in a one-cell plot's field.
  */
-export const LANDMARK_HEIGHTS = [24, 40, 48, 56, 64, 72]
+export { LANDMARK_HEIGHTS }
 const TOP_TIER = LANDMARK_HEIGHTS.length - 1
 
 const tierOf = (tier) => Math.max(0, Math.min(TOP_TIER, Math.floor(Number(tier) || 0)))

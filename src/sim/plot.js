@@ -51,19 +51,16 @@ export class Plot {
     const next = landmarkSpotOf(spot)
     const changed = next !== this.spot
     this.spot = next
-    // The field's spots are laid out round the landmark, so the soil is worked out again with them.
-    if (changed && this.shape) {
-      this._reshape()
-      this.setPlanted(this.planted)
-    }
+    if (changed && this.shape) this._reshape()
     return changed
   }
 
-  /** Lay the courtyard out again: after the plot's cells change, or its landmark moves. */
+  /** Lay the courtyard out again: after the plot's cells change, its landmark moves, or it grows. */
   _reshape() {
-    this.shape = shapeOf(rectOf(this.cells), this.spot)
+    this.shape = shapeOf(rectOf(this.cells), this.spot, this.tier)
     this.slotKeys = this.shape.slots.map((s) => key(s.x, s.y))
     this.props = propsOf(this.shape, this.tier)
+    this.tilled = tilledRows(this.shape, Math.min(this.planted, this.flowerCapacity))
   }
 
   /** Dress the plot in another style: a new theme, or another sub-theme. True if its look changed. */
@@ -82,11 +79,15 @@ export class Plot {
     return changed
   }
 
-  /** Raise (or set) its landmark's tier. True if that changes what stands on it. */
+  /**
+   * Raise (or set) its landmark's tier. True if that changes what stands on the plot. A taller
+   * landmark needs more room above it, so a tier can move it down a shallow field, and the field
+   * is laid out round it again where it now stands.
+   */
   setTier(tier) {
     const changed = tier !== this.tier
     this.tier = tier
-    if (changed && this.shape) this.props = propsOf(this.shape, tier)
+    if (changed && this.shape) this._reshape()
     return changed
   }
 

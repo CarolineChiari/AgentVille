@@ -82,8 +82,8 @@ test('a plot growing down keeps every house where it stood', () => {
 test('the field is ploughed as flowers arrive, one row ahead, and no further than it goes', () => {
   const p = new Plot('a', 0)
   p.setCells([[1, 0]])
-  assert.equal(p.setPlanted(0), true, 'the first ploughing changes the ground')
-  assert.equal(p.tilled, 1)
+  assert.equal(p.tilled, 1, 'a new plot is laid out with its first strip of soil')
+  assert.equal(p.setPlanted(0), false, 'no flowers, no more soil')
   assert.equal(p.setPlanted(3), true)
   assert.equal(p.tilled, 2)
   assert.equal(p.setPlanted(4), false, 'another flower in the same row changes nothing')
