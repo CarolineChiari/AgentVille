@@ -1,13 +1,15 @@
 // The whole HTTP API as one connect-style middleware: mounted inside Vite in dev and inside
 // server/index.mjs in production.
+import path from 'node:path'
 import { DEFAULT_DATA_DIR } from './paths.mjs'
 import { ConflictError, createStateStore } from './state.mjs'
-import { createOpener, resolveFolder } from './opener.mjs'
+import { createOpener, realFileUnder, resolveFolder } from './opener.mjs'
 import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
 import { createIssueStore, createPrStore, createReleaseStore } from './github.mjs'
 import { createRepoStore } from './repo.mjs'
 import { openInTerminal } from './terminal.mjs'
+import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -224,6 +226,36 @@ export function createApiMiddleware(opts = {}) {
       if (!h?.readTranscript) return [400, { ok: false, error: 'This harness has no transcripts to show.' }]
       const r = await h.readTranscript(body?.ref, { limit: body?.limit })
       return [r.ok ? 200 : 404, r]
+    },
+
+    /**
+     * What a thread changed on disk, read from its own records. POST for the same reason as the
+     * transcript: it is private, and POST makes the page's Origin mandatory.
+     */
+    'POST /api/changes': async (body) => {
+      const h = harnessById(body?.harness, harnesses)
+      if (!h?.readChanges) return [400, { ok: false, error: 'This agent doesn’t record what it changed.' }]
+      const r = await h.readChanges(body?.ref, { detail: body?.detail === true })
+      return [r.ok ? 200 : 404, r]
+    },
+
+    /**
+     * One file of a repo, in the editor. The page names a folder and a path *inside* it, never a
+     * path of its own choosing: the folder must still exist, the file must resolve under it, and
+     * the link is built here from the resolved path. Nothing is executed — the OS resolves the URL.
+     */
+    'POST /api/open-file': async (body) => {
+      const dir = await resolveFolder(body?.folder)
+      if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
+      const rel = typeof body?.path === 'string' ? body.path : ''
+      if (!rel || path.isAbsolute(rel)) return [400, { ok: false, error: 'Not a path inside that folder.' }]
+      const file = path.resolve(dir, rel)
+      // `..` in the path, or a symlink pointing out of the repo, must not become a link.
+      const real = await realFileUnder(file, dir)
+      if (!real) return [400, { ok: false, error: 'That file is not in that folder any more.' }]
+      const scheme = typeof body?.editor === 'string' && FILE_URL_SCHEMES.has(body.editor) ? body.editor : 'vscode'
+      const launched = await opener.launch(fileUrl(scheme, real))
+      return launched.ok ? [200, { ok: true }] : [500, launched]
     },
 
     'GET /api/prs': async () => [200, await prStore.get(await projectList())],

@@ -125,3 +125,20 @@ export async function resolveFolder(folder) {
     return null
   }
 }
+
+/**
+ * A file the page named inside a folder it named, resolved to what it really is on disk — or null.
+ * `realpath` on both sides is the point: `..` is already gone by the time `path.resolve` finishes,
+ * but a symlink inside the repo can still point anywhere, and only the resolved path shows it.
+ * The separator is appended before comparing so `/work/repo-two` can't pass as `/work/repo`.
+ */
+export async function realFileUnder(file, dir) {
+  try {
+    const real = await fsp.realpath(file)
+    const root = await fsp.realpath(dir)
+    if (real !== root && !real.startsWith(root.endsWith(path.sep) ? root : root + path.sep)) return null
+    return (await fsp.stat(real)).isFile() ? real : null
+  } catch {
+    return null
+  }
+}

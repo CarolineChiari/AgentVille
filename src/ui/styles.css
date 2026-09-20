@@ -248,6 +248,17 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .card > .btn.link { margin-top: 6px; background: none; border-color: transparent; color: var(--muted); }
 .card .tasks .btn.custom { border-style: dashed; }
 .card .tasks .btn.link { background: none; border-color: transparent; color: var(--muted); }
+.card .built { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
+.card .built h4 { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.card .built .note { display: block; margin: 0; }
+.card .files { margin: 0; padding: 0; list-style: none; max-height: 132px; overflow-y: auto; }
+.card .btn.link.file { display: flex; width: 100%; gap: 6px; align-items: baseline; padding: 1px 2px; background: none; border-color: transparent; color: var(--text); font-family: var(--mono); font-size: 11px; text-align: left; }
+.card .btn.link.file:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+.card .btn.link.file:disabled { color: var(--muted); }
+.card .files .mark { flex: none; width: 8px; color: var(--muted); }
+.card .files .dir { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.card .files .name { flex: none; white-space: nowrap; }
+.card .files .n { flex: 1; text-align: right; color: var(--muted); }
 .card .bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); margin-top: 8px; overflow: hidden; }
 .card .bar i { display: block; height: 100%; background: var(--ok); }
 

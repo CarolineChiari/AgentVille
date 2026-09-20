@@ -11,6 +11,7 @@ import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mj
 import { decodeProjectDir } from './project.mjs'
 import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
+import { changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
 
 const NAME = 'Claude Code'
@@ -39,6 +40,7 @@ export function createClaudeCodeAdapter(opts = {}) {
   const metaCache = new Map() // file → { key, meta }
   let lastTranscripts = new Map() // uuid → { file, size, mtime } from the latest scan
   const convoCache = new Map() // file → { key, messages }; a few at most, they can be large
+  const changeCache = new Map() // file → { key, log }; same idea, keyed on mtime+size
 
   async function desktopRoot() {
     if (desktopDir === undefined) desktopDir = await desktopDataDir({ home, env, platform })
@@ -241,10 +243,11 @@ export function createClaudeCodeAdapter(opts = {}) {
   }
 
   /**
-   * The conversation of one thread, newest `limit` messages. Found by its CLI session id among the
-   * transcripts the scan already listed — the page never names a file.
+   * The transcript file of one thread, found by its CLI session id among the ones the scan already
+   * listed — the page never names a file — with a fresh stat for the cache key.
+   * @returns {Promise<{ ok: true, file: string, st: object, key: string } | { ok: false, error: string }>}
    */
-  async function readTranscript(ref, { limit = 300 } = {}) {
+  async function locateTranscript(ref) {
     const id = ref && typeof ref === 'object' ? ref.cliSessionId : null
     if (!isCliId(id)) return { ok: false, error: 'This thread has no transcript on this machine.' }
     let t = lastTranscripts.get(id)
@@ -253,22 +256,63 @@ export function createClaudeCodeAdapter(opts = {}) {
       t = lastTranscripts.get(id)
     }
     if (!t) return { ok: false, error: 'Transcript not found.' }
-    let st
     try {
-      st = await fsp.stat(t.file)
+      const st = await fsp.stat(t.file)
+      return { ok: true, file: t.file, st, key: `${st.mtimeMs}:${st.size}` }
     } catch {
       return { ok: false, error: 'Transcript not found.' }
     }
-    const key = `${st.mtimeMs}:${st.size}`
-    let hit = convoCache.get(t.file)
+  }
+
+  /** Keep a cache small enough that a handful of big transcripts can't sit in memory forever. */
+  function remember(cache, file, hit) {
+    cache.delete(file)
+    cache.set(file, hit)
+    while (cache.size > 6) cache.delete(cache.keys().next().value)
+  }
+
+  /** The conversation of one thread, newest `limit` messages. */
+  async function readTranscript(ref, { limit = 300 } = {}) {
+    const found = await locateTranscript(ref)
+    if (!found.ok) return found
+    const { file, st, key } = found
+    let hit = convoCache.get(file)
     if (!hit || hit.key !== key) {
-      hit = { key, messages: transcriptMessages(jsonLines(await fsp.readFile(t.file, 'utf8'))) }
-      convoCache.delete(t.file)
-      convoCache.set(t.file, hit)
-      while (convoCache.size > 6) convoCache.delete(convoCache.keys().next().value)
+      hit = { key, messages: transcriptMessages(jsonLines(await fsp.readFile(file, 'utf8'))) }
+      remember(convoCache, file, hit)
     }
     const n = Math.max(1, Math.min(2000, Number(limit) || 300))
     return { ok: true, messages: hit.messages.slice(-n), total: hit.messages.length, updatedAt: st.mtimeMs, sizeBytes: st.size }
+  }
+
+  /**
+   * What this session changed on disk, read from the tool calls in its own transcript. The repo is
+   * never run and never read: `changes.mjs` works from the transcript alone.
+   *
+   * Paths come out relative to the folder the thread worked in, which the adapter takes from the
+   * ref rather than from anything the page chose, so a file is only ever called "inside the repo"
+   * because the session itself said it was working there.
+   */
+  async function readChanges(ref, { detail = false } = {}) {
+    const found = await locateTranscript(ref)
+    if (!found.ok) return found
+    const { file, st, key } = found
+    const root = ref && typeof ref.cwd === 'string' && path.isAbsolute(ref.cwd) ? ref.cwd : ''
+    let hit = changeCache.get(file)
+    if (!hit || hit.key !== key || hit.root !== root) {
+      hit = { key, root, log: changeLog(jsonLines(await fsp.readFile(file, 'utf8')), { root }) }
+      remember(changeCache, file, hit)
+    }
+    const { files, more } = filesTouched(hit.log.entries)
+    return {
+      ok: true,
+      root,
+      files,
+      more: more + hit.log.dropped,
+      // The entry-by-entry log is only for the room inside a building; a card asks without it.
+      ...(detail ? { entries: hit.log.entries, commits: hit.log.commits, dropped: hit.log.dropped } : {}),
+      updatedAt: st.mtimeMs,
+    }
   }
 
   /**
@@ -344,7 +388,7 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, paths: { ...cli } }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli } }
 }
 
 /** `vscode://file/<path>/`: opens the folder in VS Code, or focuses the window that has it. */

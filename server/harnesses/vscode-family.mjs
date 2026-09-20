@@ -62,3 +62,15 @@ export function folderUrl(scheme, dir) {
   const drive = /^[A-Za-z]:$/.test(parts[0] || '') ? parts.shift() + '/' : ''
   return `${scheme}://file/${drive}${parts.map(encodeURIComponent).join('/')}/`
 }
+
+/**
+ * `vscode://file/<path>` opens one file in the editor, in the window that already has its folder.
+ * The same link as `folderUrl` without the trailing slash: that slash is what tells the editor it
+ * was handed a folder, so a file must not carry one.
+ */
+export function fileUrl(scheme, file) {
+  return folderUrl(scheme, file).replace(/\/$/, '')
+}
+
+/** The editors that answer a `<scheme>://file/…` link. Anything else never reaches the OS. */
+export const FILE_URL_SCHEMES = new Set(['vscode', 'cursor', 'antigravity-ide'])

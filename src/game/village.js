@@ -16,6 +16,22 @@ import { isSpot } from '../sim/shape.js'
 
 const SAVE_DELAY = 500
 
+/** Which editor's `…://file/` link opens a file, per harness. The server checks this list again. */
+const EDITOR_SCHEME = { 'claude-code': 'vscode', copilot: 'vscode', cursor: 'cursor', antigravity: 'antigravity-ide' }
+
+/** Demo mode reads no transcripts, so the files a demo villager "changed" are made up here. */
+const demoChanges = (t) => ({
+  ok: true,
+  root: t.projectPath,
+  files: [
+    { path: 'src/sim/frame.js', edits: 4, kind: 'edited', at: t.lastActivityAt, outside: false },
+    { path: 'test/frame.test.mjs', edits: 2, kind: 'created', at: t.lastActivityAt, outside: false },
+  ],
+  more: 0,
+  entries: [],
+  commits: [],
+})
+
 const emptyState = () => ({
   version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, spots: {}, progress: {}, settings: null,
   updatedAt: 0,
@@ -814,6 +830,36 @@ export class Village {
       return await api.fetchTranscript(t.harness, t.ref, limit)
     } catch (err) {
       return { ok: false, error: err.message }
+    }
+  }
+
+  /**
+   * What a thread changed on disk, as its own records tell it. `detail` asks for the entry-by-entry
+   * log as well as the list of files.
+   */
+  async changes(id, detail = false) {
+    const t = this.thread(id)
+    if (!t) return { ok: false, error: 'Unknown thread.' }
+    if (this.demo) return demoChanges(t)
+    try {
+      return await api.fetchChanges(t.harness, t.ref, detail)
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  }
+
+  /**
+   * One of a thread's files, in the editor. The page hands over the folder and the path inside it
+   * and nothing else; the server decides whether that is a file it will build a link to.
+   */
+  async openFile(id, file) {
+    const t = this.thread(id)
+    if (!t || !file || this.demo) return
+    try {
+      await api.openFile(t.cwd || t.projectPath, file, EDITOR_SCHEME[t.harness] || 'vscode')
+      this.toast(`Opening ${file}`)
+    } catch (err) {
+      this.toast(err.message, 'error')
     }
   }
 

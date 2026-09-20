@@ -130,6 +130,19 @@ id, a strip of sample plots so you can see what a folder will wear before you sw
 theme builds its plots from, what it puts its villagers in, and what it calls finished work. It
 also says where to start if you want to add one.
 
+### What a villager built
+
+Every card has a **Built** list: the files that session changed, the one it worked over most at
+the top, with `+` for a file it created, `·` for one it edited, `−` for one it deleted and `→`
+for one it moved. Clicking a file opens it in your editor. A finished thread's flower card shows
+the same list, so you can see what a villager left behind long after it stopped.
+
+It is read out of the session's own transcript — every `Write`, `Edit`, `MultiEdit` and
+`NotebookEdit` it made, plus the `rm`, `git mv` and `git commit` commands it ran. The repo itself
+is never run and never asked: no `git status`, no commands in your folder. An edit the tool
+refused doesn't count, and a file the session reached outside its own repo is listed for what it
+says but can't be opened from here.
+
 ### Transcripts and new sessions
 
 **Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:

@@ -148,6 +148,39 @@ test('readTranscript finds a thread by its CLI id and returns the newest message
   assert.equal((await a.readTranscript({ cliSessionId: uuid(21) })).ok, false)
 })
 
+test('readChanges lists what a session touched, relative to its folder', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const call = (name, input, id) => assistantRecord([{ type: 'tool_use', id, name, input }])
+  writeTranscript(home, {
+    id: uuid(22),
+    records: [
+      userRecord('do the work'),
+      call('Write', { file_path: '/work/repo/src/new.js', content: 'export const a = 1' }, 'w1'),
+      call('Edit', { file_path: '/work/repo/src/new.js', old_string: 'a = 1', new_string: 'a = 2' }, 'e1'),
+      call('Edit', { file_path: '/work/repo/README.md', old_string: 'x', new_string: 'y' }, 'e2'),
+      call('Edit', { file_path: '/elsewhere/notes.md', old_string: 'x', new_string: 'y' }, 'e3'),
+      call('Bash', { command: 'git commit -m "Add the thing"' }, 'b1'),
+    ],
+    mtime: NOW - 1000,
+  })
+  const a = adapterFor(home)
+  const r = await a.readChanges({ cliSessionId: uuid(22), cwd: '/work/repo' })
+  assert.equal(r.ok, true)
+  assert.equal(r.root, '/work/repo')
+  assert.deepEqual(r.files.map((f) => [f.path, f.edits, f.outside]), [
+    ['src/new.js', 2, false],
+    // Same timestamp in the fixture, so the tie breaks on the path.
+    ['/elsewhere/notes.md', 1, true],
+    ['README.md', 1, false],
+  ])
+  assert.equal(r.entries, undefined, 'a card asks for the summary only')
+  const full = await a.readChanges({ cliSessionId: uuid(22), cwd: '/work/repo' }, { detail: true })
+  assert.deepEqual(full.entries.map((e) => e.tool), ['Write', 'Edit', 'Edit', 'Edit'])
+  assert.deepEqual(full.commits.map((c) => c.message), ['Add the thing'])
+  assert.equal((await a.readChanges({ cliSessionId: [uuid(22)] })).ok, false, 'ids are type-checked')
+})
+
 test('VS Code new session prefills a prompt, capped in length', async () => {
   const a = adapterFor('/nowhere')
   const r = await a.newSession('/work/app', { target: 'vscode', prompt: 'Fix the bug & add tests' })

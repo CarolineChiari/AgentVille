@@ -45,6 +45,9 @@
  *
  * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
  *           Optional: the conversation, for the transcript panel.
+ * @property {(ref: object, opts?: { detail?: boolean }) => Promise<ChangesResult>} [readChanges]
+ *           Optional: what the session changed on disk, read from its own records — never by
+ *           running anything in the repo. `detail` adds the entry-by-entry log and the commits.
  * @property {(ref: object, opts: { prompt: string }) => Promise<OpenResult>} [continueThread]
  *           Optional: send one more prompt into an existing thread. A harness without it, or one
  *           that refuses, gets the prompt as a fresh session in the thread's folder instead.
@@ -52,6 +55,13 @@
  * One way to start a session. `models` / `efforts`, when present, are `[value, label]` menus the
  * form offers for this target only; '' means the harness's own default.
  * @typedef {{ id: string, label: string, note: string, models?: string[][], efforts?: string[][] }} Target
+ *
+ * What a session changed. `path` is relative to the thread's folder, or absolute with
+ * `outside: true` when the session reached out of it — shown, but never offered to open.
+ * `more` counts what was left out of both lists. `root` is the folder the paths are relative to.
+ * @typedef {{ path: string, outside: boolean, edits: number, kind: string, at: number }} ChangedFile
+ * @typedef {{ at: number, path: string, outside: boolean, kind: 'created'|'edited'|'deleted'|'renamed', tool: string, excerpt: string }} ChangeEntry
+ * @typedef {{ ok: boolean, error?: string, root?: string, files?: ChangedFile[], more?: number, entries?: ChangeEntry[], commits?: { at: number, message: string }[], updatedAt?: number }} ChangesResult
  *
  * `urls`, when present, are opened in order with a short pause between them. `terminal` instead
  * asks for a terminal window running `exe` (see server/terminal.mjs). `where` finishes the

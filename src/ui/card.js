@@ -6,6 +6,11 @@ import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
 
 const GAP = 18
+/** Files listed in a card's Built section before it offers the rest. */
+const BUILT_MAX = 6
+/** What each kind of change did to the file, in one character. */
+const KIND_MARK = { created: '+', edited: '·', deleted: '−', renamed: '→' }
+
 /** Issues listed on a board's card to start with, and how many more each Load more adds. */
 const ISSUE_CARD_MAX = 8
 const ISSUE_CARD_STEP = 8
@@ -20,6 +25,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let tasksOpen = false // the task list stays open across re-renders of the same thread
   let handTo = '' // on a board's card: which free villager Send goes to, kept across re-renders
   let issuesShown = ISSUE_CARD_MAX // how far down a board's issue list we've loaded, reset per board
+  let builtId = null // which thread the Built section is about
+  let builtAt = 0 // the activity it was read at: a thread that has moved is read again
+  let built = null // the last answer, or null while it is being read
+  let builtAll = false // Show all: the whole list rather than the first few
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
@@ -37,7 +46,11 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'close') village.select(null)
-    else if (act === 'openIssue') village.openIssue(b.dataset.issue)
+    else if (act === 'file') village.openFile(builtId, b.dataset.path)
+    else if (act === 'moreFiles') {
+      builtAll = true
+      paintBuilt()
+    } else if (act === 'openIssue') village.openIssue(b.dataset.issue)
     else if (act === 'sendIssue') village.sendIssue(b.dataset.issue, card.querySelector('select[data-f="to"]')?.value || '')
     else if (act === 'recruit') {
       const bd = village.board(village.selected)
@@ -100,6 +113,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
       </div>
+      <div class="built"><h4>Built</h4>${builtSection()}</div>
       ${tasksOpen ? taskList(t) : ''}`
   }
 
@@ -115,6 +129,58 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <button class="btn link" data-act="editTasks" title="Add tasks of your own for ${esc(t.project)}">+ Edit tasks</button>
       <p class="note">${how}</p>
     </div>`
+  }
+
+  /**
+   * Read what the thread changed, unless we already have it for exactly this thread at exactly
+   * this activity. A thread that has moved on has more to show, so it is read again; the server
+   * caches on the transcript's own mtime and size, so a read that finds nothing new is cheap.
+   */
+  function ensureBuilt(t) {
+    if (builtId === t.id && builtAt === t.lastActivityAt) return
+    // A different thread: start blank. The same one, moved on: keep what is up while it re-reads.
+    if (builtId !== t.id) {
+      built = null
+      builtAll = false
+    }
+    builtId = t.id
+    builtAt = t.lastActivityAt
+    const forId = t.id
+    const forAt = t.lastActivityAt
+    village.changes(t.id).then((r) => {
+      // The selection moved on while this was in flight: that answer is about someone else now.
+      if (builtId !== forId || builtAt !== forAt) return
+      built = r
+      paintBuilt()
+    })
+  }
+
+  /** The files this session touched, most worked-over first. Clicking one opens it in the editor. */
+  function builtSection() {
+    if (!built) return '<p class="note">Reading what it changed…</p>'
+    if (!built.ok) return `<p class="note">${esc(built.error || 'Nothing to read.')}</p>`
+    const files = built.files || []
+    if (!files.length) return '<p class="note">No files changed yet.</p>'
+    const shown = builtAll ? files : files.slice(0, BUILT_MAX)
+    const rest = files.length - shown.length + (built.more || 0)
+    const row = (f) => {
+      const why = `${f.kind} · ${f.edits} edit${f.edits === 1 ? '' : 's'} · ${ago(f.at)}${f.outside ? ' · outside this repo' : ''}`
+      // A path outside the repo is shown for what it says, but there is no folder to open it under.
+      // The folder is what gives way when the card is narrow; the file's own name always shows.
+      const cut = f.path.lastIndexOf('/') + 1
+      return `<li><button class="btn link file" data-act="file" data-path="${esc(f.path)}" title="${esc(`${f.path} — ${why}`)}" ${f.outside ? 'disabled' : ''}>
+        <span class="mark">${esc(KIND_MARK[f.kind] || '·')}</span><span class="dir">${esc(f.path.slice(0, cut))}</span><span class="name">${esc(f.path.slice(cut))}</span>${f.edits > 1 ? `<span class="n">${f.edits}</span>` : ''}
+      </button></li>`
+    }
+    return `<ul class="files">${shown.map(row).join('')}</ul>${
+      rest > 0 ? `<button class="btn link" data-act="moreFiles">${rest} more</button>` : ''
+    }`
+  }
+
+  /** Redraw only the Built section, so a slow read never rebuilds the card under the pointer. */
+  function paintBuilt() {
+    const slot = card.querySelector('.built')
+    if (slot) slot.innerHTML = `<h4>Built</h4>${builtSection()}`
   }
 
   /** Sprite params in a flower's own plot's theme, so a card shows what the plot shows. */
@@ -149,7 +215,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : `<span class="note">Archived in ${esc(t.harnessName || 'Claude')}</span>`}
-      </div>`
+      </div>
+      <div class="built"><h4>Built</h4>${builtSection()}</div>`
     const c = card.querySelector('canvas.avatar')
     const g = c.getContext('2d')
     g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, themed({ color }, f.theme)), 3, 8)
@@ -274,6 +341,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         shownId = null
         return
       }
+      ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
       const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}`
       if (id !== shownId || key !== shownKey) {

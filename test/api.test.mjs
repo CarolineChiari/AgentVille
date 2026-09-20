@@ -1,7 +1,9 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import fs from 'node:fs'
 import os from 'node:os'
+import path from 'node:path'
 import { createApiMiddleware } from '../server/api.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
@@ -197,6 +199,45 @@ test('transcript endpoint needs the page origin and a harness that can read one'
   assert.equal((await r.json()).messages[0].text, 'hi')
   assert.equal((await post('/api/transcript', { harness: 'fake', ref: { sid: '2' } })).status, 404)
   assert.equal((await post('/api/transcript', { harness: 'fake', ref: { sid: '1' } }, { 'Content-Type': 'application/json' })).status, 403)
+})
+
+test('changes endpoint passes the detail flag to the harness that has one', async () => {
+  let seen
+  fakeHarness.readChanges = async (ref, opts) => ((seen = opts), ref?.sid === '1' ? { ok: true, files: [{ path: 'a.js', edits: 2 }] } : { ok: false, error: 'nope' })
+  const r = await post('/api/changes', { harness: 'fake', ref: { sid: '1' } })
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).files[0].path, 'a.js')
+  assert.equal(seen.detail, false)
+  await post('/api/changes', { harness: 'fake', ref: { sid: '1' }, detail: true })
+  assert.equal(seen.detail, true)
+  assert.equal((await post('/api/changes', { harness: 'fake', ref: { sid: '2' } })).status, 404)
+  assert.equal((await post('/api/changes', { harness: 'fake', ref: { sid: '1' } }, { 'Content-Type': 'application/json' })).status, 403)
+  delete fakeHarness.readChanges
+  assert.equal((await post('/api/changes', { harness: 'fake', ref: { sid: '1' } })).status, 400)
+})
+
+test('open-file only opens a real file inside the folder the page named', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentville-files-'))
+  fs.mkdirSync(path.join(dir, 'src'))
+  fs.writeFileSync(path.join(dir, 'src', 'a b.js'), 'x')
+  const real = fs.realpathSync(dir)
+
+  assert.equal((await post('/api/open-file', { folder: dir, path: 'src/a b.js' })).status, 200)
+  assert.equal(launched.at(-1), `vscode://file${real.split(path.sep).filter(Boolean).map((s) => '/' + encodeURIComponent(s)).join('')}/src/a%20b.js`)
+  await post('/api/open-file', { folder: dir, path: 'src/a b.js', editor: 'cursor' })
+  assert.match(launched.at(-1), /^cursor:\/\/file\//)
+  // An editor we don't know about never picks the scheme.
+  await post('/api/open-file', { folder: dir, path: 'src/a b.js', editor: 'evil' })
+  assert.match(launched.at(-1), /^vscode:\/\/file\//)
+
+  const before = launched.length
+  assert.equal((await post('/api/open-file', { folder: dir, path: '../../etc/passwd' })).status, 400)
+  assert.equal((await post('/api/open-file', { folder: dir, path: '/etc/passwd' })).status, 400)
+  assert.equal((await post('/api/open-file', { folder: dir, path: 'src' })).status, 400, 'a folder is not a file')
+  assert.equal((await post('/api/open-file', { folder: dir, path: 'src/gone.js' })).status, 400)
+  assert.equal((await post('/api/open-file', { folder: path.join(dir, 'nope'), path: 'a.js' })).status, 400)
+  assert.equal(launched.length, before, 'nothing refused ever reached the OS')
+  fs.rmSync(dir, { recursive: true, force: true })
 })
 
 test('new-session passes the prompt and model through, and runs terminal launches', async () => {
