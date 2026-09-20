@@ -72,6 +72,15 @@ test('a folder\'s own look is kept, anything that isn\'t a pair of ids is droppe
   assert.deepEqual(normalizeState({ looks: ['a'] }).looks, {})
 })
 
+test("a folder's own spot for its landmark is kept, anything that isn't one of ours is dropped", () => {
+  const s = normalizeState({
+    spots: { app: 'bottom', web: 'middle', api: 'sideways', cli: 2, ['__proto__']: 'top' },
+  })
+  assert.deepEqual(s.spots, { app: 'bottom', web: 'middle' })
+  assert.equal(Object.getPrototypeOf(s.spots), Object.prototype)
+  assert.deepEqual(normalizeState({ spots: ['top'] }).spots, {})
+})
+
 test('picks saved per theme by v0.21 and v0.22 become looks, and never override one', () => {
   const s = normalizeState({
     subthemes: { app: { construction: 'roadworks' }, web: { construction: 'high-rise', village: 'farmstead' }, api: { construction: 'x y' } },

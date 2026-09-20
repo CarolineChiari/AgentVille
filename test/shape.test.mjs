@@ -245,6 +245,13 @@ test('a landmark stands where it is asked in the field, and never high enough to
   }
 })
 
+test('a plot holds the same work wherever its landmark stands, so the layout needn’t know', () => {
+  for (const [w, h] of SHAPES) {
+    const counts = LANDMARK_SPOTS.map((spot) => at(w, h, 0, 0, spot).spots.length)
+    assert.deepEqual(counts, counts.map(() => capacityOf(w, h).flowers), `${w}×${h}: ${counts}`)
+  }
+})
+
 test('nothing is planted behind the landmark while the field has open ground', () => {
   for (const spot of LANDMARK_SPOTS) {
     for (const [w, h] of SHAPES) {

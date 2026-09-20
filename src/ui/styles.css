@@ -280,6 +280,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .sheet[hidden] { display: none; }
 .sheet h2 { margin: 0 0 10px; font-size: 14px; }
 .sheet label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; }
+/* A select sizes itself to its longest option; without this a wordy one grew out past the sheet. */
+.sheet select { min-width: 0; max-width: 60%; }
 .sheet input[type='range'] { width: 140px; }
 .sheet table { width: 100%; font-size: 12px; border-collapse: collapse; }
 .sheet td { padding: 3px 0; color: var(--muted); }

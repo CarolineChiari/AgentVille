@@ -503,6 +503,21 @@ test('standing the landmarks elsewhere in their fields moves them, and the work 
   assert.deepEqual({ ...w.plots.get('a').landmarkRect }, head)
 })
 
+test('a folder can stand its landmark somewhere of its own, and its neighbours are left alone', () => {
+  const w = new World()
+  const flowers = Array.from({ length: 240 }, (_, i) => F(`f${i}`))
+  const gardens = new Map([['a', flowers], ['b', flowers]])
+  w.setRoster([T('t1', 'a'), T('t2', 'b')], undefined, gardens)
+  const head = { a: { ...w.plots.get('a').landmarkRect }, b: { ...w.plots.get('b').landmarkRect } }
+  assert.equal(w.setLandmarkSpot('top', new Map([['a', 'bottom']])), true)
+  assert.ok(w.landmark('a').y > head.a.y, 'the folder that picked kept its landmark where it was')
+  assert.deepEqual({ ...w.plots.get('b').landmarkRect }, head.b, 'a neighbour moved with it')
+  // A pick we don't know stands where the village's stand, not at the default spot.
+  assert.equal(w.setLandmarkSpot('middle', new Map([['a', 'nowhere']])), true)
+  const downIn = (name) => w.plots.get(name).landmarkRect.y - w.plots.get(name).shape.bed.y
+  assert.equal(downIn('a'), downIn('b'), 'a pick we don’t know left that plot somewhere of its own')
+})
+
 test('a landmark present at load is standing; a tier that rises later goes up with confetti', () => {
   const w = new World()
   // Done: it stands still at its door, so the confetti over it is still over it a moment later.

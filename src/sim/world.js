@@ -5,7 +5,7 @@ import { key, ringOf } from './grid.js'
 import { allocatePlots } from './layout.js'
 import { Nav } from './nav.js'
 import { DECO, Plot, TILE } from './plot.js'
-import { DEFAULT_SPOT, landmarkSpotOf } from './shape.js'
+import { DEFAULT_SPOT, isSpot, landmarkSpotOf } from './shape.js'
 import { Building } from './building.js'
 import { CHEER_EVERY, Landmark } from './landmark.js'
 import { Villager } from './villager.js'
@@ -76,7 +76,8 @@ export class World {
     this.theme = DEFAULT_THEME
     this.picks = new Map() // plot name → the look its folder picked: { theme, sub }, of any theme
     this.everywhere = null // the sub-theme of `theme` every folder without a pick of its own wears, if any
-    this.spot = DEFAULT_SPOT // where every plot stands its landmark in its field
+    this.spot = DEFAULT_SPOT // where a plot stands its landmark in its field, unless it picked somewhere
+    this.spotPicks = new Map() // plot name → the spot its folder picked for itself
     this._rebuild()
   }
 
@@ -102,22 +103,31 @@ export class World {
   }
 
   /**
-   * Stand every plot's landmark at `spot` in its field (see shape.js). The field is laid out round
-   * it, so this moves the flowers in it too; the next roster puts them back in their new places.
+   * Stand each plot's landmark in its field (see shape.js): at `spot`, or where its folder picked
+   * for itself. A plot's field is laid out round its landmark, so a landmark that moves moves the
+   * flowers with it; the next roster puts them in their new places.
    * @param {string} spot  one of LANDMARK_SPOTS
+   * @param {Map<string, string>} [picks]  plot name → the spot that folder picked
    * @returns {boolean} whether anything moved
    */
-  setLandmarkSpot(spot) {
-    const next = landmarkSpotOf(spot)
-    if (next === this.spot) return false
-    this.spot = next
+  setLandmarkSpot(spot, picks = new Map()) {
+    this.spot = landmarkSpotOf(spot)
+    this.spotPicks = picks
+    let dirty = false
     for (const [name, plot] of this.plots) {
-      plot.setSpot(next)
+      if (!plot.setSpot(this._spotFor(name))) continue
+      dirty = true
       const { x, y } = plot.landmarkRect
       this.landmarks.get(name)?.place(x, y)
     }
-    this._rebuild()
-    return true
+    if (dirty) this._rebuild()
+    return dirty
+  }
+
+  /** Where a folder stands its landmark: the spot it picked, else the village's. */
+  _spotFor(name) {
+    const own = this.spotPicks.get(name)
+    return isSpot(own) ? own : this.spot
   }
 
   /** A folder's style: in the look it picked, else in the village's theme as the sub-theme it's handed. */
@@ -161,7 +171,7 @@ export class World {
     // A repo whose threads are all finished still has its garden, so it keeps its plot.
     const names = new Set([...groups.keys(), ...[...gardens].filter(([, f]) => f.length).map(([n]) => n)])
     const projects = [...names].map((name) => ({ name, size: groups.get(name)?.length ?? 0, garden: gardens.get(name)?.length ?? 0 }))
-    const { cells, memory: nextMemory } = allocatePlots(projects, this.memory, this.spot)
+    const { cells, memory: nextMemory } = allocatePlots(projects, this.memory)
     this.memory = nextMemory
 
     // Plots.
@@ -175,7 +185,7 @@ export class World {
     for (const [name, c] of cells) {
       let plot = this.plots.get(name)
       if (!plot) {
-        plot = new Plot(name, this._accentFor(name), this._styleFor(name), this.spot)
+        plot = new Plot(name, this._accentFor(name), this._styleFor(name), this._spotFor(name))
         this.plots.set(name, plot)
       }
       if (plot.setCells(c)) dirty = true

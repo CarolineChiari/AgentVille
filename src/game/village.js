@@ -12,11 +12,12 @@ import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../sim/themes.js'
+import { isSpot } from '../sim/shape.js'
 
 const SAVE_DELAY = 500
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, progress: {}, settings: null,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, spots: {}, progress: {}, settings: null,
   updatedAt: 0,
 })
 
@@ -179,7 +180,7 @@ export class Village {
     this._pinBoards()
     const grown = this._grow(now)
     if (grown.changed) dirty = true
-    this.world.setLandmarkSpot(this.settings.landmarkSpot)
+    this.world.setLandmarkSpot(this.settings.landmarkSpot, this._spots())
     this.world.setTheme(this.theme, this._picks(), this._everywhere())
     const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards, grown.tiers)
     const plots = Object.fromEntries(memory)
@@ -647,6 +648,13 @@ export class Village {
     return out
   }
 
+  /** Each folder's own spot for its landmark, where it picked one. */
+  _spots() {
+    const out = new Map()
+    for (const [project, spot] of Object.entries(this.state.spots || {})) if (isSpot(spot)) out.set(project, spot)
+    return out
+  }
+
   /** The sub-theme every folder without its own look wears, if the settings (or a preview) name one. */
   _everywhere() {
     return this.preview?.sub || this.settings.subthemes?.[this.theme] || null
@@ -678,6 +686,26 @@ export class Village {
     if (isLook(look)) looks[project] = { theme: look.theme, sub: look.sub }
     else delete looks[project]
     this.state.looks = looks
+    this.queueSave()
+    this.apply()
+  }
+
+  /** The spot a folder picked for its landmark, or null if it stands where the village's do. */
+  spotPick(project) {
+    const spot = this.state.spots?.[project]
+    return isSpot(spot) ? spot : null
+  }
+
+  /**
+   * Stand one folder's landmark at `spot` in its field, or with null let it stand where the
+   * village's do. It keeps its spot whatever the village's becomes.
+   */
+  setSpot(project, spot) {
+    if (!project) return
+    const spots = { ...this.state.spots }
+    if (isSpot(spot)) spots[project] = spot
+    else delete spots[project]
+    this.state.spots = spots
     this.queueSave()
     this.apply()
   }

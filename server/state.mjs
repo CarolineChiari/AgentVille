@@ -17,6 +17,7 @@ export function emptyState() {
     viewedAt: {},
     tasks: {},
     looks: {},
+    spots: {},
     progress: {},
     settings: null,
     updatedAt: 0,
@@ -86,6 +87,20 @@ const lookMap = (v, old) => {
 }
 
 /**
+ * Where a folder can stand its landmark in its field, as LANDMARK_SPOTS in src/sim/shape.js has
+ * them. Copied rather than imported, for the same reason as THEME_ID.
+ */
+const SPOTS = new Set(['top', 'middle', 'bottom'])
+
+/** Repo name → where that folder stands its landmark, where it picked somewhere of its own. */
+const spotMap = (v) => {
+  const out = {}
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out
+  for (const [k, spot] of Object.entries(v)) if (k !== '__proto__' && SPOTS.has(spot)) out[k] = spot
+  return out
+}
+
+/**
  * The highest tier of landmark, as MAX_TIER in src/sim/progress.js has it. Copied rather than
  * imported, for the same reason as THEME_ID.
  */
@@ -117,6 +132,7 @@ export function normalizeState(raw) {
     viewedAt: numberMap(s.viewedAt),
     tasks: taskMap(s.tasks),
     looks: lookMap(s.looks, s.subthemes),
+    spots: spotMap(s.spots),
     progress: progressMap(s.progress),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,

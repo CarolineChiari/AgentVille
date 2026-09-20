@@ -43,8 +43,10 @@ const LANDMARK_RISE = (72 - LANDMARK_H * PX + 2) / PX
  */
 export const LANDMARK_SPOTS = ['top', 'middle', 'bottom']
 export const DEFAULT_SPOT = LANDMARK_SPOTS[0]
-/** A spot, if it is one of ours: a saved setting is not to be trusted. */
-export const landmarkSpotOf = (spot) => (typeof spot === 'string' && LANDMARK_SPOTS.includes(spot) ? spot : DEFAULT_SPOT)
+/** Is this one of our spots? A saved setting, or a folder's own pick, is not to be trusted. */
+export const isSpot = (spot) => typeof spot === 'string' && LANDMARK_SPOTS.includes(spot)
+/** A spot, if it is one of ours; the default otherwise. */
+export const landmarkSpotOf = (spot) => (isSpot(spot) ? spot : DEFAULT_SPOT)
 /**
  * Columns of the top and bottom fence left open, in each cell. They land on the paths between
  * top-row houses (columns 4, 7, 10, … of the plot), so a gap never opens onto a wall.
@@ -146,11 +148,16 @@ export function shapeOf({ cx, cy, w, h }, spot = DEFAULT_SPOT) {
 }
 
 const capacities = new Map()
-/** How many houses and flowers a plot of w×h cells holds, its landmark standing at `spot`. */
-export function capacityOf(w, h, spot = DEFAULT_SPOT) {
-  const k = `${w}x${h}:${landmarkSpotOf(spot)}`
+/**
+ * How many houses and flowers a plot of w×h cells holds. It holds the same wherever its landmark
+ * stands: the footprint covers a whole number of flower rows and columns, and the spots the
+ * landmark hides are kept, only taken last. test/shape.test.mjs holds that true, and if it ever
+ * parts this and layout.js have to be told where each plot's landmark stands.
+ */
+export function capacityOf(w, h) {
+  const k = `${w}x${h}`
   if (!capacities.has(k)) {
-    const s = shapeOf({ cx: 0, cy: 0, w, h }, spot)
+    const s = shapeOf({ cx: 0, cy: 0, w, h })
     capacities.set(k, { slots: s.slots.length, flowers: s.spots.length })
   }
   return capacities.get(k)

@@ -20,8 +20,13 @@ const COUNT_KEYS = [
   ['sleeping', 'Asleep'],
 ]
 
-/** Where a plot can stand its landmark in its field, as the settings put it; the ids are shape.js's. */
+/**
+ * Where a plot can stand its landmark in its field; the ids are shape.js's. Short: the field is
+ * named in the label beside the picker, and a theme can call it a setting-out yard or a lantern
+ * grove, which spilled a picker that spelled the whole thing out.
+ */
 const SPOT_LABELS = [['top', 'At the head'], ['middle', 'In the middle'], ['bottom', 'At the foot']]
+const spotLabel = (id) => (SPOT_LABELS.find(([s]) => s === id) || SPOT_LABELS[0])[1]
 
 /** Tooltips for the counts that aren't a villager's status. */
 const COUNT_TITLE = { openPrs: 'Open pull requests', openIssues: 'Open issues on the notice boards' }
@@ -146,6 +151,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
+      ${spotPicker(r.name)}
       ${landmark(r)}
       ${r.flowers ? `<div class="garden-note">${esc(words.glyph)} ${r.flowers} finished — click a ${esc(words.one)} in the ${esc(words.place)} to look back</div>` : ''}
       <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
@@ -195,6 +201,15 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <select data-look="${esc(name)}"><option value="" ${picked ? '' : 'selected'}>Auto: ${esc(subLabel(handed.theme, handed.sub))}</option>${groups}</select></label>`
   }
 
+  /** Where this folder stands its landmark: where the village's stand (Auto), or a spot of its own. */
+  function spotPicker(name) {
+    const picked = village.spotPick(name) || ''
+    const theme = village.lookOf(name).theme
+    const options = SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === picked ? 'selected' : ''}>${esc(label)}</option>`).join('')
+    return `<label class="look" title="Where this plot stands its ${esc(landmarkWords(theme).one)} in its ${esc(finishedWords(theme).place)}: where the village's stand, or somewhere of its own">Landmark
+      <select data-spot="${esc(name)}"><option value="" ${picked ? '' : 'selected'}>Auto: ${esc(spotLabel(landmarkSpotOf(settings.landmarkSpot)))}</option>${options}</select></label>`
+  }
+
   function renderSheet() {
     if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
@@ -210,8 +225,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
           <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
         <label title="Every folder that hasn't picked a look of its own, from its panel">Every folder
           <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
-        <label title="Where every plot stands the ${esc(landmarkWords(theme).one)} its work has raised. At the head of the ${esc(place)} it hides none of the ${esc(finishedWords(theme).many)} growing there.">Landmarks stand
-          <select data-set="landmarkSpot">${SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === spot ? 'selected' : ''}>${esc(`${label} of the ${place}`)}</option>`).join('')}</select></label>
+        <label title="Where every plot stands the ${esc(landmarkWords(theme).one)} its work has raised, unless the folder picked somewhere of its own. At the head of the ${esc(place)} it hides none of the ${esc(finishedWords(theme).many)} growing there.">Landmarks stand
+          <select data-set="landmarkSpot">${SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === spot ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
@@ -295,11 +310,12 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   })
 
   side.addEventListener('change', (e) => {
-    const name = e.target.dataset?.look
-    if (name === undefined) return
+    const { look: lookName, spot: spotName } = e.target.dataset || {}
+    if (lookName === undefined && spotName === undefined) return
     e.target.blur()
+    if (spotName !== undefined) return village.setSpot(spotName, e.target.value || null)
     const [theme, sub] = e.target.value.split('/')
-    village.setLook(name, e.target.value ? { theme, sub } : null)
+    village.setLook(lookName, e.target.value ? { theme, sub } : null)
   })
   side.addEventListener('focusout', (e) => {
     if (stale && e.target.tagName === 'SELECT') requestAnimationFrame(render)
