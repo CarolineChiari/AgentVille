@@ -210,6 +210,13 @@ test('changes endpoint passes the detail flag to the harness that has one', asyn
   assert.equal(seen.detail, false)
   await post('/api/changes', { harness: 'fake', ref: { sid: '1' }, detail: true })
   assert.equal(seen.detail, true)
+  // `path` asks for one file's own text; it is a string, and a bounded one.
+  await post('/api/changes', { harness: 'fake', ref: { sid: '1' }, path: 'src/a.js' })
+  assert.equal(seen.path, 'src/a.js')
+  await post('/api/changes', { harness: 'fake', ref: { sid: '1' }, path: 'x'.repeat(900) })
+  assert.equal(seen.path.length, 400)
+  await post('/api/changes', { harness: 'fake', ref: { sid: '1' }, path: ['src/a.js'] })
+  assert.equal(seen.path, '', 'anything that is not a string asks for no file at all')
   assert.equal((await post('/api/changes', { harness: 'fake', ref: { sid: '2' } })).status, 404)
   assert.equal((await post('/api/changes', { harness: 'fake', ref: { sid: '1' } }, { 'Content-Type': 'application/json' })).status, 403)
   delete fakeHarness.readChanges
