@@ -235,14 +235,14 @@ export function createApiMiddleware(opts = {}) {
         return [400, { ok: false, error: 'Not a URL.' }]
       }
       if (u.protocol !== 'https:' || u.hostname !== 'github.com') return [400, { ok: false, error: 'Only GitHub links can be opened.' }]
-      const launched = opener.launch(u.href)
+      const launched = await opener.launch(u.href)
       return launched.ok ? [200, { ok: true }] : [500, launched]
     },
 
     'POST /api/reveal': async (body) => {
       const dir = await resolveFolder(body?.folder)
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
-      const launched = opener.reveal(dir)
+      const launched = await opener.reveal(dir)
       return launched.ok ? [200, { ok: true }] : [500, launched]
     },
   }

@@ -1,10 +1,11 @@
 // The desktop app: the same server `npm start` runs, started inside Electron's main process, and
 // one window pointed at it. The page is the ordinary web build; it gets no Node and no preload.
-import { app, BrowserWindow, nativeImage } from 'electron'
+import { app, BrowserWindow, nativeImage, shell } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
 import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from './env.mjs'
 import { createServer } from '../server/index.mjs'
+import { createShellOpener } from '../server/opener.mjs'
 import { APP_BG } from '../src/render/sprites/palette.js'
 
 // Two copies would fight over the port and over data/village.json.
@@ -20,7 +21,10 @@ let server = null
 const dataDir = () => path.join(app.getPath('userData'), 'data')
 
 async function startServer() {
-  const opts = { host: '127.0.0.1', dataDir: dataDir(), log: null }
+  // Opening links through the main process, not a spawned launcher: on Windows only the
+  // foreground process may hand focus to the window it opens, and when you click it is this one.
+  const opener = createShellOpener({ openExternal: (url) => shell.openExternal(url), openPath: (dir) => shell.openPath(dir) })
+  const opts = { host: '127.0.0.1', dataDir: dataDir(), log: null, opener }
   let s = createServer({ port: APP_PORT, ...opts })
   try {
     return { s, url: await s.ready }
