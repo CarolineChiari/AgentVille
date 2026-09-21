@@ -182,6 +182,44 @@ export const THEMES = {
     // roofed gate, the old oak, a witch's tower, and a belfry with bats pouring out of it.
     landmark: { one: 'landmark', tiers: ['Lantern heap', 'Scarecrow', 'Lych-gate', 'Gnarled oak', "Witch's tower", 'Belfry'] },
   },
+  seaside: {
+    label: 'Seaside harbour',
+    dims: {
+      fence: ['rope', 'net', 'groyne', 'railing'],
+      yard: ['sand', 'shingle', 'boardwalk', 'harbourstone'],
+      wall: ['clinker', 'limewash', 'tarboard', 'seastone', 'corrugated'],
+      // Paint for the boats, huts and doors: cobalt, harbour red, buoy yellow, mint, gull white,
+      // coral, slate blue, teal, in five families of three (PAINT_FAMILIES in the pack).
+      roofs: 5,
+    },
+    subthemes: [
+      { id: 'fishing-harbour', label: 'Fishing harbour', blurb: 'Wet quay flags, nets on the fence, lobster pots stacked along the wall', fence: ['net', 'rope'], yard: ['harbourstone', 'boardwalk'], wall: ['clinker', 'tarboard'], roofs: [0] },
+      { id: 'beach-huts', label: 'Beach huts', blurb: 'Rows of brightly painted huts on the sand behind a rope walk', fence: ['rope', 'railing'], yard: ['sand'], wall: ['clinker'], roofs: [2] },
+      { id: 'lighthouse-point', label: 'Lighthouse point', blurb: 'Whitewash and shore stone on the shingle, a railing along the point', fence: ['railing'], yard: ['shingle', 'harbourstone'], wall: ['limewash', 'seastone'], roofs: [4] },
+      { id: 'boatyard', label: 'Boatyard', blurb: 'Tarred sheds and galvanised roofs, hulls on the slipway, rope and sawdust', fence: ['groyne', 'net'], yard: ['boardwalk', 'shingle'], wall: ['tarboard', 'corrugated'], roofs: [3], outfit: { vest: 1 } },
+      { id: 'cliff-cottages', label: 'Cliffside cottages', blurb: 'Whitewashed cottages above the shore, railings and steps down to it', fence: ['railing', 'rope'], yard: ['shingle', 'sand'], wall: ['limewash', 'seastone'], roofs: [1] },
+    ],
+    auto: ['fishing-harbour', 'beach-huts', 'lighthouse-point', 'boatyard', 'cliff-cottages'],
+    outfit: { hat: 'souwester', top: 'oilskin' },
+    // Finished work is set out on the strand above the tide, the way a day's beachcombing is laid
+    // out on a windowsill: what it is says what kind of work it was, and a mooring buoy or a net
+    // float is as much a find here as a shell. An open PR is still half buried in the sand. The
+    // glyph is a ribbed disc, which is what a sand dollar is, and is none of the village's ✿, the
+    // site's ⚐, the elves' ✦ or the open issues' ⚑.
+    finished: {
+      one: 'shell', many: 'shells', place: 'strand', glyph: '❂', grow: 'Gather shells for pull requests',
+      names: {
+        fix: 'Scallop', feature: 'Conch', refactor: 'Razor shell', docs: 'Cuttlebone', test: 'Cowrie',
+        ui: 'Starfish', infra: 'Mooring buoy', data: 'Net float', perf: 'Whelk', review: 'Abalone',
+        research: 'Nautilus', misc: 'Sea glass',
+      },
+    },
+    // What a plot's work raises above the tide line: a post to tie up to, then a boat hauled up on
+    // the shingle, the fog bell on its frame, a derrick on the quay, the pier light, and the
+    // lighthouse itself with its beam going round. None of them is one of the harbour's own
+    // houses made bigger: a net loft and a lookout are already what threads build here.
+    landmark: { one: 'landmark', tiers: ['Mooring post', 'Beached boat', 'Harbour bell', 'Quay derrick', 'Harbour light', 'Lighthouse'] },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
