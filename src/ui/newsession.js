@@ -16,6 +16,16 @@ export function pick(list, remembered, key = 'id') {
   return list.find((x) => x[key] === remembered) || list[0] || null
 }
 
+/**
+ * The folder a path sits in, '' when it has none. Either separator, so a Windows path splits too.
+ * The browser starts beside the chosen repo, where the folders with no session yet usually are.
+ */
+export function parentOf(p) {
+  const trimmed = String(p || '').replace(/[\\/]+$/, '')
+  const i = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'))
+  return i > 0 ? trimmed.slice(0, i) : i === 0 ? trimmed.slice(0, 1) : ''
+}
+
 const options = (list, selected) => list.map(([v, l]) => `<option value="${esc(v)}" ${v === selected ? 'selected' : ''}>${esc(l)}</option>`).join('')
 
 export function createNewSession(root, village, { onRemember = () => {} } = {}) {
@@ -45,7 +55,13 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
           ${folders.map((f) => `<option value="${esc(f.path)}" ${f.path === pre ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}
           <option value="${OTHER}" ${pre === OTHER ? 'selected' : ''}>Another folder…</option>
         </select></label>
-      <input type="text" data-f="other" placeholder="/full/path/to/folder" ${pre === OTHER ? '' : 'hidden'} spellcheck="false">
+      <div data-f="elsewhere" ${pre === OTHER ? '' : 'hidden'}>
+        <input type="text" data-f="other" placeholder="/full/path/to/folder" spellcheck="false">
+        <div class="browse">
+          <div class="browse-head"><button class="btn" data-act="up" title="The folder above">↑</button><span data-f="where"></span></div>
+          <ul data-f="list"></ul>
+        </div>
+      </div>
       <label class="stack" ${list.length > 1 ? '' : 'hidden'}>Agent
         <select data-f="harness">${options(list.map((x) => [x.id, x.name]), h.id)}</select></label>
       <div class="menus" data-f="row"></div>
@@ -56,6 +72,34 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <div class="actions"><button class="btn primary" data-act="start">Start<kbd>${submitKey()}</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
     renderTargets()
     renderChips()
+    if (pre === OTHER) browse('')
+  }
+
+  // Browsing: the folder shown, and which listing is the latest so a slow one can't land over it.
+  let shown = { path: '', parent: '' }
+  let asked = 0
+  /** Show the folders inside `dir` (home when blank) and make it the folder a session starts in. */
+  async function browse(dir, { fallback = true } = {}) {
+    const n = ++asked
+    const r = await village.listFolders(dir)
+    if (n !== asked || box.hidden) return
+    const list = box.querySelector('[data-f="list"]')
+    if (!list) return
+    if (!r?.ok) {
+      if (fallback && dir) return browse('', { fallback: false })
+      list.innerHTML = `<li class="empty">${esc(r?.error || 'Nothing to show here.')}</li>`
+      return
+    }
+    shown = r
+    box.querySelector('[data-f="other"]').value = r.path
+    box.querySelector('[data-f="where"]').textContent = r.path
+    box.querySelector('[data-act="up"]').disabled = !r.parent
+    const known = new Set(village.knownFolders().map((f) => f.path))
+    list.innerHTML = r.folders.length
+      ? r.folders.map((f) => `<li><button data-act="into" data-path="${esc(f.path)}">${esc(f.name)}${known.has(f.path) ? '<span class="has">has sessions</span>' : ''}</button></li>`).join('') +
+        (r.more ? '<li class="empty">More folders than fit here — type the path.</li>' : '')
+      : '<li class="empty">No folders inside this one.</li>'
+    list.scrollTop = 0
   }
 
   /** The chosen repo's tasks: the built-in ones, then its own. Another folder gets the built-ins. */
@@ -127,9 +171,18 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     else if (f === 'target') renderChoices(village.settings.newModel, village.settings.newEffort)
     if (f === 'folder') {
       renderChips()
-      const other = box.querySelector('[data-f="other"]')
-      other.hidden = e.target.value !== OTHER
-      if (!other.hidden) other.focus()
+      const elsewhere = box.querySelector('[data-f="elsewhere"]')
+      const was = elsewhere.hidden
+      elsewhere.hidden = e.target.value !== OTHER
+      if (was && !elsewhere.hidden) {
+        // Beside the folders the village knows, where a repo with no session yet most likely is.
+        const known = village.knownFolders()
+        browse(known.length ? parentOf(known[0].path) : '')
+        box.querySelector('[data-f="other"]').focus()
+      }
+    } else if (f === 'other') {
+      const typed = e.target.value.trim()
+      if (typed && typed !== shown.path) browse(typed, { fallback: false })
     }
   })
   box.addEventListener('click', (e) => {
@@ -139,12 +192,20 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       const id = e.target.closest('[data-task]').dataset.task
       p.value = village.tasksFor(project()).find((x) => x.id === id)?.prompt || p.value
       p.focus()
-    } else if (act === 'start') start()
+    } else if (act === 'into') browse(e.target.closest('[data-path]').dataset.path)
+    else if (act === 'up' && shown.parent) browse(shown.parent)
+    else if (act === 'start') start()
     else if (act === 'cancel') close()
   })
   box.addEventListener('keydown', (e) => {
     e.stopPropagation() // typing here must not steer the village
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) start()
+    else if (e.key === 'Enter' && e.target.dataset.f === 'other') {
+      // Enter in the path box goes to that folder; starting stays on ⌘↵.
+      e.preventDefault()
+      const typed = e.target.value.trim()
+      if (typed) browse(typed, { fallback: false })
+    }
     else if (e.key === 'Escape') close()
   })
 

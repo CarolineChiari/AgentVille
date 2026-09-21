@@ -329,3 +329,13 @@ test('the version endpoint says what is running and what has been released', asy
   assert.equal(opened.status, 200)
   assert.equal(launched.at(-1), body.url)
 })
+
+test('folders lists what is inside a folder, and only for this page', async () => {
+  fs.mkdirSync(path.join(home, 'fresh-repo'), { recursive: true })
+  const r = await post('/api/folders', { folder: home })
+  assert.equal(r.status, 200)
+  assert.ok((await r.json()).folders.some((f) => f.name === 'fresh-repo'))
+  assert.equal((await post('/api/folders', { folder: 'relative' })).status, 400)
+  assert.equal((await post('/api/folders', { folder: home }, { 'Content-Type': 'application/json' })).status, 403)
+  assert.equal((await fetch(`${base}/api/folders`)).status, 404)
+})

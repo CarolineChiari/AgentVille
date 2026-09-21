@@ -63,6 +63,7 @@ this way. Switch to the Claude app under Settings → Open threads in.
 | Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows) |
 
 | Your repos | The files in each git repository a session works in, to count its lines of code for its landmark. A folder that isn't a repository (your home, Documents, Downloads) is never walked. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
+| Folder names | Only while you browse under **Another folder…** in the new-session form: the names of the folders inside the one you're looking at, so a session can start in a folder no session has been in yet. Nothing inside them is read |
 
 Only ever read. Nothing in a repo is ever run: its lines are counted by reading its files, and
 the counts are kept in `data/repos.json`, refreshed every half hour.

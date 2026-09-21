@@ -9,6 +9,7 @@ import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
 import { createIssueStore, createPrStore, createReleaseStore } from './github.mjs'
 import { createRepoStore } from './repo.mjs'
 import { openInTerminal } from './terminal.mjs'
+import { listFolders } from './folders.mjs'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
@@ -195,6 +196,16 @@ export function createApiMiddleware(opts = {}) {
       if (!h) return [400, { ok: false, error: 'No harness to start a session with.' }]
       const str = (v) => (typeof v === 'string' ? v : '')
       return startIn(h, dir, { target: body?.target, prompt: str(body?.prompt), model: str(body?.model), effort: str(body?.effort) })
+    },
+
+    /**
+     * The folders inside one, for starting a session somewhere no session has been yet. POST for
+     * the transcript's reason: what is on this machine is private, and POST makes the Origin mandatory.
+     */
+    'POST /api/folders': async (body) => {
+      const folder = typeof body?.folder === 'string' ? body.folder : ''
+      const r = await listFolders(folder)
+      return [r.ok ? 200 : 400, r]
     },
 
     /**

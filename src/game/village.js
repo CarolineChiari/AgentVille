@@ -909,6 +909,12 @@ export class Village {
     return [...seen].map(([path, name]) => ({ path, name })).sort((a, b) => a.name.localeCompare(b.name))
   }
 
+  /** The folders inside `folder` (home when blank), for starting a session where none has been. */
+  async listFolders(folder = '') {
+    if (this.demo) return { ok: false, error: 'Demo mode has no folders to browse.' }
+    return api.listFolders(folder)
+  }
+
   async transcript(id, limit) {
     const t = this.thread(id)
     if (!t) return { ok: false, error: 'Unknown thread.' }
