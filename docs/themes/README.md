@@ -131,6 +131,40 @@ coming. Costume stays on the hat and the cape.
 
 ![The demo village on Halloween night](../screenshots/halloween.png)
 
+---
+
+## Seaside harbour · `seaside`
+
+A working harbour: quay flags and boardwalks, nets drying on the fences, lobster pots stacked along
+the wall, and a lighthouse standing over the plot that has done the most.
+
+![Five plots side by side in a seaside harbour: a fishing harbour of wet quay flags behind drying nets, a row of painted beach huts on the sand, a lighthouse point of whitewash and shore stone on the shingle, a boatyard of tarred sheds behind groyne baulks, and cliffside cottages of whitewash above the shore](seaside.png)
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Fishing harbour | `fishing-harbour` | Wet quay flags, nets on the fence, lobster pots stacked along the wall |
+| Beach huts | `beach-huts` | Rows of brightly painted huts on the sand behind a rope walk |
+| Lighthouse point | `lighthouse-point` | Whitewash and shore stone on the shingle, a railing along the point |
+| Boatyard | `boatyard` | Tarred sheds and galvanised roofs, hulls on the slipway, rope and sawdust |
+| Cliffside cottages | `cliff-cottages` | Whitewashed cottages above the shore, railings and steps down to it |
+
+**Built from** — fences: rope on bollards, drying net, groyne baulks, painted railing · ground:
+sand, shingle, boardwalk decking, wet quay flags · walls: painted clinker boarding, limewash,
+tarred boarding, shore stone, galvanised sheet · five families of paint.
+**Finished work**: a **shell** set out on the **strand** (❂) — a scallop for a bug fix, a
+cuttlebone for docs, a net float for data work, a nautilus for research, a mooring buoy for
+infrastructure. An open pull request's find is still half buried in the sand.
+**Work clothes**: a sou'wester and an oilskin, yellow on most crews and navy in the boatyard.
+**Landmark**: a mooring post, a boat hauled up on the shingle, the fog bell on its frame, a quay
+derrick with a crate on the hook, the pier light, and the lighthouse itself with its beam going
+round; the fence line gets a painted lamp post, a slatted bench, a half-barrel of marram grass or
+sea thrift, and two posts hung with signal flags and floats.
+**Drawn its own way**: the birds over a harbour are gulls, since the whole village's theme is what
+the renderer asks a bird for. The open water between the plots and the arrival square stay the
+village's, so a harbour plot can stand in any village.
+
+![The demo village as a seaside harbour](../screenshots/seaside.png)
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).

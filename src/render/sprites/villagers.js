@@ -54,12 +54,17 @@ function colours(look) {
       // A witch's hat is felt-black whoever wears it, for the same reason: in a villager's own
       // hat colour it read as a party hat rather than as a witch's.
       : kind === 'witchhat' ? P.felt
-        : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+        // A sou'wester is cut from the same oilskin as the coat under it, so it takes the crew's
+        // colour like the coat does: in a villager's own hat colour it read as a bonnet.
+        : kind === 'souwester' ? P.oilskin[(look.vest || 0) % P.oilskin.length]
+          : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
   const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
   // A theme's second uniform colour, on the same draw as the vest's: greenleaf or twilight.
   const cloak = P.elfCloak[(look.vest || 0) % P.elfCloak.length]
   // And again for a Halloween cape: a witch's purple or a vampire's crimson.
   const cape = P.cape[(look.vest || 0) % P.cape.length]
+  // And again for an oilskin: the harbour's yellow or the boatyard's navy.
+  const oil = P.oilskin[(look.vest || 0) % P.oilskin.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -74,6 +79,7 @@ function colours(look) {
     vest, vestS: shade(vest, -0.18),
     cloak, cloakS: shade(cloak, -0.22), cloakL: shade(cloak, 0.2),
     cape, capeS: shade(cape, -0.25), capeL: shade(cape, 0.2),
+    oil, oilS: shade(oil, -0.24), oilL: shade(oil, 0.22),
   }
 }
 
@@ -413,6 +419,34 @@ function hat(pc, c, look, dy, view) {
     pc.px(4 + dx, 4 + dy, P.feltLight)
     pc.px(7 + dx, 4 + dy, P.boneWhite)
     pc.px(8 + dx, 4 + dy, P.boneShade)
+  } else if (kind === 'souwester') {
+    // A sou'wester: a soft oiled crown, a brim turned down over the eyes, and a long flap at the
+    // back that keeps the rain out of the collar. The brim is only two rows deep at the front: a
+    // wide brim all round read as the straw hat rather than as oilskin.
+    pc.rect(5, 1 + dy, 6, 4, c.hat)
+    pc.hline(6, 9, 0 + dy, c.hat)
+    pc.px(6, 1 + dy, c.hatL)
+    if (side) {
+      pc.hline(1, 11, 5 + dy, c.hat)
+      pc.hline(1, 5, 6 + dy, c.hatS) // the brim, out over the face
+      // The flap, hanging down the back of the neck.
+      pc.rect(10, 5 + dy, 2, 5, c.hatS)
+      pc.vline(11, 6 + dy, 9 + dy, c.hat)
+      pc.px(4, 3 + dy, c.hatL)
+    } else {
+      pc.hline(3, 12, 5 + dy, c.hat)
+      pc.hline(3, 12, 6 + dy, c.hatS)
+      if (view === 'back') {
+        // From behind it is all flap: the crown and the cloth over the shoulders.
+        pc.rect(4, 5 + dy, 8, 5, c.hat)
+        pc.hline(4, 11, 9 + dy, c.hatS)
+        pc.vline(4, 5 + dy, 9 + dy, c.hatL)
+      } else {
+        // The ears of the flap, showing either side of the face under the brim.
+        for (const x of [3, 12]) pc.vline(x, 6 + dy, 8 + dy, c.hatS)
+        pc.px(7, 5 + dy, c.hatL)
+      }
+    }
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
@@ -494,6 +528,26 @@ function topFront(pc, c, look, dy, back) {
       pc.px(8, 12 + dy, P.boneShade)
     }
   }
+  if (t === 'oilskin') {
+    // An oilskin smock: heavy oiled cloth from the shoulders to below the waist, the hem turned
+    // and the shoulders wet-bright. Open at the neck like the hi-vis, so the shirt colour that
+    // tells one villager from the next still shows.
+    pc.rect(4, 12 + dy, 8, 7, c.oil)
+    pc.hline(4, 11, 12 + dy, c.oilL)
+    pc.vline(11, 12 + dy, 18 + dy, c.oilS)
+    pc.hline(4, 11, 18 + dy, c.oilS)
+    if (back) {
+      // A yoke across the shoulders, which is where an oilskin is doubled.
+      pc.hline(4, 11, 14 + dy, c.oilS)
+      pc.hline(5, 10, 15 + dy, c.oilL)
+    } else {
+      pc.px(7, 12 + dy, c.shirt)
+      pc.px(8, 12 + dy, c.shirtS)
+      pc.vline(8, 13 + dy, 17 + dy, c.oilS) // the storm flap down the front
+      pc.px(7, 14 + dy, P.brass) // and its clasps
+      pc.px(7, 17 + dy, P.brass)
+    }
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -536,6 +590,15 @@ function topSide(pc, c, look, dy) {
     pc.px(11, 10 + dy, c.cape)
     pc.hline(6, 10, 12 + dy, c.capeL)
     pc.px(5, 12 + dy, P.boneWhite)
+  }
+  if (t === 'oilskin') {
+    // Side on, the smock is a panel from shoulder to hem with the yoke at the shoulder.
+    pc.rect(6, 12 + dy, 5, 7, c.oil)
+    pc.hline(6, 10, 12 + dy, c.oilL)
+    pc.vline(10, 13 + dy, 18 + dy, c.oilS)
+    pc.hline(6, 10, 18 + dy, c.oilS)
+    pc.px(5, 13 + dy, c.oil)
+    pc.px(6, 15 + dy, P.brass)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)

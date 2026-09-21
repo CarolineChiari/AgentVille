@@ -155,6 +155,21 @@ for (const id of THEME_IDS) {
     }
   })
 
+  test(`${id}: whatever it draws of the village's effects is the same size, so it still means the same`, () => {
+    // A pack may restyle an effect the whole village asks for — the birds over a harbour are
+    // gulls — but the renderer places these by their size, and they mean the same in every theme.
+    for (const name of ['fx.bird', 'fx.z', 'fx.crystal', 'fx.butterfly.0', 'fx.pigeon.w', 'fx.pigeon.e', 'fx.bunting']) {
+      for (const frame of [0, 1]) {
+        const p = { accents: '0,1' }
+        const own = pack.sprite?.(name, frame, { ...p, theme: id })
+        if (!own) continue
+        const village = generate(name, frame, p)
+        assert.equal(own.w, village.w, `${name} is ${own.w} px wide where the village's is ${village.w}`)
+        assert.equal(own.h, village.h, `${name} is ${own.h} px tall where the village's is ${village.h}`)
+      }
+    }
+  })
+
   test(`${id}: every fence draws every join, and a straight run meets the next tile edge to edge`, () => {
     dims.fence.forEach((name, style) => {
       for (let mask = 0; mask < 16; mask++) assert.ok(opaque(at(`fence.${style}.${mask}`)) > 10, `${name} ${mask}`)

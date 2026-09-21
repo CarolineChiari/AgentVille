@@ -433,6 +433,106 @@ export const PALETTE = {
   candyGreen: '#57b06a',
   wrapper: '#f0eadc',
 
+  // ---------- the seaside theme (src/render/themes/seaside/) ----------
+  // Costume. A sou'wester is the same oiled cloth as the coat under it, so both take the crew's
+  // colour rather than the villager's own hat colour: a sou'wester in somebody's favourite blue
+  // read as a bonnet. Yellow for most crews, navy for the boatyard's.
+  oilskin: ['#e3a832', '#2f5379'],
+  // Seaside buildings (seaside/buildings.js).
+  // Clinker boarding: overlapping planks painted against the salt, each board's lip in shadow.
+  clinker: '#9db9c4',
+  clinkerDark: '#71909d',
+  clinkerLight: '#c6d8de',
+  limewash: '#f2ece0', // whitewashed walls, lime over rubble stone
+  limewashShade: '#d3cabb',
+  tarboard: '#3b3a42', // boarding tarred black, which is what a net loft is
+  tarboardLight: '#55545f',
+  seastone: '#9a9384', // rough shore stone, warmer and coarser than the village's `stone`
+  seastoneDark: '#736d61',
+  seastoneLight: '#bdb7a8',
+  corrugated: '#8d9aa0', // galvanised sheet on a boat shed, going at the edges
+  corrugatedDark: '#616e74',
+  corrugatedLight: '#b2bfc4',
+  // Paint: cobalt, harbour red, buoy yellow, mint, gull white, coral, slate blue, teal. A plot's
+  // buildings share a family of three of them (PAINT_FAMILIES in seaside/buildings.js).
+  harbourPaint: ['#2f6fae', '#c4483d', '#edb63c', '#5fb79c', '#eceee8', '#e4806b', '#46586e', '#2f8b8a'],
+  // Timber that has been in the weather: bleached driftwood, and the tarred stuff below the tide.
+  driftwood: '#b6a892',
+  driftwoodDark: '#8a7d6a',
+  driftwoodLight: '#d3c8b6',
+  pitch: '#2b282e', // tar on a hull's bottom and on a groyne's baulks
+  rope: '#cbab6f',
+  ropeDark: '#9e8149',
+  ropeLight: '#e3ca97',
+  netTwine: '#d9d2bd', // net drying on a fence, paler and finer than the rope that hangs it
+  netTwineDark: '#a89f88',
+  sailCloth: '#eee8d8', // sails, awnings and the tarpaulin over a hull
+  sailClothShade: '#cbc3ae',
+  brass: '#c9a24a', // lamp fittings, a bell, the ring on a mooring post
+  brassDark: '#96742d',
+  // Buoys and floats: red, orange, white and blue, as a harbour's really are.
+  buoy: ['#d2483a', '#e8792c', '#eceee8', '#2f7fae'],
+  // Shells, on the fences, in the ground and on the strand.
+  shellWhite: '#f3ece0',
+  shellShade: '#d1c4af',
+  shellPink: '#e8c3b4',
+  shellGrit: '#e8dbc2', // broken shell in the sand, which is half of what sand is here
+  // Weed: green wrack still wet, and the brown stuff dried along the tide line.
+  seaweed: '#4f6136',
+  seaweedDark: '#36452a',
+  wrack: '#7d6534',
+  wrackDark: '#57451f',
+  // A gull, which is the bird here: white with a grey mantle and black wingtips.
+  gull: '#f0f0ea',
+  gullGrey: '#a9b2b8',
+  gullDark: '#3a3f44',
+  gullBeak: '#e8a83c',
+  // Port and starboard, on the harbour light and on a hull's bow.
+  lampGreen: '#3fb05f',
+  lampRed: '#e0453f',
+  // A lighthouse's lamp, and the beam it throws: the beam is drawn at a third alpha, so the sea
+  // and the sky still show through it rather than it reading as a solid white wedge.
+  lens: '#ffe9a8',
+  lensCore: '#fffae6',
+  beamGlow: '#fff2c055',
+  // Seaside ground, ways and fences (seaside/ground.js).
+  // A plot's ground by its yard tone: dry sand, shingle, boardwalk decking, and the wet flags of
+  // a quay. Each is its base, shade, light and deepest; then the same in a dry patch and a damp
+  // one, one for one (see src/render/ground.js). Only the ground is drawn in these, or the
+  // patches would repaint whatever else used them.
+  seaGround: [
+    ['#e0cb9a', '#cbb37f', '#f1e3bb', '#b09667'],
+    ['#a8a49a', '#8e8a80', '#c4c0b6', '#6f6c64'],
+    ['#b39a76', '#94795a', '#cbb494', '#70593f'],
+    ['#7f8a8c', '#6a7476', '#9aa4a5', '#525b5d'],
+  ],
+  seaGroundSunny: [
+    ['#ead7a6', '#d5c08b', '#f8eec8', '#bca473'],
+    ['#b4b0a4', '#9a968a', '#d0ccc0', '#7a776e'],
+    ['#c0a782', '#a08665', '#d8c1a0', '#7c654a'],
+    ['#8c9698', '#767f81', '#a7b0b1', '#5d6668'],
+  ],
+  seaGroundLush: [
+    ['#cbb789', '#b6a06f', '#dccfa9', '#9c8459'],
+    ['#94908a', '#7c7872', '#adaaa4', '#605d58'],
+    ['#9d886a', '#806851', '#b49f83', '#604c37'],
+    ['#6d7a7d', '#5a6568', '#879293', '#444e51'],
+  ],
+  // The way round a plot: sea-rounded cobbles set in sand, always a little wet. Rounder and
+  // darker than the quay flags a plot can be paved in, or the two ran together and a plot looked
+  // like more quay.
+  quayCobble: '#6e7678',
+  quayCobbleDark: '#555c5e',
+  quayCobbleLight: '#8b9394',
+  quaySeam: '#3c4243',
+  // Standing seawater, in the hollows of the cobbles and in the rock pools.
+  tidePool: '#5f8f92',
+  tidePoolLight: '#93c2c3',
+  // The strand's marks: a mooring ring's iron, and the lichen that gets onto everything ashore.
+  seaIron: '#4a4d52',
+  seaIronLight: '#6b6e75',
+  shoreLichen: '#c2c46e',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

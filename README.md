@@ -116,11 +116,19 @@ and finished work is a lantern carved and lit in each plot's pumpkin patch: a gr
 a bug fix, a grid-carved one for data work, an owl for research. Its landmarks climb from a heap
 of pumpkins to a belfry with the bats going out of it.
 
+Or a seaside harbour, where the plots are quay flags, boardwalks, sand and shingle, the nets dry
+on the fences and the pots are stacked along the wall, everybody works in a sou'wester and an
+oilskin, and finished work is a shell set out on each plot's strand instead of a flower in its
+garden: a scallop for a bug fix, a net float for data work, a nautilus for research. Its
+landmarks climb from a mooring post to a lighthouse with its beam going round, and the birds
+overhead are gulls.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
 greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
 pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
-Halloween night. A
+Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
+cottages at the seaside. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -132,6 +140,8 @@ bloomed) is the same in every theme.
 ![The same demo village as an elvish realm: plots of glade and moss behind briars and runestones, houses built into living trees under swept roofs, a slender spire, and rows of lit lanterns where the gardens were](docs/screenshots/elvish.png)
 
 ![The same demo village on Halloween night: plots of leaf mould and old flagstones behind corn stooks and iron railings, gabled houses with lanterns on the step, a belfry and a witch's tower, and rows of carved jack-o'-lanterns where the gardens were](docs/screenshots/halloween.png)
+
+![The same demo village as a seaside harbour: plots of boardwalk decking and wet quay flags behind drying nets and painted railings, beach huts and a net loft, a pier light and a lighthouse, and rows of shells set out where the gardens were](docs/screenshots/seaside.png)
 
 #### Every theme
 
