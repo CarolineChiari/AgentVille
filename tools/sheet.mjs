@@ -3,7 +3,7 @@
 // join, the ground, finished work (the village's flowers), and villagers in their work clothes.
 // For working on a theme: draw, look, adjust, draw again.
 //
-//   npm run sheet -- [theme] [--only plots,buildings,landmarks,fences,ground,finished,villagers] [--scale 3] [--out file.png]
+//   npm run sheet -- [theme] [--only plots,buildings,landmarks,fences,ground,finished,villagers,rooms] [--scale 3] [--out file.png]
 //
 // Writes data/sheets/<theme>.png unless --out says otherwise, and prints what each band shows.
 // The plots are composed the way the renderer bakes a chunk, less the night, the weather and the
@@ -29,11 +29,14 @@ import { lookFor } from '../src/sim/villager.js'
 import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { WEAR } from '../src/sim/wear.js'
 import { World } from '../src/sim/world.js'
+import { roomFrame } from '../src/sim/room.js'
+import { interiorsOf } from '../src/sim/interiors.js'
+import { PROP_PLACE, propVariant } from '../src/render/room.js'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const T = 16
 const GAP = 8
-const SECTIONS = ['plots', 'buildings', 'landmarks', 'fences', 'ground', 'finished', 'villagers']
+const SECTIONS = ['plots', 'buildings', 'landmarks', 'fences', 'ground', 'finished', 'villagers', 'rooms']
 
 const TILE_NAME = {
   [TILE.WILD]: 'wild', [TILE.YARD]: 'yard', [TILE.ROAD]: 'road', [TILE.PLAZA]: 'plaza', [TILE.BED]: 'bed',
@@ -398,6 +401,62 @@ function villagers(theme) {
   return stack(rows)
 }
 
+/** Enough work to furnish a room with: a spine per file on the shelves, a note per commit. */
+const ROOM_LOG = {
+  ok: true,
+  files: Array.from({ length: 11 }, (_, i) => ({ path: `src/f${i}.js`, edits: (i % 5) + 1, kind: 'edited', at: i, outside: false })),
+  commits: Array.from({ length: 5 }, (_, i) => ({ at: i, message: `commit ${i}` })),
+  entries: [],
+  more: 0,
+}
+
+/** One room, drawn the way src/render/room.js draws it, less the writing on the board. */
+function roomPanel(theme, room) {
+  const pc = new PixelCanvas(room.w * T, (room.h + room.wallH) * T)
+  const at = (x, y) => [Math.round(x * T), Math.round((y + room.wallH) * T)]
+  const wallV = room.style.wall
+  for (let y = -room.wallH; y < 0; y++) for (let x = 0; x < room.w; x++) blit(pc, sprite(theme, `interior.wall.${wallV}`), ...at(x, y))
+  for (let y = 0; y < room.h; y++) for (let x = 0; x < room.w; x++) blit(pc, sprite(theme, `interior.floor.${wallV}`), ...at(x, y))
+  pc.rect(0, room.wallH * T - 1, pc.w, 1, P.outline) // the skirting
+  blit(pc, sprite(theme, 'interior.logboard'), ...at(room.board.x, room.board.y))
+  for (const prop of room.props) {
+    const img = sprite(theme, `interior.${prop.kind}.${propVariant(prop)}`)
+    const [dx, dy] = PROP_PLACE[prop.kind] || [0, 0]
+    const [left, top] = at(prop.x + dx / T, prop.y + 1)
+    blit(pc, img, left, top - img.h + dy)
+    if (prop.kind === 'shelf') {
+      for (const [i, b] of (prop.books || []).entries()) {
+        const rowY = [15, 28, 41][Math.floor(i / prop.cols)]
+        if (rowY === undefined) break
+        const spine = sprite(theme, `interior.book.${(b.color % 8) * 3 + b.tall}`)
+        blit(pc, spine, left + 3 + (i % prop.cols) * 4, top - img.h + rowY - spine.h)
+      }
+    } else if (prop.kind === 'pinboard') {
+      for (const [i] of (prop.notes || []).entries()) {
+        blit(pc, sprite(theme, `interior.note.${i % 3}`), left + 4 + (i % 4) * 10, top - img.h + dy + [4, 15][Math.floor(i / 4) % 2])
+      }
+    }
+  }
+  const v = room.villager
+  const [vx, vy] = at(v.x, v.y + 1)
+  if (v.inBed) blit(pc, generate('fx.z', 0, {}), vx + 8, vy - 28)
+  else blit(pc, sprite(theme, `villager.${v.anim}.${v.facing}`, 0, { look: v.look }), vx + 1, vy - VILLAGER_H)
+  return pc
+}
+
+/** Each of a theme's rooms, in a plot's own materials, with somebody in it. */
+function rooms(theme) {
+  const { dims, subthemes } = THEMES[theme]
+  return stack(interiorsOf(theme).map((plan, i) => {
+    const sub = plan.subs?.[0] || subthemes[0].id
+    const style = { theme, sub, fence: 0, yard: 0, wall: i % dims.wall.length, roofs: 0 }
+    const status = ['working', 'idle', 'sleeping', 'waiting'][i % 4]
+    const thread = { id: `sheet:${theme}:${plan.id}`, status, title: plan.label }
+    const room = roomFrame(thread, { style, look: dress(lookFor(thread.id), theme, sub), interior: plan, log: ROOM_LOG, night: i % 2 })
+    return roomPanel(theme, room)
+  }))
+}
+
 /**
  * A row per tier, smallest first: set out, framed, in scaffolding and finished; then lit with
  * somebody in, through each frame it animates; then finished in three more plots' looks.
@@ -424,7 +483,7 @@ function landmarks(theme) {
   return stack(rows)
 }
 
-const BANDS = { plots, buildings, landmarks, fences, ground: groundBand, finished, villagers }
+const BANDS = { plots, buildings, landmarks, fences, ground: groundBand, finished, villagers, rooms }
 const LEGEND = {
   plots: 'a plot in each sub-theme, in order: %s',
   buildings: `a row per kind (${KINDS.join(', ')}): stages 0, 1, 2; finished ×5 (wall and paint vary); lit; any other animation frames; wear gleaming→derelict; down a courtyard's side`,
@@ -433,6 +492,7 @@ const LEGEND = {
   ground: 'a band per ground (%s): six tiles, five footpaths, six roads, sixteen fringes on a road, what lies about; then a stretch of it with its patches',
   finished: `a row per kind of work (${WORK.map((w) => w.id).join(', ')}): each kind sprouting, as an open PR's bud, in bloom in three colours, then white`,
   villagers: 'a row per sub-theme: four villagers in ten poses',
+  rooms: 'a room per interior (%s), each in a different wall material, by day and after dark',
 }
 
 // ---------- main ----------
@@ -457,7 +517,13 @@ for (const theme of themes) {
     process.exit(1)
   }
   const { dims, subthemes } = THEMES[theme]
-  const names = { plots: subthemes.map((s) => s.id).join(', '), fences: dims.fence.join(', '), ground: dims.yard.join(', '), landmarks: landmarkWords(theme).tiers.join(', ') }
+  const names = {
+    plots: subthemes.map((s) => s.id).join(', '),
+    fences: dims.fence.join(', '),
+    ground: dims.yard.join(', '),
+    landmarks: landmarkWords(theme).tiers.join(', '),
+    rooms: interiorsOf(theme).map((r) => r.label).join(', '),
+  }
   const sheet = stack(args.only.map((s) => BANDS[s](theme)))
   const n = args.scale
   const big = new Uint8Array(sheet.w * n * sheet.h * n * 4)

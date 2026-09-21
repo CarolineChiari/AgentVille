@@ -395,6 +395,7 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 }
 .roombar[hidden] { display: none; }
 .rb-status { font-size: 12px; color: var(--muted); padding: 0 2px; }
+.rb-room { font-size: 12px; font-weight: 600; padding: 0 2px; }
 
 .transcript {
   position: absolute;

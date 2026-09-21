@@ -172,6 +172,15 @@ desk with the monitor lit while the session is working, a bed it is asleep in wh
 bookshelf with one spine per file it has touched (fatter the more it has been worked over), and a
 pinboard with a note for every commit. `Esc`, or the door, puts you back exactly where you were.
 
+Which room it is depends on the plot. Every theme keeps rooms of its own — a study, a parlour or a
+loft room in the village; a site cabin, a drawing office or a fitted-out container on a site; a
+flet, a scriptorium or a starlit hall in an elvish realm; a witch's kitchen, a cobwebbed attic or a
+crypt on Halloween night; a net loft, a boat cabin or the room under the light in a harbour — and a
+session works in the same one of them every time, named in the bar at the top. They are furnished
+out of what the building is built from, so a stone cottage and a shipping container are different
+rooms to stand in, but they all say the same things about the work: the board, a spine per file, a
+note per commit, a lit monitor while the session is working, a bed for when it isn't.
+
 ![Inside a villager's building: a room with the change log written up on a board on the wall, a
 bookshelf, a pinboard, a desk and a bed](docs/screenshots/inside.png)
 

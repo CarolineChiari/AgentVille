@@ -11,6 +11,8 @@ import { PETALS } from '../src/render/sprites/palette.js'
 import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { PACKS, landmarkShapes, packFor } from '../src/render/themes/index.js'
 import { STATIC_VARIANTS } from '../src/render/sprites/tiles.js'
+import { INTERIOR_SIZE, INTERIOR_VARIANTS } from '../src/render/sprites/interiors.js'
+import { interiorsOf } from '../src/sim/interiors.js'
 import { MAX_TIER } from '../src/sim/progress.js'
 import { THEMES, THEME_IDS, dress } from '../src/sim/themes.js'
 import { KINDS } from '../src/sim/building.js'
@@ -167,6 +169,38 @@ for (const id of THEME_IDS) {
         assert.equal(own.w, village.w, `${name} is ${own.w} px wide where the village's is ${village.w}`)
         assert.equal(own.h, village.h, `${name} is ${own.h} px tall where the village's is ${village.h}`)
       }
+    }
+  })
+
+  test(`${id}: its rooms are laid in its own materials, and whatever it furnishes them with is the size a room keeps for it`, () => {
+    // A pack may draw any piece of a room its own way — the rooms it has are in
+    // src/sim/interiors.js — but the room places every piece by its size, and a piece means the
+    // same thing in every theme: a lit window is a lit window, a slept-in bed a slept-in bed.
+    for (const [kind, n] of Object.entries(INTERIOR_VARIANTS)) {
+      for (let v = 0; v < n; v++) {
+        const own = pack.sprite?.(`interior.${kind}.${v}`, 0, { theme: id })
+        if (!own) continue
+        const [w, h] = INTERIOR_SIZE[kind]
+        assert.equal(own.w, w, `its ${kind} ${v} is ${own.w}px wide where the village's is ${w}`)
+        assert.equal(own.h, h, `its ${kind} ${v} is ${own.h}px tall where the village's is ${h}`)
+        assert.ok(opaque(own) > 4, `its ${kind} ${v} is nearly empty`)
+      }
+    }
+    // A room is built from what its building is built from, so each wall material lays a floor
+    // and stands a wall of its own, and neither has a hole in it: they tile the whole room.
+    for (const surface of ['floor', 'wall']) {
+      const drawn = []
+      dims.wall.forEach((name, v) => {
+        const pc = at(`interior.${surface}.${v}`)
+        assert.equal(pc.w, 16, `${name}'s ${surface}`)
+        assert.equal(opaque(pc), 16 * 16, `${name}'s ${surface} has holes in it`)
+        assert.ok(!drawn.some((o) => same(o, pc)), `${name} lays the same ${surface} as another material`)
+        drawn.push(pc)
+      })
+    }
+    // Whatever its rooms ask for draws, whether it draws the piece itself or leaves it to the village.
+    for (const room of interiorsOf(id)) {
+      for (const e of room.extra) assert.ok(opaque(at(`interior.${e.kind}.${e.variant || 0}`)) > 4, `${room.id}: its ${e.kind} draws nothing`)
     }
   })
 

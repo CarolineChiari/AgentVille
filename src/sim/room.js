@@ -9,12 +9,12 @@
 // about, so it is read in the room rather than in a panel beside it.
 import { hashString } from './rng.js'
 import { countDiff, diffLines, foldContext } from './diff.js'
+import { BOARD_H, BOARD_W, interiorFor } from './interiors.js'
 
-/** The floor, in tiles. Wide enough for the board, a desk, a bed and a way between them. */
-export const ROOM_W = 16
-export const ROOM_H = 5
-/** How much wall stands above the floor's back edge, in tiles. Tall enough to hang the board on. */
-export const WALL_H = 7
+// The room's own plan — how big it is and where everything in it stands — is one of its theme's,
+// in src/sim/interiors.js. The default room's size is re-exported here because it is what a room
+// is measured against.
+export { ROOM_H, ROOM_W, WALL_H } from './interiors.js'
 
 /** Books a shelf holds per row, and how many rows it has: one spine per file, oldest pushed off. */
 const SHELF_COLS = 7
@@ -31,22 +31,8 @@ export const BOARD_ROWS = 14
 export const REVIEW_ROWS = 28
 /** Edits shown under one unfolded file: the last few are the ones you came to read. */
 const EDITS_OPEN = 8
-
-/** Where each fixed piece stands: tile (x, y) of the tile it occupies, nearest the back wall first. */
-const SPOTS = {
-  // On the wall: the board takes the right two thirds, the commits' pinboard the left corner.
-  board: { x: 5, y: -7, w: 10, h: 6 },
-  pinboard: { x: 1, y: -3 },
-  window: [{ x: 5, y: -1 }, { x: 14, y: -1 }],
-  // The way in is the way out, and it is what you click to leave. A door in the near wall would
-  // be behind the camera in this view. It stands clear of the shelf, which rises into the wall.
-  door: { x: 3, y: -1 },
-  shelf: { x: 1, y: 0 },
-  desk: { x: 4, y: 2 },
-  chair: { x: 4, y: 3 },
-  bed: { x: 12, y: 2 },
-  rug: { x: 8, y: 3 },
-}
+/** What burns when the room's lamp is on, so a room lights up all at once or not at all. */
+const BURNS = new Set(['stove', 'lamp'])
 
 /** How tall a spine is: a file worked over many times has more in it. 0 is a thin one. */
 const spineFor = (f) => ({
@@ -57,16 +43,16 @@ const spineFor = (f) => ({
 })
 
 /**
- * Where the villager is and what it is doing in here. The room says the same thing its building
- * says from the street: working is at the desk, waiting is on its feet with a question, asleep is
- * in bed. Anything else is standing about on the rug.
+ * Where the villager is and what it is doing in here, in the room it is in. The room says the same
+ * thing its building says from the street: working is at the desk, waiting is on its feet with a
+ * question, asleep is in bed. Anything else is standing about on the rug.
  */
-function villagerAt(status) {
-  if (status === 'working') return { ...SPOTS.chair, facing: 'n', anim: 'sit', inBed: false }
-  if (status === 'waiting' || status === 'blocked') return { x: 9, y: 3, facing: 's', anim: 'idle', inBed: false }
+function villagerAt(status, plan) {
+  if (status === 'working') return { ...plan.chair, facing: 'n', anim: 'sit', inBed: false }
+  if (status === 'waiting' || status === 'blocked') return { ...plan.stand, facing: 's', anim: 'idle', inBed: false }
   // Asleep, it is under the covers: the bed shows that, and a `z` floats over it.
-  if (status === 'sleeping') return { ...SPOTS.bed, facing: 's', anim: null, inBed: true }
-  return { ...SPOTS.rug, facing: 's', anim: 'idle', inBed: false }
+  if (status === 'sleeping') return { ...plan.bed, facing: 's', anim: null, inBed: true }
+  return { ...plan.rug, facing: 's', anim: 'idle', inBed: false }
 }
 
 /**
@@ -185,23 +171,30 @@ export function reviewRows(file, { scroll = 0, rows = REVIEW_ROWS, now = Date.no
  * @param {object} opts.log          what the session changed, from the harness's readChanges
  * @param {{ view?: string, scroll?: number, open?: string }} opts.board  which page of the log is up
  * @param {number} opts.night        0 in daylight, 1 in the dark: the window, and the lamp
+ * @param {object} opts.interior     the room's plan (src/sim/interiors.js); left out, the one its
+ *                                   plot's theme keeps for this thread
  * @returns {RoomFrame}
  */
-export function roomFrame(thread, { style, look = null, variant = 0, log = null, board = {}, night = 0, now = Date.now() } = {}) {
+export function roomFrame(thread, { style, look = null, variant = 0, log = null, board = {}, night = 0, interior = null, now = Date.now() } = {}) {
   const status = thread?.status || 'idle'
   const files = log?.files || []
   const commits = log?.commits || []
+  const plan = interior || interiorFor(style, thread?.id || '')
+  // A lamp is on whenever the room is dark or its villager is up and working. What burns in the
+  // room burns with it: a stove is out and a candle unlit in an empty room in daylight.
+  const lamp = night > 0.35 || status === 'working' || status === 'waiting'
   // Newest last on the shelf, so a long session's oldest files are the ones pushed off the end.
   const shelved = files.slice(0, SHELF_MAX).map(spineFor)
   const props = [
-    { kind: 'pinboard', ...SPOTS.pinboard, notes: commits.slice(-PIN_MAX).map((c, i) => ({ seed: i, message: c.message })) },
-    ...SPOTS.window.map((w) => ({ kind: 'window', ...w, night })),
-    { kind: 'door', ...SPOTS.door },
-    { kind: 'shelf', ...SPOTS.shelf, books: shelved, cols: SHELF_COLS, rows: SHELF_ROWS },
-    { kind: 'rug', ...SPOTS.rug, variant },
-    { kind: 'desk', ...SPOTS.desk, on: status === 'working' },
-    { kind: 'chair', ...SPOTS.chair },
-    { kind: 'bed', ...SPOTS.bed, slept: status === 'sleeping' },
+    { kind: 'pinboard', ...plan.pinboard, notes: commits.slice(-PIN_MAX).map((c, i) => ({ seed: i, message: c.message })) },
+    ...plan.windows.map((w) => ({ kind: 'window', ...w, night })),
+    { kind: 'door', ...plan.door },
+    { kind: 'shelf', ...plan.shelf, books: shelved, cols: SHELF_COLS, rows: SHELF_ROWS },
+    { kind: 'rug', ...plan.rug, variant },
+    { kind: 'desk', ...plan.desk, on: status === 'working' },
+    { kind: 'chair', ...plan.chair },
+    { kind: 'bed', ...plan.bed, slept: status === 'sleeping' },
+    ...plan.extra.map((e) => ({ variant: 0, ...e, ...(BURNS.has(e.kind) ? { lit: lamp } : {}) })),
   ]
   const view = board.view === 'order' ? 'order' : 'files'
   // Reviewing one file takes the board over: you are standing at it, reading the changes.
@@ -211,22 +204,27 @@ export function roomFrame(thread, { style, look = null, variant = 0, log = null,
     : logRows(log, { view, scroll: board.scroll ?? 0, open: board.open ?? '', now })
   return {
     id: thread?.id || '',
-    w: ROOM_W,
-    h: ROOM_H,
-    wallH: WALL_H,
+    w: plan.w,
+    h: plan.h,
+    wallH: plan.wallH,
     style,
     variant,
     status,
     night,
-    // A lamp is on whenever the room is dark or its villager is up and working.
-    lamp: night > 0.35 || status === 'working' || status === 'waiting',
-    door: { ...SPOTS.door },
+    /** Which of its theme's rooms this is: its id, and what that theme calls it. */
+    interior: { id: plan.id, label: plan.label, blurb: plan.blurb },
+    lamp,
+    /** Where the lamplight pools, in tiles: over the desk, wherever the desk stands. */
+    lampAt: { x: plan.desk.x + 0.5, y: plan.desk.y + 1 },
+    door: { ...plan.door },
     props: props.sort((a, b) => a.y - b.y),
-    villager: { ...villagerAt(status), look, status },
+    villager: { ...villagerAt(status, plan), look, status },
     counts: { files: files.length, commits: commits.length, shelved: shelved.length },
     /** The board on the wall: where it hangs, what it says, and which page of it is up. */
     board: {
-      ...SPOTS.board,
+      ...plan.board,
+      w: BOARD_W,
+      h: BOARD_H,
       view,
       review,
       open: board.open ?? '',

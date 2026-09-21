@@ -13,6 +13,7 @@ import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from '
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
+import { interiorFor } from '../sim/interiors.js'
 
 const SAVE_DELAY = 500
 
@@ -602,13 +603,15 @@ export class Village {
 
   /**
    * What a room needs beyond the thread itself: the plot's style (so the room is built from what
-   * the building is built from), the villager's look, and the building's own variant.
+   * the building is built from), the villager's look, the building's own variant, and which of its
+   * theme's rooms this session works in.
    */
   roomOf(id = this.focused) {
     const v = this.world.villager(id)
     if (!v) return null
     const plot = this.world.plots.get(v.building?.plot)
-    return { style: plot?.style ?? null, look: this.world._look(v), variant: v.building?.variant ?? 0 }
+    const style = plot?.style ?? null
+    return { style, look: this.world._look(v), variant: v.building?.variant ?? 0, interior: interiorFor(style, id) }
   }
 
   selectPlot(name) {
