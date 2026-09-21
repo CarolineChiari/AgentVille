@@ -23,6 +23,25 @@ const SHELF_STEP = 4
 const NOTE_X = 4
 const NOTE_Y = [4, 15]
 const NOTE_STEP = 10
+/**
+ * Where a piece sits in the tile it stands in, in room pixels: across, and down over the tile's
+ * bottom edge. Anything not named here stands square in its tile with its feet on the bottom of it.
+ */
+export const PROP_PLACE = { pinboard: [0, 4], window: [0, 6], hanging: [0, 4], rug: [-1, 0], chair: [1, 0] }
+
+/**
+ * Which drawing of a piece this one is. Most pieces are told their variant by the room; the ones
+ * that say what the room is doing — a lit window, a woken monitor, a slept-in bed, a stove with
+ * something in it — work theirs out from what they were told about it.
+ */
+export function propVariant(prop) {
+  if (prop.kind === 'window') return prop.night > 0.35 ? 1 : 0
+  if (prop.kind === 'desk') return prop.on ? 1 : 0
+  if (prop.kind === 'bed') return prop.slept ? 1 : 0
+  // What it is, then whether it is burning: a stove and a lamp are lit when the room's lamp is.
+  if (prop.kind === 'stove' || prop.kind === 'lamp') return (prop.variant || 0) * 2 + (prop.lit ? 1 : 0)
+  return prop.variant || 0
+}
 
 /**
  * The board's own measurements, in room pixels, so they scale with the room like everything else.
@@ -133,19 +152,24 @@ export class RoomRenderer {
     ctx.fillRect(0, 0, view.width, view.height)
 
     const wallV = room.style?.wall ?? 0
+    // Every piece of the room carries its plot's theme, so a pack draws the ones that make the
+    // theme itself and the village draws the rest.
+    const theme = room.style?.theme
     const draw = (img, x, y) => ctx.drawImage(img, Math.round(x), Math.round(y), img.width * scale, img.height * scale)
 
     // Wall, then floor.
+    const wallTile = sprites.get(`interior.wall.${wallV}`, 0, { theme })
+    const floorTile = sprites.get(`interior.floor.${wallV}`, 0, { theme })
     for (let y = -room.wallH; y < 0; y++) {
       for (let x = 0; x < room.w; x++) {
         const p = at(layout, room, x, y)
-        draw(sprites.get(`interior.wall.${wallV}`), p.x, p.y)
+        draw(wallTile, p.x, p.y)
       }
     }
     for (let y = 0; y < room.h; y++) {
       for (let x = 0; x < room.w; x++) {
         const p = at(layout, room, x, y)
-        draw(sprites.get(`interior.floor.${wallV}`), p.x, p.y)
+        draw(floorTile, p.x, p.y)
       }
     }
     // The skirting: without a line here the wall and the floor read as one flat field.
@@ -160,7 +184,7 @@ export class RoomRenderer {
       // Reviewing: the board itself is drawn blank on the wall, and the one you read is the same
       // board stood in front of you, so the room is still there behind it.
       const wall = this._wallRect(room, layout)
-      ctx.drawImage(sprites.get('interior.logboard'), wall.x, wall.y, wall.w, wall.h)
+      ctx.drawImage(sprites.get('interior.logboard', 0, { theme }), wall.x, wall.y, wall.w, wall.h)
     }
     for (const prop of room.props) this._prop(room, layout, prop)
     this._villager(room, layout, time)
@@ -207,7 +231,7 @@ export class RoomRenderer {
     const ctx = this.ctx
     const b = room.board
     this.boardRect = rect
-    ctx.drawImage(sprites.get('interior.logboard'), rect.x, rect.y, rect.w, rect.h)
+    ctx.drawImage(sprites.get('interior.logboard', 0, { theme: room.style?.theme }), rect.x, rect.y, rect.w, rect.h)
 
     const x0 = rect.x + BOARD.pad * s
     const w = (b.w * T - BOARD.pad * 2) * s
@@ -392,19 +416,23 @@ export class RoomRenderer {
   _prop(room, layout, prop) {
     const { scale } = layout
     const ctx = this.ctx
+    const theme = room.style?.theme
     const foot = at(layout, room, prop.x, prop.y + 1)
     const left = at(layout, room, prop.x, prop.y).x
     const put = (img, dx = 0, dy = 0) =>
       ctx.drawImage(img, Math.round(left + dx * scale), Math.round(foot.y - (img.height - dy) * scale), img.width * scale, img.height * scale)
+    const img = sprites.get(`interior.${prop.kind}.${propVariant(prop)}`, 0, { theme })
+    const [dx, dy] = PROP_PLACE[prop.kind] || [0, 0]
+    put(img, dx, dy)
 
+    // Two pieces carry the work itself, so what stands on them is drawn on top of them: a spine
+    // per file along the shelves, a note per commit across the board.
     if (prop.kind === 'shelf') {
-      const img = sprites.get('interior.shelf')
-      put(img)
       const top = foot.y - img.height * scale
-      for (const [i, b] of prop.books.entries()) {
+      for (const [i, b] of (prop.books || []).entries()) {
         const row = Math.floor(i / prop.cols)
         if (row >= SHELF_ROW_Y.length) break
-        const spine = sprites.get(`interior.book.${(b.color % 8) * 3 + b.tall}`)
+        const spine = sprites.get(`interior.book.${(b.color % 8) * 3 + b.tall}`, 0, { theme })
         ctx.drawImage(
           spine,
           Math.round(left + (SHELF_X + (i % prop.cols) * SHELF_STEP) * scale),
@@ -413,14 +441,10 @@ export class RoomRenderer {
           spine.height * scale,
         )
       }
-      return
-    }
-    if (prop.kind === 'pinboard') {
-      const img = sprites.get('interior.pinboard')
-      put(img, 0, 4)
-      const top = foot.y - (img.height - 4) * scale
-      for (const [i] of prop.notes.entries()) {
-        const note = sprites.get(`interior.note.${i % 3}`)
+    } else if (prop.kind === 'pinboard') {
+      const top = foot.y - (img.height - dy) * scale
+      for (const [i] of (prop.notes || []).entries()) {
+        const note = sprites.get(`interior.note.${i % 3}`, 0, { theme })
         ctx.drawImage(
           note,
           Math.round(left + (NOTE_X + (i % 4) * NOTE_STEP) * scale),
@@ -429,14 +453,7 @@ export class RoomRenderer {
           note.height * scale,
         )
       }
-      return
     }
-    if (prop.kind === 'window') return put(sprites.get(`interior.window.${prop.night > 0.35 ? 1 : 0}`), 0, 6)
-    if (prop.kind === 'door') return put(sprites.get('interior.door'), 0, 0)
-    if (prop.kind === 'rug') return put(sprites.get(`interior.rug.${prop.variant % 3}`), -1)
-    if (prop.kind === 'desk') return put(sprites.get(`interior.desk.${prop.on ? 1 : 0}`))
-    if (prop.kind === 'chair') return put(sprites.get('interior.chair'), 1)
-    if (prop.kind === 'bed') return put(sprites.get(`interior.bed.${prop.slept ? 1 : 0}`))
   }
 
   /** Whoever lives here, where the room says they are. */
@@ -468,10 +485,11 @@ export class RoomRenderer {
     }
   }
 
-  /** The warm pool a working desk throws across the floor. */
+  /** The warm pool a working desk throws across the floor, wherever the room puts the desk. */
   _lamp(room, layout) {
     const ctx = this.ctx
-    const c = at(layout, room, 4.5, 3)
+    const lamp = room.lampAt || { x: 4.5, y: 3 }
+    const c = at(layout, room, lamp.x, lamp.y)
     const r = 5 * T * layout.scale
     const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r)
     // Brighter the darker it is outside, like the village's own lit windows.

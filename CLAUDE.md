@@ -43,8 +43,16 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   work; the tier reached is a high-water mark in `village.json`'s `progress`). A theme names the
   tiers in `landmark` and may draw them (`landmark.<tier>.<stage>`) and what each tier brings
   (`static.yard*`, `static.gateway`); a pack that doesn't gets the village's.
-- `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules. To make a new
-  theme, follow the `new-theme` skill in `.claude/skills/new-theme/`.
+- A theme keeps its own rooms: the inside of a building is one of them, laid out in tile units in
+  `src/sim/interiors.js` (three or more per theme, a folder's sub-theme claiming the ones that suit
+  it, and one thread always in the same one). A pack draws what its rooms are made of and the few
+  things that could only be in them, in `src/render/themes/<id>/interiors.js`; everything it passes
+  on is the village's. A room means the same thing in every theme: every one has the board, a shelf
+  of files, a pinboard of commits, a desk whose monitor is lit while the session works, a chair, a
+  bed, a rug and a door out.
+- `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules, and
+  `test/interiors.test.mjs` holds every room to the sim's. To make a new theme, follow the
+  `new-theme` skill in `.claude/skills/new-theme/`.
 
 ## Rules
 

@@ -104,13 +104,30 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
   `gateway`: a pack that draws them keeps each grounded; the gateway is walked through. The
   square's own `static.*` stay the village's, so answer only those names.
 
-## 5. Look at it, and keep looking
+## 5. Its rooms
 
-    npm run sheet -- <id> --only plots,buildings,landmarks --scale 3
+Give the theme at least three rooms in `INTERIORS` in `src/sim/interiors.js`: `{ id, label, blurb,
+subs?, w?, h?, wallH?, board, pinboard, door, shelf, desk, chair, bed, rug, stand, windows, extra }`,
+all in tiles. The board is always `BOARD_W`×`BOARD_H` — one sprite — so a room moves it about the
+wall rather than resizing it, and every room needs each piece in `REQUIRED`: they are what says
+what the session has done. `extra` is whatever else the room has in it (`FOOTPRINT` names the
+pieces; the village draws them all). `subs` names the sub-themes that keep a room for themselves.
+`test/interiors.test.mjs` checks that everything stands inside the room and that nothing stands
+where something else already is.
+
+Then draw as much of it as makes the theme itself in `src/render/themes/<id>/interiors.js`, and
+answer `case 'interior'` in the pack's `sprite`. `drawRoomFloor`/`drawRoomWall` take a table of
+`RoomMaterial`s — one per name in `dims.wall` — so a theme's floors and walls are a table of
+colours rather than new code. Any piece a pack draws must be exactly the size the village's is
+(`INTERIOR_SIZE`) and mean the same thing: a lit window is a lit window.
+
+## 6. Look at it, and keep looking
+
+    npm run sheet -- <id> --only plots,buildings,landmarks,rooms --scale 3
 
 writes `data/sheets/<id>.png` (use `--out` to put it elsewhere) and prints what each band shows:
 a sample plot per sub-theme, every building at every stage, every fence join, the ground,
-finished work by kind of work, villagers in every pose. Read the PNG and compare it with
+finished work by kind of work, villagers in every pose, and each of its rooms with somebody in it. Read the PNG and compare it with
 `npm run sheet -- village`. Draw, look, fix, draw again; judge it at 1× as well as zoomed. Check that each sub-theme is recognisably
 different from its neighbours, and that plots still read against the green countryside.
 
@@ -119,7 +136,7 @@ Then see it live: `npm run dev` and open `http://127.0.0.1:5274/?demo&theme=<id>
 alone and give one folder the new look from its panel, to see it mixed into the village. Look at
 night too (Settings → Time of day → Set by hand).
 
-## 6. Finish
+## 7. Finish
 
 - `npm test` passes; `test/theme-packs.test.mjs` covers the new theme automatically.
 - README's Themes section mentions it in a sentence.

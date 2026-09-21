@@ -5,6 +5,7 @@ import { roomLayout, roomPick } from '../src/render/room.js'
 import { generate } from '../src/render/sprites/registry.js'
 import { INTERIOR_SIZE, INTERIOR_VARIANTS } from '../src/render/sprites/interiors.js'
 import { PLAIN_STYLE } from '../src/sim/style.js'
+import { ALL_INTERIORS } from '../src/sim/interiors.js'
 
 const thread = (status = 'idle') => ({ id: 'claude-code:1', status })
 const files = (n) => Array.from({ length: n }, (_, i) => ({ path: `src/f${i}.js`, edits: (i % 5) + 1, kind: 'edited', at: i, outside: false }))
@@ -60,6 +61,38 @@ test('everything in the room stands inside it, and the door is in the wall', () 
   assert.ok(!isDoor(room, room.door.x + 1, room.door.y))
   // Props are handed over back to front, so a renderer can draw them in order.
   assert.deepEqual(room.props.map((p) => p.y), [...room.props.map((p) => p.y)].sort((a, b) => a - b))
+})
+
+test('a room is furnished to its own plan, whichever of its theme’s rooms it is', () => {
+  for (const plan of ALL_INTERIORS) {
+    const room = roomFrame(thread('working'), { style: PLAIN_STYLE, interior: plan, log: log(3, 2) })
+    assert.equal(room.interior.id, plan.id)
+    assert.deepEqual([room.w, room.h, room.wallH], [plan.w, plan.h, plan.wallH])
+    assert.deepEqual([room.board.x, room.board.y], [plan.board.x, plan.board.y])
+    assert.deepEqual([room.door.x, room.door.y], [plan.door.x, plan.door.y])
+    // Every piece stands where the plan puts it, and everything else the room has is in it too.
+    for (const kind of ['desk', 'chair', 'bed', 'shelf', 'pinboard', 'rug']) {
+      const prop = propOf(room, kind)
+      assert.deepEqual([prop.x, prop.y], [plan[kind].x, plan[kind].y], `${plan.id}: its ${kind}`)
+    }
+    assert.equal(room.props.filter((p) => p.kind === 'window').length, plan.windows.length)
+    for (const e of plan.extra) {
+      assert.ok(room.props.some((p) => p.kind === e.kind && p.x === e.x && p.y === e.y), `${plan.id}: no ${e.kind}`)
+    }
+    // Whoever is in it is in it: at the desk while it works, and the lamplight pools over the desk.
+    assert.deepEqual([room.villager.x, room.villager.y], [plan.chair.x, plan.chair.y])
+    assert.deepEqual(room.lampAt, { x: plan.desk.x + 0.5, y: plan.desk.y + 1 })
+    // Whatever burns in the room burns with its lamp.
+    for (const p of room.props.filter((x) => x.kind === 'stove' || x.kind === 'lamp')) assert.equal(p.lit, room.lamp)
+    for (const p of room.props) {
+      assert.ok(p.x >= 0 && p.x < room.w, `${plan.id}: its ${p.kind} is off the side`)
+      assert.ok(p.y >= -room.wallH && p.y < room.h, `${plan.id}: its ${p.kind} is through the wall`)
+    }
+    assert.deepEqual(room.props.map((p) => p.y), [...room.props.map((p) => p.y)].sort((a, b) => a - b))
+  }
+  // A room with nobody working in it leaves its lamps and its stove out by daylight.
+  const quiet = roomFrame(thread('idle'), { style: PLAIN_STYLE, interior: ALL_INTERIORS.find((r) => r.extra.some((e) => e.kind === 'stove')) })
+  assert.equal(quiet.props.find((p) => p.kind === 'stove').lit, false)
 })
 
 test('a room is drawn whole, centred in what the panels leave free', () => {

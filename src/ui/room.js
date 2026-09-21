@@ -24,7 +24,10 @@ export function createRoomPanel(root, village, { onTranscript = () => {} } = {})
     const t = village.thread(id)
     if (!t) return
     const status = needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || ''
+    // Which room this is, in its theme's own words: a study in the village, a net loft in a harbour.
+    const room = village.roomOf(id)?.interior
     bar.innerHTML = `
+      ${room ? `<span class="rb-room" title="${esc(room.blurb)}">${esc(room.label)}</span>` : ''}
       <span class="rb-status">${esc(status)}</span>
       <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
       <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>

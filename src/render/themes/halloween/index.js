@@ -8,6 +8,7 @@ import { buildingFrames, chimneyOf, drawHallowBuilding, fitted, heightOf, shadow
 import { drawJack } from './jacks.js'
 import { drawHallowLandmark, drawHallowProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, hallowCover, patches } from './ground.js'
+import { drawHallowInterior } from './interiors.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const halloween = {
@@ -27,6 +28,10 @@ export const halloween = {
         return drawHallowProp(a, n, p)
       case 'landmark':
         return drawHallowLandmark({ tier: Number(a), stage: n, variant: p.variant, accent: p.accent, wall: p.wall, roofs: p.roofs, lit: p.lit, busy: p.busy, frame })
+      case 'interior':
+        // Inside one of its buildings: what the room is made of, and the things in it that could
+        // only be here. Everything else in a room is the village's, and means what it does there.
+        return drawHallowInterior(a, n)
       case 'tile':
         if (a === 'yard') return drawGround(n, p.tone)
         if (a === 'trail') return drawTrail(n, p.links || 0, p.tone)
