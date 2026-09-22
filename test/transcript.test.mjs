@@ -80,14 +80,47 @@ test('the conversation keeps prompts, replies and one line per tool call', () =>
   assert.equal(msgs[3].text, 'Fixed.\n\nTests pass.')
 })
 
-test('slash commands show as themselves; wrapper-only messages vanish', () => {
+test('reasoning is its own message, stitched across records and named by its record', () => {
+  const think = (t, extra = {}) => ({
+    ...assistantRecord([]),
+    uuid: extra.uuid,
+    message: { id: extra.id || 'm1', role: 'assistant', content: [{ type: 'thinking', thinking: t, signature: 'sig' }] },
+  })
+  const msgs = transcriptMessages([
+    userRecord('why is it slow?'),
+    think('First, the query.', { uuid: 'u1' }),
+    think('Then the index.', { uuid: 'u2' }),
+    { ...assistantRecord([]), message: { id: 'm1', role: 'assistant', content: [{ type: 'text', text: 'The index is missing.' }] } },
+    { ...assistantRecord([]), uuid: 'u3', message: { id: 'm2', role: 'assistant', content: [{ type: 'redacted_thinking', data: 'xx' }] } },
+  ])
+  assert.deepEqual(msgs.map((m) => m.role), ['user', 'thinking', 'assistant', 'thinking'])
+  // Two records of the one turn's thinking read as one thought, keyed by the first of them.
+  assert.equal(msgs[1].text, 'First, the query.\n\nThen the index.')
+  assert.equal(msgs[1].key, 'u1')
+  assert.equal(msgs[3].text, '(reasoning redacted)')
+  assert.equal(msgs.some((m) => 'msgId' in m), false)
+})
+
+test('slash commands show as themselves, arguments and all; wrapper-only messages vanish', () => {
   assert.equal(readableUserText('<command-name>/mcp</command-name><command-message>mcp</command-message>'), '/mcp')
+  assert.equal(
+    readableUserText('<command-message>loop</command-message><command-name>/loop</command-name><command-args>5m /babysit</command-args>'),
+    '/loop 5m /babysit',
+  )
   assert.equal(readableUserText('<local-command-caveat>x</local-command-caveat>'), '')
 })
 
 test('tool lines name MCP tools readably', () => {
   assert.deepEqual(summarizeTool({ name: 'mcp__Claude_Browser__computer', input: { action: 'click' } }), { name: 'Claude Browser · computer', detail: 'click' })
   assert.equal(summarizeTool({ name: 'Edit', input: { file_path: '/a/b.js' } }).detail, '/a/b.js')
+})
+
+test('a command comes back whole, line breaks and all, as well as on one line', () => {
+  const command = 'cd app \\\n  && npm test -- --grep login'
+  const t = summarizeTool({ name: 'Bash', input: { command, description: 'Run the login tests' } })
+  assert.equal(t.code, command)
+  assert.equal(t.detail, 'cd app \\ && npm test -- --grep login') // still one line, for anything that wants one
+  assert.equal(summarizeTool({ name: 'Read', input: { file_path: '/a/b.js' } }).code, undefined)
 })
 
 import { pendingQuestion } from '../server/harnesses/claude-code/transcript.mjs'

@@ -124,19 +124,35 @@ export function awaitingReply(records) {
 
 const HIDDEN_BLOCK_RE = /<(system-reminder|ide_selection|ide_opened_file|local-command-caveat|local-command-stdout|command-message|command-args|task-notification)\b[^>]*>[\s\S]*?<\/\1>/g
 const COMMAND_RE = /<command-name>\s*([^<]+?)\s*<\/command-name>/
+const ARGS_RE = /<command-args>\s*([^<]*?)\s*<\/command-args>/
 const TEXT_MAX = 8000
+// Reasoning is worth reading but it is not the reply: half a message's budget follows the argument
+// without one long think burying the turn it belongs to.
+const THINK_MAX = 4000
+// A command shown whole, up to the length past which it is a script rather than a command — by
+// then the point of showing it, seeing what actually ran, has been made.
+const CODE_MAX = 1200
 
-/** A user message as the person typed it: harness wrappers removed, a slash command shown as itself. */
+/**
+ * A user message as the person typed it: harness wrappers removed, a slash command shown as
+ * itself — with what was typed after it, because `/loop` and `/loop 5m /babysit` are not the
+ * same instruction and the name alone reads as the wrong one.
+ */
 export function readableUserText(text) {
   const s = String(text ?? '')
   const cmd = COMMAND_RE.exec(s)
+  const args = cmd ? ARGS_RE.exec(s) : null
   const rest = s.replace(HIDDEN_BLOCK_RE, '').replace(/<command-name>[\s\S]*?<\/command-name>/g, '').trim()
-  return [cmd ? cmd[1] : '', rest].filter(Boolean).join(' ').trim()
+  return [cmd ? cmd[1] : '', args ? args[1].trim() : '', rest].filter(Boolean).join(' ').trim()
 }
 
 const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 
-/** One line saying what a tool call did: the command it ran, the file it touched, what it searched. */
+/**
+ * One line saying what a tool call did: the command it ran, the file it touched, what it searched.
+ * A command comes back whole as `code` as well: collapsed onto one line and cut at the panel's
+ * edge, `cd app && npm test -- --grep login` reads as `cd app && npm test…`, which is not what ran.
+ */
 export function summarizeTool(block) {
   const i = block?.input && typeof block.input === 'object' ? block.input : {}
   const detail = i.command ?? i.file_path ?? i.notebook_path ?? i.pattern ?? i.url ?? i.query ?? i.description ?? i.skill ?? i.prompt ?? i.action ?? i.text ?? ''
@@ -144,14 +160,17 @@ export function summarizeTool(block) {
   const raw = String(block?.name || 'tool')
   const mcp = /^mcp__(.+?)__(.+)$/.exec(raw)
   const name = mcp ? `${mcp[1].replace(/_/g, ' ')} · ${mcp[2]}` : raw
-  return { name, detail: clip(String(detail).replace(/\s+/g, ' ').trim(), 240) }
+  const command = typeof i.command === 'string' ? i.command.trim() : ''
+  const out = { name, detail: clip(String(detail).replace(/\s+/g, ' ').trim(), 240) }
+  if (command) out.code = clip(command, CODE_MAX)
+  return out
 }
 
 /**
- * The main conversation as a list of messages: what the person said, what Claude said, and a
- * line for each tool call. Subagent (sidechain) turns and tool results are left out; they are the
- * machinery, not the conversation.
- * @returns {{ role: 'user'|'assistant'|'tool', text?: string, name?: string, detail?: string, at: number }[]}
+ * The main conversation as a list of messages: what the person said, what Claude thought, what it
+ * said, and a line for each tool call. Subagent (sidechain) turns and tool results are left out;
+ * they are the machinery, not the conversation.
+ * @returns {{ role: 'user'|'thinking'|'assistant'|'tool', text?: string, key?: string, name?: string, detail?: string, code?: string, at: number }[]}
  */
 export function transcriptMessages(records) {
   const out = []
@@ -166,15 +185,25 @@ export function transcriptMessages(records) {
       if (text) out.push({ role: 'user', text: clip(text, TEXT_MAX), at })
     } else if (r.type === 'assistant') {
       const content = Array.isArray(r.message?.content) ? r.message.content : []
-      for (const b of content) {
-        if (b?.type === 'text' && b.text?.trim()) {
-          const prev = out.at(-1)
-          // The CLI writes one record per content block; stitch a reply's text back together.
-          if (prev?.role === 'assistant' && prev.msgId && prev.msgId === r.message?.id) prev.text = clip(`${prev.text}\n\n${b.text.trim()}`, TEXT_MAX)
-          else out.push({ role: 'assistant', text: clip(b.text.trim(), TEXT_MAX), at, msgId: r.message?.id })
-        } else if (b?.type === 'tool_use') {
-          out.push({ role: 'tool', ...summarizeTool(b), at })
+      // The CLI writes one record per content block; stitch a turn's own words back together.
+      const say = (role, text, max) => {
+        const prev = out.at(-1)
+        if (prev?.role === role && prev.msgId && prev.msgId === r.message?.id) {
+          prev.text = clip(`${prev.text}\n\n${text}`, max)
+          return
         }
+        const m = { role, text: clip(text, max), at, msgId: r.message?.id }
+        // Reasoning is the one message the panel can fold away, so it needs a name that survives a
+        // refresh: the record's own id, which nothing else in the file shares.
+        if (role === 'thinking' && typeof r.uuid === 'string' && r.uuid) m.key = r.uuid
+        out.push(m)
+      }
+      for (const b of content) {
+        if (b?.type === 'thinking' && typeof b.thinking === 'string' && b.thinking.trim()) say('thinking', b.thinking.trim(), THINK_MAX)
+        // Reasoning the model sent back encrypted: nothing to read, but the turn did think.
+        else if (b?.type === 'redacted_thinking') say('thinking', '(reasoning redacted)', THINK_MAX)
+        else if (b?.type === 'text' && b.text?.trim()) say('assistant', b.text.trim(), TEXT_MAX)
+        else if (b?.type === 'tool_use') out.push({ role: 'tool', ...summarizeTool(b), at })
       }
     }
   }

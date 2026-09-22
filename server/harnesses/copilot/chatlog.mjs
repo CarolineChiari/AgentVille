@@ -14,6 +14,9 @@ export const STATE = { PENDING: 0, COMPLETE: 1, CANCELLED: 2, FAILED: 3, NEEDS_I
 // Response parts that mean "stopped on a question for you", as opposed to a permission prompt.
 const QUESTION_PARTS = new Set(['questionCarousel', 'elicitationSerialized'])
 const TEXT_MAX = 8000
+// Reasoning is worth reading but it is not the reply: half a message's budget follows the argument
+// without one long think burying the turn it belongs to.
+const THINK_MAX = 4000
 
 const isObj = (v) => v !== null && typeof v === 'object'
 const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
@@ -157,14 +160,14 @@ function refName(ref) {
 }
 
 /**
- * The conversation, in the transcript panel's shape: what you asked, what Copilot said, and a
- * line per tool call. Thinking, edit groups and progress are the machinery, not the conversation.
- * @returns {{ role: 'user'|'assistant'|'tool', text?: string, name?: string, detail?: string, at: number }[]}
+ * The conversation, in the transcript panel's shape: what you asked, what Copilot thought, what it
+ * said, and a line per tool call. Edit groups and progress are the machinery, not the conversation.
+ * @returns {{ role: 'user'|'thinking'|'assistant'|'tool', text?: string, key?: string, name?: string, detail?: string, at: number }[]}
  */
 export function chatMessages(session) {
   const out = []
   const requests = Array.isArray(session?.requests) ? session.requests : []
-  for (const req of requests) {
+  for (const [n, req] of requests.entries()) {
     if (!isObj(req)) continue
     const at = finite(req.timestamp)
     const asked = textOf(req.message?.text ?? req.message).trim()
@@ -174,11 +177,18 @@ export function chatMessages(session) {
       if (buf.trim()) out.push({ role: 'assistant', text: clip(buf.trim(), TEXT_MAX), at: finite(req.modelState?.completedAt) || at })
       buf = ''
     }
-    for (const p of Array.isArray(req.response) ? req.response : []) {
+    const parts = Array.isArray(req.response) ? req.response : []
+    for (const [i, p] of parts.entries()) {
       if (!isObj(p)) continue
       if (!p.kind || p.kind === 'markdownContent') buf += textOf(p.kind ? p.content : p)
       else if (p.kind === 'inlineReference') buf += `\`${refName(p.inlineReference)}\``
-      else if (p.kind === 'toolInvocationSerialized' || p.kind === 'toolInvocation') {
+      else if (p.kind === 'thinking') {
+        flush()
+        const thought = textOf(p.value ?? p.content).trim()
+        // The panel folds reasoning away, so it needs a name that survives a refresh; a part keeps
+        // its place in its request, and the log only ever appends.
+        if (thought) out.push({ role: 'thinking', text: clip(thought, THINK_MAX), key: `${n}:${i}`, at })
+      } else if (p.kind === 'toolInvocationSerialized' || p.kind === 'toolInvocation') {
         flush()
         const detail = textOf(p.pastTenseMessage) || textOf(p.invocationMessage)
         out.push({ role: 'tool', name: String(p.toolId || 'tool').replace(/^copilot_/, ''), detail: clip(detail.replace(/\s+/g, ' ').trim(), 240), at })

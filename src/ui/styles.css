@@ -422,8 +422,19 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .m .body { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .m.user .body { background: rgba(255, 210, 63, 0.12); border: 1px solid rgba(255, 210, 63, 0.25); border-radius: 8px; padding: 7px 10px; }
 .m.assistant .body { padding: 0 2px; }
-.m.tool { font: 11px/1.4 var(--mono); color: var(--muted); padding-left: 8px; border-left: 2px solid rgba(255, 255, 255, 0.12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m.tool { font: 11px/1.4 var(--mono); color: var(--muted); padding-left: 8px; border-left: 2px solid rgba(255, 255, 255, 0.12); }
+.m.tool .line { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m.tool .tn { color: var(--info); }
+/* A command is read, not skimmed: it keeps its line breaks and wraps, rather than being cut off
+   at the panel's edge where `cd app && npm test -- --grep login` stops looking like what ran. */
+.m.tool pre { font: 11px/1.45 var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0 0; padding: 6px 8px; }
+/* Reasoning: folded away by default, so a long think never stands between you and the reply. */
+.m.think { padding-left: 8px; border-left: 2px solid rgba(255, 255, 255, 0.12); }
+.m.think > summary { font-size: 11px; color: var(--muted); cursor: pointer; display: flex; justify-content: space-between; list-style: none; }
+.m.think > summary::-webkit-details-marker { display: none; }
+.m.think > summary::after { content: '▸'; }
+.m.think[open] > summary::after { content: '▾'; }
+.m.think .body { font-size: 12px; line-height: 1.5; color: var(--muted); padding: 4px 0 2px; overflow-wrap: anywhere; }
 .m pre { font: 12px/1.45 var(--mono); background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 8px; overflow: auto; margin: 6px 0; white-space: pre; }
 .m table { border-collapse: collapse; margin: 6px 0; font-size: 12px; }
 .m td, .m th { border: 1px solid var(--panel-border); padding: 3px 7px; text-align: left; vertical-align: top; }
