@@ -1,10 +1,26 @@
 // The transcript panel: a thread's conversation, read from its transcript on disk. Refreshes
-// itself while the thread is live, and keeps you at the bottom only if you were already there.
+// itself while anything is moving, and keeps you at the bottom only if you were already there.
 import { esc, ago, openLabel, agentName } from './dom.js'
 import { STATUS_LABEL } from '../sim/status.js'
 
-const LIVE_REFRESH_MS = 3000
+// While the conversation is moving, the panel should read as live. A poll that finds nothing new
+// costs the server a stat and a cache hit, so this is cheap even on a big transcript.
+const FAST_MS = 2000
+// Nothing has moved for a while: keep looking, but rarely. A panel left open on a sleeping thread
+// must not poll all afternoon at speed.
+const SLOW_MS = 30_000
 const PAGE = 300
+
+/**
+ * How long to wait before reading the transcript again, paced by what the file is doing rather
+ * than by the thread's status alone: a session the scan cannot see as a live process — one in the
+ * desktop app, or in another agent — still writes, and a panel that only hurried for threads the
+ * village calls "working" sat there stale while it did.
+ */
+export function nextDelay(prev, { changed = false, live = false } = {}) {
+  if (changed || live) return FAST_MS
+  return Math.min(SLOW_MS, Math.round((prev || FAST_MS) * 1.6))
+}
 
 const inline = (s) =>
   esc(s)
@@ -49,12 +65,23 @@ export function createTranscript(root, village) {
   const panel = document.createElement('div')
   panel.className = 'transcript'
   panel.hidden = true
+  // The header and the list are their own elements: the header's "3 minutes ago" ticks on its own,
+  // and rewriting the list for that alone would throw away the scroll and every unfolded thought.
+  const head = document.createElement('div')
+  head.className = 't-head'
+  const list = document.createElement('div')
+  list.className = 't-list'
+  panel.append(head, list)
   root.appendChild(panel)
   let id = null
   let timer = null
-  let lastKey = ''
+  let lastHead = ''
+  let lastList = ''
   let limit = PAGE
   let loadingMore = false
+  let delay = FAST_MS
+  let reads = 0 // only the newest read may draw: two can be in flight and finish out of order
+  const opened = new Set() // reasoning you have unfolded, remembered so a refresh doesn't shut it
 
   panel.addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]')
@@ -63,71 +90,120 @@ export function createTranscript(root, village) {
     else if (b.dataset.act === 'open') village.open(id)
     else if (b.dataset.act === 'more') {
       limit += PAGE
-      lastKey = ''
       loadingMore = true
+      delay = FAST_MS
       load()
     }
   })
 
+  // `toggle` doesn't bubble, so it is heard on the way down.
+  panel.addEventListener(
+    'toggle',
+    (e) => {
+      const key = e.target?.dataset?.key
+      if (!key) return
+      if (e.target.open) opened.add(key)
+      else opened.delete(key)
+    },
+    true,
+  )
+
   function header(t) {
-    return `<div class="t-head">
-      <div style="min-width:0;flex:1"><b title="${esc(t.title)}">${esc(t.title)}</b>
+    return `<div style="min-width:0;flex:1"><b title="${esc(t.title)}">${esc(t.title)}</b>
         <span class="t-sub">${esc(t.project)}${t.status ? ` · ${esc(STATUS_LABEL[t.status] || '')}` : ''} · ${ago(t.lastActivityAt)}</span></div>
       <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}</button>
-      <button class="btn" data-act="close" title="Close (T)">✕</button>
-    </div>`
+      <button class="btn" data-act="close" title="Close (T)">✕</button>`
   }
 
-  function message(m, who) {
-    if (m.role === 'tool') return `<div class="m tool"><span class="tn">${esc(m.name)}</span> ${esc(m.detail || '')}</div>`
+  function message(m, who, key) {
+    // Reasoning arrives folded: it is there to be read when you want it, not to bury the reply.
+    if (m.role === 'thinking') {
+      return `<details class="m think" data-key="${esc(key)}"${opened.has(key) ? ' open' : ''}><summary>Thinking<span>${m.at ? ago(m.at) : ''}</span></summary><div class="body">${formatText(m.text)}</div></details>`
+    }
+    if (m.role === 'tool') {
+      // A command is shown as it was written; for everything else the one line says it all.
+      const line = `<span class="tn">${esc(m.name)}</span>${m.code ? '' : ` ${esc(m.detail || '')}`}`
+      return `<div class="m tool"><span class="line">${line}</span>${m.code ? `<pre>${esc(m.code)}</pre>` : ''}</div>`
+    }
     return `<div class="m ${m.role}"><div class="who">${m.role === 'user' ? 'You' : esc(who)}<span>${m.at ? ago(m.at) : ''}</span></div><div class="body">${formatText(m.text)}</div></div>`
+  }
+
+  function body(r, t) {
+    if (!r.ok) return `<p class="t-empty">${esc(r.error || 'No transcript.')}</p>`
+    const who = agentName(t)
+    const earlier = r.total > r.messages.length ? `<button class="btn t-more" data-act="more">Show earlier (${r.total - r.messages.length} more)</button>` : ''
+    // A reasoning block's key comes from its own record, so folding it open survives both a refresh
+    // and a "show earlier" that shifts everything down the list.
+    const said = r.messages.map((m, i) => message(m, who, m.key || `${m.at}:${i}`)).join('')
+    return earlier + (said || '<p class="t-empty">Nothing said yet.</p>')
   }
 
   async function load() {
     if (!id) return
     const t = village.thread(id)
     if (!t) return close()
+    const mine = ++reads
+    const want = id
     const r = await village.transcript(id, limit)
-    if (id !== t.id) return
-    const key = `${r.ok}|${r.total}|${r.updatedAt}|${t.status}|${limit}`
-    if (key === lastKey) return schedule(t)
-    lastKey = key
-    const list = panel.querySelector('.t-list')
-    const atBottom = !list || list.scrollHeight - list.scrollTop - list.clientHeight < 40
-    const prevHeight = list?.scrollHeight ?? 0
-    const prevTop = list?.scrollTop ?? 0
-    panel.innerHTML = `${header(t)}<div class="t-list">${
-      !r.ok
-        ? `<p class="t-empty">${esc(r.error || 'No transcript.')}</p>`
-        : `${r.total > r.messages.length ? `<button class="btn t-more" data-act="more">Show earlier (${r.total - r.messages.length} more)</button>` : ''}${r.messages.map((m) => message(m, agentName(t))).join('') || '<p class="t-empty">Nothing said yet.</p>'}`
-    }</div>`
-    const next = panel.querySelector('.t-list')
-    // Stay pinned to the newest message if you were reading there; after "show earlier", keep the
-    // message you were looking at in place; otherwise don't move under you.
-    if (loadingMore) next.scrollTop = prevTop + (next.scrollHeight - prevHeight)
-    else next.scrollTop = atBottom ? next.scrollHeight : prevTop
+    // An earlier read that came back late must not draw over a newer one, or over another thread's
+    // panel: a scan landing mid-read starts a second one, and the two can finish either way round.
+    if (mine !== reads || want !== id) return
+    const headHtml = header(t)
+    if (headHtml !== lastHead) {
+      lastHead = headHtml
+      head.innerHTML = headHtml
+    }
+    const listHtml = body(r, t)
+    const changed = listHtml !== lastList
+    if (changed) {
+      const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 40
+      const prevHeight = list.scrollHeight
+      const prevTop = list.scrollTop
+      lastList = listHtml
+      list.innerHTML = listHtml
+      // Stay pinned to the newest message if you were reading there; after "show earlier", keep the
+      // message you were looking at in place; otherwise don't move under you.
+      if (loadingMore) list.scrollTop = prevTop + (list.scrollHeight - prevHeight)
+      else list.scrollTop = atBottom ? list.scrollHeight : prevTop
+    }
     loadingMore = false
-    schedule(t)
+    schedule(t, changed)
   }
 
-  function schedule(t) {
+  function schedule(t, changed) {
     clearTimeout(timer)
+    if (!id) return
     const live = t.status === 'working' || t.status === 'waiting' || t.status === 'blocked'
-    if (id && live) timer = setTimeout(load, LIVE_REFRESH_MS)
+    delay = nextDelay(delay, { changed, live })
+    timer = setTimeout(load, delay)
   }
+
+  // A hidden tab has its timers throttled to about one a minute, so the panel you come back to is
+  // as old as the tab was away. Read again the moment it is on screen.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !id) return
+    delay = FAST_MS
+    load()
+  })
 
   function open(threadId) {
     if (!threadId || !village.thread(threadId)) return
     id = threadId
     limit = PAGE
-    lastKey = ''
+    delay = FAST_MS
+    loadingMore = false
+    opened.clear()
     panel.hidden = false
-    panel.innerHTML = `${header(village.thread(id))}<div class="t-list"><p class="t-empty">Reading…</p></div>`
+    lastHead = header(village.thread(id))
+    head.innerHTML = lastHead
+    lastList = ''
+    list.innerHTML = '<p class="t-empty">Reading…</p>'
     load()
   }
 
   function close() {
     id = null
+    reads++ // whatever is in flight is no longer wanted
     clearTimeout(timer)
     panel.hidden = true
   }

@@ -242,6 +242,16 @@ export function createClaudeCodeAdapter(opts = {}) {
     return { ok: false, error: 'This thread has no id Claude can open.' }
   }
 
+  /** A fresh stat of a listed transcript, for the cache key; null when it is no longer there. */
+  async function statTranscript(t) {
+    try {
+      const st = await fsp.stat(t.file)
+      return { ok: true, file: t.file, st, key: `${st.mtimeMs}:${st.size}` }
+    } catch {
+      return null
+    }
+  }
+
   /**
    * The transcript file of one thread, found by its CLI session id among the ones the scan already
    * listed — the page never names a file — with a fresh stat for the cache key.
@@ -250,18 +260,17 @@ export function createClaudeCodeAdapter(opts = {}) {
   async function locateTranscript(ref) {
     const id = ref && typeof ref === 'object' ? ref.cliSessionId : null
     if (!isCliId(id)) return { ok: false, error: 'This thread has no transcript on this machine.' }
-    let t = lastTranscripts.get(id)
-    if (!t) {
+    const listed = lastTranscripts.get(id)
+    let found = listed ? await statTranscript(listed) : null
+    // Missing from the last scan's list, or gone from where it said: the CLI re-files a session
+    // when its folder is renamed, so look again rather than answer "not found" — an open panel
+    // would otherwise sit on a dead path until a scan happened to replace it.
+    if (!found) {
       lastTranscripts = await scanTranscripts()
-      t = lastTranscripts.get(id)
+      const again = lastTranscripts.get(id)
+      found = again ? await statTranscript(again) : null
     }
-    if (!t) return { ok: false, error: 'Transcript not found.' }
-    try {
-      const st = await fsp.stat(t.file)
-      return { ok: true, file: t.file, st, key: `${st.mtimeMs}:${st.size}` }
-    } catch {
-      return { ok: false, error: 'Transcript not found.' }
-    }
+    return found ?? { ok: false, error: 'Transcript not found.' }
   }
 
   /** Keep a cache small enough that a handful of big transcripts can't sit in memory forever. */

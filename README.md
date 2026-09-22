@@ -210,9 +210,12 @@ in the editor* is there when you want the real thing.
 ### Transcripts and new sessions
 
 **Transcript** on a villager's card (or `T`) opens its conversation in a panel beside the map:
-your prompts, Claude's replies, and one line for each tool call. It refreshes every few seconds
-while the thread is working or waiting, and stays at the newest message if that's where you are.
-It's read straight from the transcript file; nothing is sent anywhere.
+your prompts, Claude's replies, one line for each tool call, and every command it ran, whole and
+wrapped rather than cut off at the panel's edge. Each turn's reasoning sits above the reply, folded
+away — click **Thinking** to read it, and it stays open as the panel refreshes. It looks again
+every couple of seconds while the conversation is moving, whatever the villager is doing, and backs
+off once it stops; it stays at the newest message if that's where you are. It's read straight from
+the transcript file; nothing is sent anywhere.
 
 **+ New session** (or `C`) picks a repo, or any folder, where to open it, the model, the effort
 level, and an optional first prompt. The new villager steps out of the portal a few seconds later.

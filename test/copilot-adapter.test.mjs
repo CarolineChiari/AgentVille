@@ -175,7 +175,7 @@ test('opening a chat opens its folder in the editor it lives in', async (t) => {
   assert.equal((await a.openThread({ ...th.ref, folder: 'relative' })).ok, false)
 })
 
-test('the transcript replays the log: prompt, reply, tool line', async (t) => {
+test('the transcript replays the log: prompt, reply, tool line, reasoning', async (t) => {
   const { home, cleanup } = tmpHome()
   t.after(cleanup)
   chatHome(home, {
@@ -189,7 +189,14 @@ test('the transcript replays the log: prompt, reply, tool line', async (t) => {
   const a = adapterFor(home)
   const [th] = await a.scanThreads()
   const tr = await a.readTranscript(th.ref)
-  assert.deepEqual(tr.messages.map((m) => [m.role, m.text ?? `${m.name}: ${m.detail}`]), [['user', 'why?'], ['assistant', 'Because `a.js`'], ['tool', 'readFile: Read a.js']])
+  assert.deepEqual(tr.messages.map((m) => [m.role, m.text ?? `${m.name}: ${m.detail}`]), [
+    ['user', 'why?'],
+    ['assistant', 'Because `a.js`'],
+    ['tool', 'readFile: Read a.js'],
+    ['thinking', 'hmm'],
+  ])
+  // The panel folds reasoning away, so each thought keeps a name across refreshes.
+  assert.equal(tr.messages.at(-1).key, '0:3') // request 0, the fourth part appended to its response
   assert.equal((await a.readTranscript({ sessionId: '../../etc/passwd' })).ok, false)
 })
 
