@@ -23,6 +23,7 @@ const TAIL_BYTES = 64 * 1024
 // needs the transcript to have moved recently.
 const ACTIVE_WINDOW_MS = 30 * 60 * 1000
 // A prompt travels inside a URL handed to the OS; Windows' ShellExecute caps those near 2k chars.
+// A longer one is left out of the link rather than cut short, and goes to the clipboard whole.
 export const PROMPT_MAX = 1800
 const LIVE_STATUSES = new Set(['busy', 'shell', 'idle', 'waiting'])
 
@@ -353,7 +354,8 @@ export function createClaudeCodeAdapter(opts = {}) {
       return { ok: true, where: 'a terminal', terminal: { exe, args, cwd: dir, prompt: text } }
     }
     if (target === 'vscode') {
-      const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''
+      const trimmed = typeof prompt === 'string' ? prompt.trim() : ''
+      const text = trimmed.length <= PROMPT_MAX ? trimmed : ''
       const open = `vscode://anthropic.claude-code/open${text ? `?${new URLSearchParams({ prompt: text })}` : ''}`
       return { ok: true, where: 'VS Code', promptPassed: Boolean(text), url: open, urls: [vscodeFolderUrl(dir), open] }
     }

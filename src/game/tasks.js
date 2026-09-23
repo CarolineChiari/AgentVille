@@ -38,7 +38,7 @@ export const TASKS = [
 ]
 
 // A custom task is saved in village.json, which a person can edit by hand: these bound what it can
-// hold. The prompt limit matches the new-session form's textarea, so a task always fits there.
+// hold. The prompt limit matches what an editor's link can carry, so a task always rides along in one.
 export const LABEL_MAX = 40
 export const PROMPT_MAX = 1800
 export const CUSTOM_MAX = 20
