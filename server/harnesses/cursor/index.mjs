@@ -27,6 +27,7 @@ const isId = (v) => typeof v === 'string' && UUID_RE.test(v)
 // behind, so "generating" only counts while the chat has moved this recently.
 const RUNNING_WINDOW_MS = 15 * 60 * 1000
 // A prompt travels inside a URL handed to the OS; Windows' ShellExecute caps those near 2k chars.
+// A longer one is left out of the link rather than cut short, and goes to the clipboard whole.
 export const PROMPT_MAX = 1800
 const TEXT_MAX = 8000
 const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
@@ -237,7 +238,8 @@ export function createCursorAdapter(opts = {}) {
       return { ok: true, where: 'a terminal', terminal: { exe, args: [], cwd: dir, prompt: text } }
     }
     if (target !== 'cursor') return { ok: false, error: 'Unknown place to start a session.' }
-    const text = typeof prompt === 'string' ? prompt.trim().slice(0, PROMPT_MAX) : ''
+    const trimmed = typeof prompt === 'string' ? prompt.trim() : ''
+    const text = trimmed.length <= PROMPT_MAX ? trimmed : ''
     const folder = folderUrl('cursor', dir)
     if (!text) return { ok: true, where: 'Cursor', url: folder }
     // Cursor's documented prompt link: it fills the chat box and asks before sending.

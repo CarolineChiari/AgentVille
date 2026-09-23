@@ -67,7 +67,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <div class="menus" data-f="row"></div>
       <div class="chips" data-f="chips" title="Fill in a ready-made task"></div>
       <label class="stack">First prompt <span class="hint-inline">optional</span>
-        <textarea data-f="prompt" rows="4" maxlength="1800"></textarea></label>
+        <textarea data-f="prompt" rows="4"></textarea></label>
       <p class="note" data-f="note"></p>
       <div class="actions"><button class="btn primary" data-act="start">Start<kbd>${submitKey()}</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
     renderTargets()

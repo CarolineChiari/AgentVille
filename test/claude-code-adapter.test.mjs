@@ -208,12 +208,13 @@ test('readChanges reads one file\'s own before and after when asked for it', asy
   assert.deepEqual((await a.readChanges({ cliSessionId: uuid(23), cwd: '/work/repo' }, { path: 'nope.js' })).edits, [])
 })
 
-test('VS Code new session prefills a prompt, capped in length', async () => {
+test('VS Code new session prefills a prompt, and leaves one too long for a link to the clipboard', async () => {
   const a = adapterFor('/nowhere')
   const r = await a.newSession('/work/app', { target: 'vscode', prompt: 'Fix the bug & add tests' })
   assert.equal(r.urls[1], 'vscode://anthropic.claude-code/open?prompt=Fix+the+bug+%26+add+tests')
   const long = await a.newSession('/work/app', { target: 'vscode', prompt: 'x'.repeat(5000) })
-  assert.ok(long.urls[1].length < 2000)
+  assert.equal(long.urls[1], 'vscode://anthropic.claude-code/open')
+  assert.equal(long.promptPassed, false, 'never cut short: the page copies the whole prompt instead')
   assert.equal((await a.newSession('/work/app', { target: 'app', prompt: 'hi' })).url, 'claude://code/new?folder=%2Fwork%2Fapp')
 })
 
