@@ -114,7 +114,7 @@ test('VS Code: the repo folder opens first, then the session', () => {
   const a = adapterFor('/nowhere')
   const r = a.openThread({ cliSessionId: uuid(9), cwd: '/work/my repo' }, { target: 'vscode' })
   assert.equal(r.ok, true)
-  assert.deepEqual(r.urls, ['vscode://file/work/my%20repo/', `vscode://anthropic.claude-code/open?session=${uuid(9)}`])
+  assert.deepEqual(r.urls, ['vscode://file/work/my%20repo/?windowId=_blank', `vscode://anthropic.claude-code/open?session=${uuid(9)}`])
 })
 
 test('VS Code refuses a thread that exists only in the desktop app', () => {
@@ -125,12 +125,12 @@ test('VS Code refuses a thread that exists only in the desktop app', () => {
 
 test('VS Code new session opens the folder, then a fresh conversation', async () => {
   const r = await adapterFor('/nowhere').newSession('/work/app', { target: 'vscode' })
-  assert.deepEqual(r.urls, ['vscode://file/work/app/', 'vscode://anthropic.claude-code/open'])
+  assert.deepEqual(r.urls, ['vscode://file/work/app/?windowId=_blank', 'vscode://anthropic.claude-code/open'])
 })
 
 test('vscodeFolderUrl forward-slashes Windows paths', async () => {
   const { vscodeFolderUrl } = await import('../server/harnesses/claude-code/index.mjs')
-  assert.equal(vscodeFolderUrl('C:\\code\\my app'), 'vscode://file/C:/code/my%20app/')
+  assert.equal(vscodeFolderUrl('C:\\code\\my app'), 'vscode://file/C:/code/my%20app/?windowId=_blank')
 })
 
 test('readTranscript finds a thread by its CLI id and returns the newest messages', async (t) => {

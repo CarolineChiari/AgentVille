@@ -72,7 +72,7 @@ test('new sessions: the IDE only when installed, agy in a terminal with -i', asy
   fs.mkdirSync(path.join(home, 'Library', 'Application Support', 'Antigravity IDE', 'User'), { recursive: true })
   const a = adapterFor(home, { agyPath: '/usr/local/bin/agy' })
   assert.deepEqual((await a.targets()).map((x) => x.id), ['ide', 'terminal'])
-  assert.equal((await a.newSession('/work/app', { target: 'ide' })).url, 'antigravity-ide://file/work/app/')
+  assert.equal((await a.newSession('/work/app', { target: 'ide' })).url, 'antigravity-ide://file/work/app/?windowId=_blank')
   assert.deepEqual((await a.newSession('/work/app', { target: 'terminal', prompt: 'go' })).terminal.promptArgs, ['-i'])
   assert.deepEqual((await adapterFor(home).targets()).map((x) => x.id), ['ide'])
 })

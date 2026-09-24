@@ -53,23 +53,35 @@ export async function editorWorkspaces(userDir) {
 }
 
 /**
- * `vscode://file/<path>/` opens a folder in VS Code, or focuses the window that already has it;
- * every fork answers the same link on its own scheme. Windows paths go forward-slashed
- * (`vscode://file/C:/code/app/`); each segment is escaped.
+ * `vscode://file/<path>/?windowId=_blank` opens a folder in VS Code, or focuses the window that
+ * already has it; every fork answers the same link on its own scheme. Windows paths go
+ * forward-slashed (`vscode://file/C:/code/app/`); each segment is escaped.
+ *
+ * `windowId=_blank` because a bare link to a folder no window has yet is loaded into the last
+ * active window, replacing its project and stopping whatever agent was running there. That is the
+ * editor's rule for every link, on every OS: only `code <folder>` and opening from Finder or the
+ * Dock prefer a new window, whatever the default of `window.openFoldersInNewWindow` says. With the
+ * parameter the editor still looks for a window already on the folder first, and opens a new one
+ * only when there is none. An editor too old to know it ignores the query and behaves as before.
  */
 export function folderUrl(scheme, dir) {
-  const parts = String(dir).split(/[\\/]/).filter(Boolean)
-  const drive = /^[A-Za-z]:$/.test(parts[0] || '') ? parts.shift() + '/' : ''
-  return `${scheme}://file/${drive}${parts.map(encodeURIComponent).join('/')}/`
+  return `${pathUrl(scheme, dir)}/?windowId=_blank`
 }
 
 /**
  * `vscode://file/<path>` opens one file in the editor, in the window that already has its folder.
- * The same link as `folderUrl` without the trailing slash: that slash is what tells the editor it
- * was handed a folder, so a file must not carry one.
+ * The same link as `folderUrl` without the trailing slash, which is what tells the editor it was
+ * handed a folder, and without `windowId`: a file belongs in the window that has its folder.
  */
 export function fileUrl(scheme, file) {
-  return folderUrl(scheme, file).replace(/\/$/, '')
+  return pathUrl(scheme, file)
+}
+
+/** `<scheme>://file/<path>`, no trailing slash, no query. */
+function pathUrl(scheme, target) {
+  const parts = String(target).split(/[\\/]/).filter(Boolean)
+  const drive = /^[A-Za-z]:$/.test(parts[0] || '') ? parts.shift() + '/' : ''
+  return `${scheme}://file/${drive}${parts.map(encodeURIComponent).join('/')}`
 }
 
 /** The editors that answer a `<scheme>://file/…` link. Anything else never reaches the OS. */
