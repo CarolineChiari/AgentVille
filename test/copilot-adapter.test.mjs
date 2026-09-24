@@ -170,7 +170,7 @@ test('opening a chat opens its folder in the editor it lives in', async (t) => {
   chatHome(home, { records: [snapshot([request('x', 1)])] })
   const a = adapterFor(home)
   const [th] = await a.scanThreads()
-  assert.equal((await a.openThread(th.ref)).url, 'vscode://file/work/app/')
+  assert.equal((await a.openThread(th.ref)).url, 'vscode://file/work/app/?windowId=_blank')
   assert.equal((await a.openThread({ ...th.ref, editor: 'javascript' })).ok, false)
   assert.equal((await a.openThread({ ...th.ref, folder: 'relative' })).ok, false)
 })
@@ -209,7 +209,7 @@ test('new sessions: the editor always, a terminal only with the CLI installed', 
   assert.deepEqual((await withCli.targets()).map((x) => x.id), ['vscode', 'terminal'])
   const r = await withCli.newSession('/work/app', { target: 'terminal', prompt: 'hi' })
   assert.deepEqual(r.terminal, { exe: '/usr/local/bin/copilot', args: [], promptArgs: ['-i'], cwd: '/work/app', prompt: 'hi' })
-  assert.equal((await withCli.newSession('/work/app', { target: 'vscode' })).url, 'vscode://file/work/app/')
+  assert.equal((await withCli.newSession('/work/app', { target: 'vscode' })).url, 'vscode://file/work/app/?windowId=_blank')
   assert.equal((await withCli.newSession('relative', { target: 'vscode' })).ok, false)
 })
 

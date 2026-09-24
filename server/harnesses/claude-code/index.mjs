@@ -412,7 +412,7 @@ export function createClaudeCodeAdapter(opts = {}) {
   return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli } }
 }
 
-/** `vscode://file/<path>/`: opens the folder in VS Code, or focuses the window that has it. */
+/** `vscode://file/<path>/?windowId=_blank`: focuses the VS Code window on the folder, or opens a new one. */
 export const vscodeFolderUrl = (dir) => folderUrl('vscode', dir)
 
 export default createClaudeCodeAdapter()
