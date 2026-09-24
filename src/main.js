@@ -16,6 +16,7 @@ import { createTranscript } from './ui/transcript.js'
 import { createRoomPanel } from './ui/room.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
+import { createTip } from './ui/tip.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
 
@@ -75,6 +76,7 @@ let roomLog = null // what the focused session changed: its shelves, and the boa
 let board = { view: 'files', scroll: 0, open: '', review: '', file: null }
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
+const tip = createTip(hudRoot, village)
 const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
   onRecruit: (project, prompt) => newSession.open(project, { prompt }),
@@ -228,6 +230,7 @@ function applyUiVisible() {
 let press = null
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId)
+  tip.hide()
   // A press is recorded in a room as well as outside one: see `pansCamera` in ui/move.js.
   press = { x: e.clientX, y: e.clientY, world: camera.toWorld(e.clientX, e.clientY), dragging: false }
 })
@@ -243,6 +246,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (village.focused) {
     const hit = room && renderer.pickInRoom(room, e.clientX, e.clientY)
     renderer.roomHover = hit
+    tip.hide()
     canvas.classList.toggle('pointing', Boolean(hit?.act))
     return
   }
@@ -253,6 +257,8 @@ canvas.addEventListener('pointermove', (e) => {
     : hit?.board ? world.board(hit.board)?.plot
     : hit?.landmark || hit?.plot || null
   canvas.classList.toggle('pointing', Boolean(hovered))
+  // A touch has no hover to hold, so only a pointer that can rest gets the quick look.
+  tip.hover(e.pointerType === 'touch' ? null : hit?.building || hit?.site || null, e.clientX, e.clientY)
 })
 canvas.addEventListener('pointerup', (e) => {
   const was = press
@@ -286,6 +292,7 @@ canvas.addEventListener('pointerup', (e) => {
   }
 })
 canvas.addEventListener('pointerleave', () => {
+  tip.hide()
   hovered = null
   hoverPlot = null
 })
@@ -435,6 +442,7 @@ function loop(now) {
   })
   // Inside: the village is still drawn underneath, and the room fades up over it on the way in
   // and back down on the way out, so a door is something you walk through rather than a cut.
+  if (village.focused) tip.hide()
   doorFade = Math.max(0, Math.min(1, doorFade + (village.focused ? dt : -dt) / DOOR_FADE_S))
   room = village.focused ? roomOf(night) : doorFade > 0 ? room : null
   if (room && doorFade > 0) {
