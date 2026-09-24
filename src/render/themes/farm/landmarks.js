@@ -45,9 +45,11 @@ const TIERS = [
   function hayBales(pc, o) {
     const base = o.H - 2
     yard(pc, o.H, o.rand, 12)
-    // A stack of small bales, two courses and a third going on.
-    baleAt(pc, 5, base, 8, 4)
+    // A stack of small bales, built up a course at a time: one bale set down, then the bottom
+    // course, then the courses above it. It has no site of its own, so its stages are the stack.
     baleAt(pc, 13, base, 8, 4)
+    if (o.stage <= 0) return null
+    baleAt(pc, 5, base, 8, 4)
     baleAt(pc, 21, base, 7, 4)
     if (!o.roof) return { x0: 4, x1: 28, top: base - 5 }
     baleAt(pc, 9, base - 4, 8, 4)
