@@ -124,12 +124,20 @@ garden: a scallop for a bug fix, a net float for data work, a nautilus for resea
 landmarks climb from a mooring post to a lighthouse with its beam going round, and the birds
 overhead are gulls.
 
+Or a working farm, where the plots are pasture, stubble, furrows and trodden farmyard behind
+post-and-rail, wire, wattle hurdles and white paddock boards, the threads build barns, silos,
+windpumps and hen houses, everybody works in a flat cap and dungarees, and finished work is a crop
+come ripe in each plot's kitchen garden instead of a flower: a tomato for a bug fix, a corn cob for
+data work, a runner bean for research. Its landmarks climb from a stack of bales to a windmill with
+its sails going round.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
 greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
 pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
 Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
-cottages at the seaside. A
+cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a market garden on the
+farm. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -143,6 +151,8 @@ bloomed) is the same in every theme.
 ![The same demo village on Halloween night: plots of leaf mould and old flagstones behind corn stooks and iron railings, gabled houses with lanterns on the step, a belfry and a witch's tower, and rows of carved jack-o'-lanterns where the gardens were](docs/screenshots/halloween.png)
 
 ![The same demo village as a seaside harbour: plots of boardwalk decking and wet quay flags behind drying nets and painted railings, beach huts and a net loft, a pier light and a lighthouse, and rows of shells set out where the gardens were](docs/screenshots/seaside.png)
+
+![The same demo village as a working farm: plots of pasture, golden stubble and fresh-turned furrows behind post-and-rail and wattle, red barns, windpumps, a silo and a shepherd's hut, a windmill and a water tower, and kitchen gardens of ripe crops where the flower beds were](docs/screenshots/farm.png)
 
 #### Every theme
 

@@ -165,6 +165,43 @@ village's, so a harbour plot can stand in any village.
 
 ![The demo village as a seaside harbour](../screenshots/seaside.png)
 
+---
+
+## Working farm · `farm`
+
+A working farm: red barns and silos, pasture and stubble behind post-and-rail, hens in the yard,
+and a windmill turning over the plot that has done the most.
+
+![Five plots side by side on a working farm: a red barn of painted boards on pasture behind post-and-rail, a dairy of whitewash and stone behind white paddock boards, a grain farm of tin sheds and silos on golden stubble, an orchard of silvered weatherboard behind wattle hurdles, and a market garden of fresh-turned furrows and polytunnels](farm.png)
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Red barn | `red-barn` | Red board barns with white trim behind post-and-rail, hens in the yard |
+| Dairy | `dairy` | Whitewashed byres and stone, white paddock rails and good grass |
+| Grain farm | `grain-farm` | Golden stubble, tin sheds and silos, bales stacked along the wire |
+| Orchard | `orchard` | Silvered weatherboard and old stone, windfalls in the grass |
+| Market garden | `market-garden` | Fresh-turned furrows, wattle hurdles and polytunnels, everybody in brown |
+
+**Built from** — fences: post and rail, stock wire, wattle hurdles, white paddock boards ·
+ground: pasture, stubble, furrows, trodden farmyard · walls: painted board and batten, silvered
+weatherboard, fieldstone, whitewash, corrugated tin · five families of paint.
+**Buildings**: a farmhouse, a shepherd's hut on iron wheels, a farm shop, a gambrel-roofed barn,
+a windpump with its wheel turning, a machine shed with the tractor in it, a pump and trough, a hen
+house and its run, a grain silo, a polytunnel and an honesty stall.
+**Finished work**: a **crop** in the **kitchen garden** (♣) — a tomato for a bug fix, a
+sunflower for a new feature, a carrot for a refactor, a cabbage for docs, a pea pod for tests, a
+corn cob for data work, a pumpkin for infrastructure, a runner bean for research. An open pull
+request's crop is still green on the plant.
+**Work clothes**: a tweed flat cap and dungarees, denim on most farms and brown duck canvas in the
+market garden.
+**Landmark**: a stack of bales, a scarecrow, a dovecote on its post, an oast house, a water tower,
+and a windmill with its sails going round; the fence line gets a lantern on a crook, a bench of
+planks on two bales, a retired milk churn or a half-barrel of marigolds, and gateposts with the
+farm's board across them.
+**Rooms**: a farmhouse kitchen, a hay loft and a potting shed.
+
+![The demo village as a working farm](../screenshots/farm.png)
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).

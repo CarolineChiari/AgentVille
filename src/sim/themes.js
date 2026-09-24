@@ -220,6 +220,45 @@ export const THEMES = {
     // houses made bigger: a net loft and a lookout are already what threads build here.
     landmark: { one: 'landmark', tiers: ['Mooring post', 'Beached boat', 'Harbour bell', 'Quay derrick', 'Harbour light', 'Lighthouse'] },
   },
+  farm: {
+    label: 'Working farm',
+    dims: {
+      fence: ['postrail', 'wire', 'wattle', 'paddock'],
+      yard: ['pasture', 'stubble', 'furrow', 'farmyard'],
+      wall: ['barnboard', 'weatherboard', 'fieldstone', 'whitewash', 'tin'],
+      // Paint for the barns, doors and machines: barn red, tractor green, harvest yellow, sky
+      // blue, trim white, tractor orange, slate, oxide, in five families of three (PAINT_FAMILIES
+      // in the pack).
+      roofs: 5,
+    },
+    subthemes: [
+      { id: 'red-barn', label: 'Red barn', blurb: 'Red board barns with white trim behind post-and-rail, hens in the yard', fence: ['postrail'], yard: ['pasture', 'farmyard'], wall: ['barnboard'], roofs: [0] },
+      { id: 'dairy', label: 'Dairy', blurb: 'Whitewashed byres and stone, white paddock rails and good grass', fence: ['paddock', 'wire'], yard: ['pasture'], wall: ['whitewash', 'fieldstone'], roofs: [1] },
+      { id: 'grain-farm', label: 'Grain farm', blurb: 'Golden stubble, tin sheds and silos, bales stacked along the wire', fence: ['wire'], yard: ['stubble'], wall: ['tin', 'barnboard'], roofs: [2] },
+      { id: 'orchard', label: 'Orchard', blurb: 'Silvered weatherboard and old stone, windfalls in the grass', fence: ['wattle', 'postrail'], yard: ['pasture', 'stubble'], wall: ['weatherboard', 'fieldstone'], roofs: [3] },
+      { id: 'market-garden', label: 'Market garden', blurb: 'Fresh-turned furrows, wattle hurdles and polytunnels, everybody in brown', fence: ['wattle'], yard: ['furrow', 'farmyard'], wall: ['weatherboard', 'tin'], roofs: [4], outfit: { vest: 1 } },
+    ],
+    auto: ['red-barn', 'dairy', 'grain-farm', 'orchard', 'market-garden'],
+    outfit: { hat: 'flatcap', top: 'dungarees' },
+    // Finished work is a crop come ripe in the plot's kitchen garden: what it is says what kind
+    // of work it was, its fruit or its bloom is the pull request's colour, and an open PR's is
+    // still green on the plant. The glyph is a leaf-and-stalk, which is what a crop is at a
+    // glance, and none of the village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the
+    // harbour's ❂ or the open issues' ⚑.
+    finished: {
+      one: 'crop', many: 'crops', place: 'kitchen garden', glyph: '♣', grow: 'Grow crops from pull requests',
+      names: {
+        fix: 'Tomato', feature: 'Sunflower', refactor: 'Carrot', docs: 'Cabbage', test: 'Pea pod',
+        ui: 'Strawberry', infra: 'Pumpkin', data: 'Corn cob', perf: 'Chilli', review: 'Onion',
+        research: 'Runner bean', misc: 'Radish',
+      },
+    },
+    // What a plot's work raises in its field: a stack of bales, then a scarecrow, a dovecote on
+    // its post, an oast house, a water tower on its legs, and a windmill with its sails going
+    // round. None is a farm's own buildings made bigger: barns, silos and windpumps are what
+    // threads build here.
+    landmark: { one: 'landmark', tiers: ['Hay bales', 'Scarecrow', 'Dovecote', 'Oast house', 'Water tower', 'Windmill'] },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

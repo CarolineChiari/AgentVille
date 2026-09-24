@@ -533,6 +533,95 @@ export const PALETTE = {
   seaIronLight: '#6b6e75',
   shoreLichen: '#c2c46e',
 
+  // ---------- the farm theme (src/render/themes/farm/) ----------
+  // Work clothes. Dungarees come in denim for most crews and brown duck canvas for the market
+  // garden's; the flat cap is tweed to match, so a crew reads as a crew. A cap in a villager's own
+  // hat colour read as the everyday cap with its peak rather than as a flat cap.
+  denim: ['#4f73a3', '#8d6b45'],
+  tweed: ['#6f6454', '#5c634f'],
+  // Farm buildings (farm/buildings.js).
+  // Paint: barn red, tractor green, harvest yellow, sky blue, trim white, tractor orange, slate
+  // and oxide. A plot's buildings share a family of three (PAINT_FAMILIES in farm/buildings.js).
+  farmPaint: ['#b5413a', '#3f7d44', '#e2b43a', '#6b9ec7', '#f1ede4', '#d9722e', '#5b6472', '#8a4a36'],
+  // Weatherboard left bare until it has gone silver, which is what an old farm shed is.
+  weatherboard: '#a39c8c',
+  weatherboardDark: '#7d7768',
+  weatherboardLight: '#c2bcac',
+  // Fieldstone: what came up out of the fields, warmer and rounder than the village's `stone`.
+  fieldstone: '#a08f78',
+  fieldstoneDark: '#77695a',
+  fieldstoneLight: '#c1b29a',
+  whitewash: '#f1ede2', // a byre's walls, whitewashed every spring
+  whitewashShade: '#d6cfbf',
+  // Corrugated tin on a grain store or a machine shed, galvanised and going at the foot.
+  tin: '#9aa3a6',
+  tinDark: '#6d7679',
+  tinLight: '#c3cbcd',
+  tinRust: '#a8683f',
+  // Sawn timber for posts, frames, doors and rails: browner than the village's `wood`.
+  barnTimber: '#8f6a45',
+  barnTimberDark: '#664a30',
+  barnTimberLight: '#b38b60',
+  // Hay and straw, in bales and loose.
+  hay: '#e3c46a',
+  hayDark: '#b8973f',
+  hayLight: '#f3de94',
+  farmIron: '#4d4a47', // a pump, a tractor's works, a gate's hinges
+  farmIronLight: '#716d68',
+  // Polytunnel sheeting: milky rather than clear, so it is never mistaken for a window's glass.
+  polythene: '#d8e4df',
+  polytheneShade: '#b6c6c0',
+  // The stock: white hens and brown ones with a red comb, a cow's black patches, a sheep's fleece.
+  hen: '#f3ede0',
+  henBrown: '#a8603a',
+  henComb: '#d8453a',
+  henBeak: '#e8b03c',
+  cowBlack: '#2e2b2e',
+  fleece: '#ece8dc',
+  fleeceShade: '#c9c3b3',
+  // What grows: the leaves of every crop, and an apple.
+  vegLeaf: '#5f9a3e',
+  vegLeafDark: '#3f7428',
+  vegLeafLight: '#86bd5a',
+  apple: '#c8423a',
+  appleGreen: '#9cc24a',
+  // Farm ground, lanes and fences (farm/ground.js).
+  // A plot's ground by its yard tone: pasture, golden stubble, fresh-turned furrows and a trodden
+  // farmyard. Each is its base, shade, light and deepest; then the same in a dry patch and a
+  // lush one, one for one (see src/render/ground.js). Only the ground is drawn in these, or the
+  // patches would repaint whatever else used them.
+  farmGround: [
+    ['#7fb356', '#6fa24a', '#94c46a', '#5a8c3c'],
+    ['#d2b56a', '#b99a52', '#e6cd88', '#9c7f3e'],
+    ['#86603f', '#6d4c31', '#a07852', '#553a25'],
+    ['#a58f6c', '#8b7657', '#bca786', '#6f5d44'],
+  ],
+  farmGroundSunny: [
+    ['#90bb58', '#80ab4c', '#a5cc6c', '#6b943e'],
+    ['#dcc078', '#c4a560', '#eed796', '#a78a4b'],
+    ['#936b48', '#79573a', '#ad835b', '#61442e'],
+    ['#b09a77', '#968162', '#c7b291', '#7a684f'],
+  ],
+  farmGroundLush: [
+    ['#70a852', '#619746', '#85b966', '#4c8138'],
+    ['#c4a85f', '#ab8d47', '#d8c07d', '#8e7233'],
+    ['#795638', '#61432b', '#936e4b', '#4a321f'],
+    ['#978263', '#7d6a4e', '#ae9a7d', '#62513b'],
+  ],
+  // The lane round a plot: rolled hoggin, paler and yellower than any ground a plot is laid in,
+  // with grit in its ruts. A darker lane ran into the furrows and a plot looked like more lane.
+  farmLane: '#c2ad84',
+  farmLaneDark: '#a38e66',
+  farmLaneLight: '#d8c7a2',
+  farmLaneEdge: '#86724f',
+  // Tilth: the kitchen garden's soil, dug fine and darker than any field, so the crops stand out.
+  tilth: '#6b4a31',
+  tilthDark: '#573a26',
+  tilthLight: '#83603f',
+  tilthDeep: '#46301f',
+  fenceWire: '#8f9496', // wire strands, and the barbs on them
+  fenceWireDark: '#5f6466',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

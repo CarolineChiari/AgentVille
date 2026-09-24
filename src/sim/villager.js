@@ -11,14 +11,14 @@ const STUCK_GHOST = 3
 const STUCK_TELEPORT = 6
 
 /** Hats, by `look.hat`: 0 is none. Those after EVERYDAY_HATS are work gear a theme hands out. */
-export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow', 'hardhat', 'circlet', 'witchhat', 'souwester']
+export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow', 'hardhat', 'circlet', 'witchhat', 'souwester', 'flatcap']
 /**
  * The hats a villager might pick for itself. Not HATS.length: the pick below is scaled by it, and
  * letting the list grow would have changed the hat on every villager who wears one.
  */
 const EVERYDAY_HATS = 5
 /** What a villager wears over its shirt, by `look.top`. After 'vest', a theme's work gear. */
-export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest', 'hivis', 'cloak', 'cape', 'oilskin']
+export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest', 'hivis', 'cloak', 'cape', 'oilskin', 'dungarees']
 /** One more thing about a villager, by `look.extra`. */
 export const EXTRAS = ['none', 'glasses', 'beard', 'scarf', 'satchel']
 
