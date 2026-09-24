@@ -106,3 +106,49 @@ export function badgeBitmap(n, scale = 1) {
   }
   return { width: size, height: size, data }
 }
+
+/**
+ * Which kind of build this is, for updating it in place: the portable .exe, the installed app, or
+ * null for one that can't replace itself (a Mac build, `npm run app`). electron-builder's portable
+ * launcher sets PORTABLE_EXECUTABLE_FILE to the .exe the user started; the installed app has none.
+ * @param {{ platform: string, packaged: boolean, env: Record<string, string|undefined> }} opts
+ * @returns {'portable'|'installer'|null}
+ */
+export function updateKind({ platform, packaged, env }) {
+  if (platform !== 'win32' || !packaged) return null
+  return env.PORTABLE_EXECUTABLE_FILE ? 'portable' : 'installer'
+}
+
+/** Handed to a downloaded portable build: the .exe it should copy itself over once this one has quit. */
+export const REPLACE_FLAG = '--agentville-replace='
+
+/**
+ * The .exe a freshly updated portable build was asked to replace, from its command line, or ''.
+ * Only an absolute Windows path to an .exe: anyone can start the app with any arguments, and this
+ * one decides what file gets overwritten.
+ * @param {string[]} argv
+ */
+export function replaceTarget(argv) {
+  const arg = Array.isArray(argv) ? argv.find((a) => typeof a === 'string' && a.startsWith(REPLACE_FLAG)) : null
+  if (!arg) return ''
+  const target = arg.slice(REPLACE_FLAG.length)
+  if (!path.win32.isAbsolute(target) || !/^[A-Za-z]:[\\/]/.test(target) || !/\.exe$/i.test(target)) return ''
+  if (target.split(/[\\/]/).includes('..')) return ''
+  return target
+}
+
+/**
+ * What to start once this process has quit, to come back as the downloaded build.
+ * - portable: the new .exe, told which one it replaces, so the user's own copy (and every
+ *   shortcut to it) is the new version from the next launch on.
+ * - installer: the new installer, silently, over the installed app, and `--force-run` to start the
+ *   app again when it's done: a silent install otherwise ends without reopening anything.
+ * @param {{ kind: string, file: string, portableFile?: string }} opts
+ * @returns {{ execPath: string, args: string[] } | null}
+ */
+export function relaunchPlan({ kind, file, portableFile = '' }) {
+  if (typeof file !== 'string' || !file) return null
+  if (kind === 'portable') return { execPath: file, args: portableFile ? [REPLACE_FLAG + portableFile] : [] }
+  if (kind === 'installer') return { execPath: file, args: ['/S', '--force-run'] }
+  return null
+}

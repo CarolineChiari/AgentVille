@@ -58,9 +58,11 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
 - No runtime dependencies without discussion. Dev dependencies are Vite, Electron and electron-builder.
-- Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. A repo is
+- Never write outside `data/` (the desktop app's `data/` is under its userData directory). The one exception is the
+  Windows portable build updating itself (`server/update.mjs`): the new, digest-checked build copies itself over the
+  `.exe` the user started. Never write to a harness's files. A repo is
   only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The only network access is
-  `server/github.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
+  `server/github.mjs` and the update download in `server/update.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
 - Every colour comes from `src/render/sprites/palette.js`. No hex strings elsewhere.
 - Paths via `path.join` / `fileURLToPath(import.meta.url)`, never `process.cwd()`. Split paths

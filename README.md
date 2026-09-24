@@ -341,9 +341,22 @@ map.
 
 Once a day, through the same `gh`, AgentVille asks its own repo for the latest release and
 compares it with the version running. If yours is older, the sidebar's footer says
-*0.40.0 available*; clicking it opens the release notes. It only ever tells you — nothing is
-downloaded or installed. The answer is cached in `data/release.json`, and the check is off
-whenever both the PR gardens and the issue boards are off.
+*0.40.0 available*; clicking it opens the release notes. The answer is cached in
+`data/release.json`, and the check is off whenever both the PR gardens and the issue boards are off.
+
+The Windows desktop app goes further and updates itself. As soon as it hears of a newer release
+it downloads that release's build of itself with `gh release download`, into `data/updates/`,
+and checks its size and SHA-256 against what GitHub published; the footer says
+*Downloading 0.40.0…*, then *Restart for 0.40.0*. Clicking that closes AgentVille and starts
+the new one — your sessions carry on, since AgentVille only ever reads them.
+
+- **Portable `.exe`**: the new build starts from `data/updates/` and, once the old one has
+  closed, copies itself over the `.exe` you started, so the same file (and any shortcut to it) is
+  the new version from then on. The file keeps its old name.
+- **Installed**: the new installer runs silently over the installed app and reopens it.
+
+A download that fails or doesn't match is thrown away, and the footer's button tries again. The
+Mac app and `npm start` still only point you at the release notes.
 
 ## Keys
 

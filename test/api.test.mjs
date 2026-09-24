@@ -8,6 +8,8 @@ import { createApiMiddleware } from '../server/api.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 let server, base, home, cleanup
+let updater
+const downloads = []
 const launched = []
 const terminals = []
 const fakeHarness = {
@@ -38,7 +40,12 @@ before(async () => {
   const issueStore = { get: async (list) => ({ repos: {}, updating: false, available: true, warnings: [], asked: list.length }) }
   const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
   const releaseStore = { get: async () => ({ current: '0.39.0', latest: '0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0', newer: true }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, terminal })
+  updater = {
+    status: () => ({ supported: true, state: downloads.length ? 'ready' : 'idle', version: downloads.at(-1)?.version || '', error: '' }),
+    download: (version, opts) => (downloads.push({ version, ...opts }), updater.status()),
+    install: async () => (downloads.length ? { ok: true } : { ok: false, error: 'No update has been downloaded yet.' }),
+  }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, terminal, updater })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -328,6 +335,18 @@ test('the version endpoint says what is running and what has been released', asy
   const opened = await post('/api/open-url', { url: body.url })
   assert.equal(opened.status, 200)
   assert.equal(launched.at(-1), body.url)
+  assert.deepEqual(body.update, { supported: true, state: 'idle', version: '', error: '' })
+})
+
+test('an update is only ever of the release the server found, and restarts only once it is in', async () => {
+  const early = await post('/api/update/install', {})
+  assert.equal(early.status, 400)
+  const r = await post('/api/update/download', { version: '9.9.9', retry: 'yes' })
+  assert.equal(r.status, 200)
+  assert.deepEqual(downloads.at(-1), { version: '0.40.0', retry: false }, 'the page cannot name a version, and retry is a boolean')
+  assert.equal((await r.json()).update.state, 'ready')
+  assert.equal((await post('/api/update/install', {})).status, 200)
+  assert.equal((await post('/api/update/download', {}, { 'Content-Type': 'application/json' })).status, 403, 'not without this page\'s Origin')
 })
 
 test('folders lists what is inside a folder, and only for this page', async () => {

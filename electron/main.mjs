@@ -3,9 +3,10 @@
 import { app, BrowserWindow, nativeImage, shell } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
-import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from './env.mjs'
+import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl, relaunchPlan, replaceTarget, updateKind } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { createShellOpener } from '../server/opener.mjs'
+import { createUpdater, replaceFile } from '../server/update.mjs'
 import { APP_BG } from '../src/render/sprites/palette.js'
 
 // Two copies would fight over the port and over data/village.json.
@@ -20,11 +21,43 @@ let server = null
 /** Inside the app bundle the repo's `data/` is read-only (and wiped by updates), so it lives in userData. */
 const dataDir = () => path.join(app.getPath('userData'), 'data')
 
+/** The .exe the user started, when this is the portable build; the running app is a copy unpacked from it. */
+const portableFile = process.env.PORTABLE_EXECUTABLE_FILE || ''
+
+/**
+ * Restart as the downloaded build. The page's request is answered first, then this process quits,
+ * and Electron starts the plan only once it has exited, so the new copy never meets the old one's
+ * single-instance lock or its port.
+ */
+function installUpdate({ kind, file }) {
+  const plan = relaunchPlan({ kind, file, portableFile })
+  if (!plan) return { ok: false, error: 'Nothing to restart into.' }
+  setTimeout(() => {
+    app.relaunch(plan)
+    app.quit()
+  }, 500)
+  return { ok: true }
+}
+
+function createAppUpdater() {
+  const kind = updateKind({ platform: process.platform, packaged: app.isPackaged, env: process.env })
+  const updater = createUpdater({ dataDir: dataDir(), kind, install: installUpdate })
+  const target = replaceTarget(process.argv)
+  if (kind === 'portable' && target && path.resolve(target) !== path.resolve(portableFile)) {
+    // Started by an update: put this build where the user keeps theirs. The old one is still
+    // closing, so this waits for it; the download it came from is removed on a later launch.
+    replaceFile(portableFile, target).catch(() => {})
+  } else {
+    updater.cleanup(portableFile).catch(() => {})
+  }
+  return updater
+}
+
 async function startServer() {
   // Opening links through the main process, not a spawned launcher: on Windows only the
   // foreground process may hand focus to the window it opens, and when you click it is this one.
   const opener = createShellOpener({ openExternal: (url) => shell.openExternal(url), openPath: (dir) => shell.openPath(dir) })
-  const opts = { host: '127.0.0.1', dataDir: dataDir(), log: null, opener }
+  const opts = { host: '127.0.0.1', dataDir: dataDir(), log: null, opener, updater: createAppUpdater() }
   let s = createServer({ port: APP_PORT, ...opts })
   try {
     return { s, url: await s.ready }

@@ -5,6 +5,7 @@ import { ACCENTS } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
+import { updateButton } from '../game/release.js'
 import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
@@ -87,7 +88,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const total = village.view.live.length
     const bloomed = [...village.gardens.values()].reduce((n, l) => n + l.length, 0)
     const words = finishedWords(village.theme)
-    const release = village.release
+    const release = updateButton(village.release)
     // Only when it changes: the desktop app turns every title update into a dock badge call.
     const title = pageTitle(counts)
     if (document.title !== title) document.title = title
@@ -108,7 +109,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button data-act="settings">Settings</button>
         <button data-act="help">Keys</button>
         <span class="spacer"></span>
-        ${release.newer ? `<button class="update" data-act="update" title="${esc(`You are running ${release.current}. Open the release notes.`)}">${esc(release.latest)} available</button>` : ''}
+        ${release ? `<button class="update" data-act="update" title="${esc(release.title)}">${esc(release.label)}</button>` : ''}
         <span>${village.demo ? 'Demo' : village.harnesses.filter((h) => h.detected).map((h) => esc(h.name)).join(', ') || 'No harness found'}</span>
       </div>`
     hint.hidden = Boolean(village.selected || village.selectedPlot)
@@ -270,7 +271,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'wake': settings.hideDormant = false; onSettings(); break
       case 'toggle': open[key] = !open[key]; render(); break
       case 'settings': showSheet('settings'); break
-      case 'update': village.openRelease(); break
+      case 'update': village.updateAction(); break
       case 'help': showSheet('help'); break
       case 'status': {
         if (status === 'done') {

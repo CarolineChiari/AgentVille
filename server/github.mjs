@@ -1,8 +1,9 @@
 // Pull requests, for the gardens: merged ones bloom, open ones wait as glittering buds. Open
 // issues, for each plot's notice board. And, once a day, whether AgentVille itself has a newer
 // release than the one running.
-// This is the one part of AgentVille that talks to the network, and it does so only through the
-// `gh` CLI the user has already signed in to — no tokens are read or stored here. Results are
+// This, and the update download in update.mjs, are the only parts of AgentVille that talk to the
+// network, and they do so only through the `gh` CLI the user has already signed in to — no tokens
+// are read or stored here. Results are
 // cached in data/prs.json, data/issues.json and data/release.json so a reload is instant and works
 // offline.
 import { spawn as nodeSpawn } from 'node:child_process'
@@ -242,8 +243,8 @@ export const createIssueStore = ({ ttlMs = ISSUE_TTL_MS, ...opts }) =>
 
 /**
  * The newest published AgentVille release, asked for once a day through the same `gh`, kept in
- * `dataDir/release.json` so a restart doesn't ask again. It only ever tells you: nothing is
- * downloaded or installed.
+ * `dataDir/release.json` so a restart doesn't ask again. It only tells: fetching and installing a
+ * build is update.mjs's, and only the Windows desktop app's.
  * @param {{ dataDir: string, repo?: string, version?: () => Promise<string>|string,
  *           gh?: (args: string[]) => Promise<string>, now?: () => number, ttlMs?: number }} opts
  */

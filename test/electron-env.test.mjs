@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from '../electron/env.mjs'
+import { APP_PORT, BADGE_PX, REPLACE_FLAG, augmentedPath, badgeBitmap, badgeCount, isAppUrl, relaunchPlan, replaceTarget, updateKind } from '../electron/env.mjs'
 import { APP_TITLE, pageTitle } from '../src/game/notify.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
@@ -109,4 +109,32 @@ test('the high-DPI overlay is the same picture, pixel-doubled', () => {
     for (let x = 0; x < two.width; x++) assert.equal(pixel(two, x, y), pixel(one, x >> 1, y >> 1))
   }
   assert.equal(badgeBitmap(4, 0), null)
+})
+
+test('only a packaged Windows build updates itself, and it knows which kind it is', () => {
+  assert.equal(updateKind({ platform: 'win32', packaged: true, env: { PORTABLE_EXECUTABLE_FILE: 'C:\\Users\\me\\AgentVille.exe' } }), 'portable')
+  assert.equal(updateKind({ platform: 'win32', packaged: true, env: {} }), 'installer')
+  assert.equal(updateKind({ platform: 'win32', packaged: false, env: {} }), null, '`npm run app` is a checkout, not a build')
+  assert.equal(updateKind({ platform: 'darwin', packaged: true, env: {} }), null)
+})
+
+test('the file an update replaces is only ever an absolute .exe', () => {
+  const exe = 'C:\\Users\\me\\Desktop\\AgentVille.exe'
+  assert.equal(replaceTarget(['C:\\tmp\\app.exe', `${REPLACE_FLAG}${exe}`]), exe)
+  assert.equal(replaceTarget(['app.exe']), '')
+  assert.equal(replaceTarget([`${REPLACE_FLAG}AgentVille.exe`]), '', 'relative')
+  assert.equal(replaceTarget([`${REPLACE_FLAG}C:\\Users\\me\\notes.txt`]), '')
+  assert.equal(replaceTarget([`${REPLACE_FLAG}\\\\server\\share\\AgentVille.exe`]), '', 'not a network share')
+  assert.equal(replaceTarget([`${REPLACE_FLAG}C:\\Users\\me\\..\\..\\Windows\\x.exe`]), '')
+  assert.equal(replaceTarget(undefined), '')
+})
+
+test('each kind restarts the way it installs', () => {
+  const exe = 'C:\\Users\\me\\Desktop\\AgentVille.exe'
+  assert.deepEqual(relaunchPlan({ kind: 'portable', file: 'C:\\data\\updates\\AgentVille-0.55.0-portable.exe', portableFile: exe }),
+    { execPath: 'C:\\data\\updates\\AgentVille-0.55.0-portable.exe', args: [`${REPLACE_FLAG}${exe}`] })
+  assert.deepEqual(relaunchPlan({ kind: 'installer', file: 'C:\\data\\updates\\AgentVille.Setup.0.55.0.exe' }),
+    { execPath: 'C:\\data\\updates\\AgentVille.Setup.0.55.0.exe', args: ['/S', '--force-run'] })
+  assert.equal(relaunchPlan({ kind: 'mac', file: '/x' }), null)
+  assert.equal(relaunchPlan({ kind: 'portable', file: '' }), null)
 })

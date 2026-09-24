@@ -28,8 +28,11 @@ Anything that breaks one of these is in scope:
   on `localhost` can drive it. No page can frame it, and the built page runs only its own files.
 - **It never writes to an agent's files.** Everything it writes goes in its own `data/`
   directory (under the app's user data directory in the desktop app).
-- **The only network access is GitHub, through your own `gh` CLI**, for the PR gardens and
-  issue boards, and turning both off in Settings stops it.
+- **The only network access is GitHub, through your own `gh` CLI**, for the PR gardens,
+  issue boards and release check, and turning the first two off in Settings stops it.
+- **An update runs only what GitHub published.** The Windows app downloads its new build from
+  its own repo's release, never from a URL or version the page names, and only restarts into it
+  once its size and SHA-256 match the release's.
 - **Nothing it reads is ever run.** Session transcripts, issue and PR titles, labels and
   prompts are shown as text; commands are started with an argument list and no shell, and a
   prompt is never read as a command-line option; and opening a thread goes through a URL your

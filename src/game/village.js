@@ -15,6 +15,7 @@ import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../si
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
 import { cleanName, withNames } from './names.js'
+import { shouldDownload, updateButton } from './release.js'
 
 const SAVE_DELAY = 500
 
@@ -121,7 +122,7 @@ export class Village {
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.counted = { repos: {}, updating: false } // each repo's lines of code, as the server counted them
     // Whether a newer AgentVille has been released than the one running. `newer` false until told.
-    this.release = { current: '', latest: '', url: '', newer: false }
+    this.release = { current: '', latest: '', url: '', newer: false, update: { supported: false, state: 'idle', version: '', error: '' } }
     this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
     this.selected = null
     this.selectedPlot = null
@@ -200,9 +201,30 @@ export class Village {
     if (this.demo) return
     try {
       this.release = await api.fetchVersion()
+      // The desktop app on Windows fetches the new build as soon as it hears of it, so updating
+      // is one click and a restart. The server only ever fetches the release it found itself.
+      if (shouldDownload(this.release)) this.release.update = (await api.downloadUpdate()).update ?? this.release.update
       if (apply) this.apply()
     } catch {
       // Hearing about a release is a courtesy; a failure here must never stop the village.
+    }
+  }
+
+  /** The footer's release button: notes, a retried download, or a restart into the new build. */
+  async updateAction() {
+    const act = updateButton(this.release)?.act
+    if (act === 'notes') return this.openRelease()
+    try {
+      if (act === 'retry') {
+        this.release.update = (await api.downloadUpdate(true)).update ?? this.release.update
+        this.toast(`Downloading ${this.release.latest}`)
+        this.apply()
+      } else if (act === 'install') {
+        await api.installUpdate()
+        this.toast(`Restarting as ${this.release.latest}`)
+      }
+    } catch (err) {
+      this.toast(err.message, 'error')
     }
   }
 

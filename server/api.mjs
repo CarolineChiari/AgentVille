@@ -8,6 +8,7 @@ import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
 import { createIssueStore, createPrStore, createReleaseStore } from './github.mjs'
 import { createRepoStore } from './repo.mjs'
+import { createUpdater } from './update.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
@@ -112,6 +113,8 @@ export function createApiMiddleware(opts = {}) {
   const issueStore = opts.issueStore ?? createIssueStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const repoStore = opts.repoStore ?? createRepoStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const releaseStore = opts.releaseStore ?? createReleaseStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
+  // Without a host that can restart the app (the desktop app passes one), it only says it can't.
+  const updater = opts.updater ?? createUpdater({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   // Repo name → folder, from the latest scan: the PR and issue lookups read each folder's git remote.
   let projects = new Map()
   const remember = (threads) => {
@@ -280,7 +283,22 @@ export function createApiMiddleware(opts = {}) {
     // What is running against what has been published: `{ current, latest, url, newer }`. The page
     // asks for it only while the PR gardens or the issue boards are on, which is the switch that
     // says anything may leave this machine at all.
-    'GET /api/version': async () => [200, await releaseStore.get()],
+    // `update` says whether this copy can replace itself and how far along that is.
+    'GET /api/version': async () => [200, { ...(await releaseStore.get()), update: updater.status() }],
+
+    // Fetch the build of the release the check found. Which release is the server's to say, never
+    // the page's: it can only ask for the newer one there is. `retry` tries again after a failure.
+    'POST /api/update/download': async (body) => {
+      const release = await releaseStore.get()
+      if (!release.newer) return [400, { ok: false, error: 'There is no newer release to update to.', update: updater.status() }]
+      return [200, { ok: true, update: updater.download(release.latest, { retry: body?.retry === true }) }]
+    },
+
+    // Restart into the downloaded build. The host answers first and quits a moment later.
+    'POST /api/update/install': async () => {
+      const r = await updater.install()
+      return r.ok ? [200, { ok: true }] : [400, { ok: false, error: r.error || 'The update could not start.' }]
+    },
 
     /** Only GitHub pages, over https: this endpoint exists to open a PR or an issue, not arbitrary links. */
     'POST /api/open-url': async (body) => {
