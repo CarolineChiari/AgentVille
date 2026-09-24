@@ -1088,9 +1088,10 @@ export class Canvas2dRenderer {
       const y1 = (b.y + b.h) * T
       const B = packFor(b.style?.theme ?? frame.theme).buildings
       const { kind, low } = B.fitted(b.kind, b.variant, b.roomy !== false)
-      // A finished building is a room you can step into; one still going up is only its thread.
+      // A finished building is a room you can step into; one still going up is only its thread,
+      // though it is still a building to hover: `site` says which.
       if (w.x >= x0 && w.x <= x0 + b.w * T && w.y >= y1 - B.heightOf(kind, b.variant, low) + 8 && w.y <= y1 && ids.has(b.id)) {
-        return b.stage >= 3 ? { building: b.id } : { villager: b.id }
+        return b.stage >= 3 ? { building: b.id } : { villager: b.id, site: b.id }
       }
     }
     const tx = Math.floor(w.x / T)

@@ -258,7 +258,7 @@ canvas.addEventListener('pointermove', (e) => {
     : hit?.landmark || hit?.plot || null
   canvas.classList.toggle('pointing', Boolean(hovered))
   // A touch has no hover to hold, so only a pointer that can rest gets the quick look.
-  tip.hover(e.pointerType === 'touch' ? null : hit?.building || null, e.clientX, e.clientY)
+  tip.hover(e.pointerType === 'touch' ? null : hit?.building || hit?.site || null, e.clientX, e.clientY)
 })
 canvas.addEventListener('pointerup', (e) => {
   const was = press
