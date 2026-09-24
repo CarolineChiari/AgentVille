@@ -31,3 +31,10 @@ test('names survive the store and a merge between tabs', () => {
   assert.deepEqual(mergeState(S({}), S({ a: 'Mine' }), S({ b: 'Theirs' })).names, { a: 'Mine', b: 'Theirs' })
   assert.deepEqual(mergeState(S({ a: 'Old' }), S({}), S({ a: 'Old' })).names, {})
 })
+
+test('renaming a thread never changes the work its flower shows', async () => {
+  const { flowerFor } = await import('../src/sim/flowers.js')
+  const t = { id: 'a', title: 'Fix the crash on login', preview: '' }
+  const [named] = withNames([t], { a: 'Add a new theme' })
+  assert.equal(flowerFor(named).work, flowerFor(t).work)
+})

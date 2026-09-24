@@ -717,7 +717,8 @@ export class Village {
     const names = { ...this.state.names }
     if (clean && clean !== (t.harnessTitle || t.title)) names[id] = clean
     else delete names[id]
-    if (JSON.stringify(names) === JSON.stringify(this.state.names || {})) return
+    // Nothing to save, but the card still has to put the title back where the box was.
+    if (JSON.stringify(names) === JSON.stringify(this.state.names || {})) return this.onChange()
     this.state.names = names
     this._name()
     this.apply()

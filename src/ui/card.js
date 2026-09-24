@@ -16,6 +16,9 @@ const KIND_MARK = { created: '+', edited: '·', deleted: '−', renamed: '→' }
 const ISSUE_CARD_MAX = 8
 const ISSUE_CARD_STEP = 8
 
+/** A renamed thread's title says what it was called before. */
+const wasTitle = (t) => (t.harnessTitle ? `${t.title} — was “${t.harnessTitle}”` : t.title)
+
 export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
@@ -148,7 +151,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(t.harnessTitle ? `${t.title} — was “${t.harnessTitle}”` : t.title)}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
           <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || '')}</span>
         </div>
         <button class="btn" data-act="rename" title="Rename (or double-click the name)" aria-label="Rename">✎</button>
@@ -255,7 +258,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(t.title)}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
           <span class="status"><span style="color:${color}">${esc(finishedWords(f.theme).glyph)}</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
