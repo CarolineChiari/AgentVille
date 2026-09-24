@@ -14,6 +14,7 @@ import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers
 import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
+import { cleanName, withNames } from './names.js'
 
 const SAVE_DELAY = 500
 
@@ -83,7 +84,7 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, spots: {}, progress: {}, settings: null,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, spots: {}, progress: {}, settings: null,
   updatedAt: 0,
 })
 
@@ -106,6 +107,7 @@ export class Village {
     this.base = emptyState()
     /** The thread whose room is open, or null out in the village. */
     this.focused = null
+    this.scannedThreads = [] // as the last scan had them, before anyone's names for them
     this.threads = []
     this.byId = new Map()
     this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
@@ -149,16 +151,16 @@ export class Village {
   async poll() {
     try {
       if (this.demo) {
-        this.threads = demoThreads()
+        this.scannedThreads = demoThreads()
         this.warnings = []
         this.issues = demoIssues()
         this.counted = demoRepos()
       } else {
         const r = await api.fetchThreads()
-        this.threads = r.threads
+        this.scannedThreads = r.threads
         this.warnings = r.warnings || []
       }
-      this.byId = new Map(this.threads.map((t) => [t.id, t]))
+      this._name()
       this.scanned = true
       if (!this.demo) {
         await Promise.all([
@@ -699,6 +701,28 @@ export class Village {
     this.apply()
     this.queueSave()
     this.toast(`Archived “${t.title}”`)
+  }
+
+  /** Put the names people gave their threads over the harnesses' titles. */
+  _name() {
+    this.threads = withNames(this.scannedThreads, this.state.names)
+    this.byId = new Map(this.threads.map((t) => [t.id, t]))
+  }
+
+  /** Give a thread a name of its own; an empty one gives it back the harness's title. */
+  rename(id, name) {
+    const t = this.thread(id)
+    if (!t) return
+    const clean = cleanName(name)
+    const names = { ...this.state.names }
+    if (clean && clean !== (t.harnessTitle || t.title)) names[id] = clean
+    else delete names[id]
+    // Nothing to save, but the card still has to put the title back where the box was.
+    if (JSON.stringify(names) === JSON.stringify(this.state.names || {})) return this.onChange()
+    this.state.names = names
+    this._name()
+    this.apply()
+    this.queueSave()
   }
 
   unarchive(id) {

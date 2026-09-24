@@ -4,6 +4,7 @@ import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status
 import { sprites } from '../render/sprites/registry.js'
 import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
+import { NAME_MAX } from '../game/names.js'
 
 const GAP = 18
 /** Files listed in a card's Built section before it offers the rest. */
@@ -14,6 +15,9 @@ const KIND_MARK = { created: '+', edited: '·', deleted: '−', renamed: '→' }
 /** Issues listed on a board's card to start with, and how many more each Load more adds. */
 const ISSUE_CARD_MAX = 8
 const ISSUE_CARD_STEP = 8
+
+/** A renamed thread's title says what it was called before. */
+const wasTitle = (t) => (t.harnessTitle ? `${t.title} — was “${t.harnessTitle}”` : t.title)
 
 export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
@@ -29,6 +33,52 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let builtAt = 0 // the activity it was read at: a thread that has moved is read again
   let built = null // the last answer, or null while it is being read
   let builtAll = false // Show all: the whole list rather than the first few
+  let renaming = null // the thread whose name is being typed; the card isn't redrawn under it
+
+  /** Swap the title for a box to type a name in. */
+  function startRename() {
+    const t = village.thread(village.selected)
+    const b = card.querySelector('.head b')
+    if (!t || !b) return
+    renaming = t.id
+    const input = document.createElement('input')
+    input.className = 'rename'
+    input.maxLength = NAME_MAX
+    input.value = t.title
+    input.placeholder = t.harnessTitle || t.title
+    input.title = 'Enter to keep, Esc to leave it. Empty gives back the name it came with.'
+    input.setAttribute('aria-label', 'Name this session')
+    b.replaceWith(input)
+    input.focus()
+    input.select()
+  }
+
+  function endRename(keep) {
+    const input = card.querySelector('input.rename')
+    const id = renaming
+    renaming = null
+    shownKey = '' // redraw with the title back in place
+    if (keep && input && id) village.rename(id, input.value)
+    else village.onChange()
+  }
+
+  card.addEventListener('keydown', (e) => {
+    if (!e.target.matches('input.rename')) return
+    if (e.key === 'Enter') endRename(true)
+    else if (e.key === 'Escape') endRename(false)
+    else return
+    e.preventDefault()
+    e.stopPropagation()
+  })
+
+  // Clicking away keeps what was typed, as a rename in a file list does.
+  card.addEventListener('focusout', (e) => {
+    if (e.target.matches('input.rename') && renaming) endRename(true)
+  })
+
+  card.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.head b') && village.thread(village.selected) && !village.isFinished(village.selected)) startRename()
+  })
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
@@ -47,6 +97,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'inside') village.enter(village.selected)
     else if (act === 'close') village.select(null)
+    else if (act === 'rename') startRename()
     else if (act === 'file') village.openFile(builtId, b.dataset.path)
     else if (act === 'moreFiles') {
       builtAll = true
@@ -100,9 +151,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(t.title)}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
           <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || '')}</span>
         </div>
+        <button class="btn" data-act="rename" title="Rename (or double-click the name)" aria-label="Rename">✎</button>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
@@ -206,7 +258,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(t.title)}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
           <span class="status"><span style="color:${color}">${esc(finishedWords(f.theme).glyph)}</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
@@ -313,6 +365,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   return {
     /** Content: called when the selection or the scan changes. */
     update() {
+      // Picking something else keeps what was typed; staying put leaves the box alone while you type.
+      if (renaming && (renaming !== village.selected || village.focused)) endRename(true)
+      else if (renaming) return
       // Inside a building the room's own panel says everything the card would, in more room.
       if (village.focused) {
         card.hidden = true

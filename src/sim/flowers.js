@@ -104,7 +104,8 @@ export function workOf(text) {
  * colour from its own palette, so the sim never knows about colours.
  */
 export function flowerFor(t) {
-  const work = workOf(`${t.title || ''} ${t.preview || ''}`)
+  // The harness's title, not a name someone gave it: renaming a thread never changes its work.
+  const work = workOf(`${t.harnessTitle ?? t.title ?? ''} ${t.preview || ''}`)
   const family = KINDS_BY_WORK[work]
   const kind = family[hashString(`flower:${t.id}`) % family.length]
   return { kind, color: hashString(`petal:${t.id}`), work }
