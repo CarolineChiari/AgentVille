@@ -2,6 +2,7 @@
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { cleanTasks } from '../src/game/tasks.js'
+import { cleanNames } from '../src/game/names.js'
 
 export const STATE_VERSION = 1
 const FILE = 'village.json'
@@ -17,6 +18,7 @@ export function emptyState() {
     viewedAt: {},
     tasks: {},
     looks: {},
+    names: {},
     spots: {},
     progress: {},
     settings: null,
@@ -132,6 +134,7 @@ export function normalizeState(raw) {
     viewedAt: numberMap(s.viewedAt),
     tasks: taskMap(s.tasks),
     looks: lookMap(s.looks, s.subthemes),
+    names: cleanNames(s.names),
     spots: spotMap(s.spots),
     progress: progressMap(s.progress),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
