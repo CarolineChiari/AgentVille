@@ -13,6 +13,7 @@ import { construction } from './construction/index.js'
 import { elvish } from './elvish/index.js'
 import { halloween } from './halloween/index.js'
 import { seaside } from './seaside/index.js'
+import { farm } from './farm/index.js'
 
 /**
  * @typedef {object} ThemePack
@@ -67,7 +68,7 @@ export const village = {
 }
 
 /** @type {Record<string, ThemePack>} */
-export const PACKS = { village, construction, elvish, halloween, seaside }
+export const PACKS = { village, construction, elvish, halloween, seaside, farm }
 
 /** A theme's pack; the village's for a theme with none. */
 export const packFor = (id) => PACKS[id] || village

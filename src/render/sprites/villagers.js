@@ -57,7 +57,10 @@ function colours(look) {
         // A sou'wester is cut from the same oilskin as the coat under it, so it takes the crew's
         // colour like the coat does: in a villager's own hat colour it read as a bonnet.
         : kind === 'souwester' ? P.oilskin[(look.vest || 0) % P.oilskin.length]
-          : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
+          // A flat cap is tweed to go with the crew's dungarees: in a villager's own hat colour
+          // it read as the everyday cap.
+          : kind === 'flatcap' ? P.tweed[(look.vest || 0) % P.tweed.length]
+            : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
   const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
   // A theme's second uniform colour, on the same draw as the vest's: greenleaf or twilight.
   const cloak = P.elfCloak[(look.vest || 0) % P.elfCloak.length]
@@ -65,6 +68,8 @@ function colours(look) {
   const cape = P.cape[(look.vest || 0) % P.cape.length]
   // And again for an oilskin: the harbour's yellow or the boatyard's navy.
   const oil = P.oilskin[(look.vest || 0) % P.oilskin.length]
+  // And for dungarees: denim, or the market garden's brown duck.
+  const denim = P.denim[(look.vest || 0) % P.denim.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -80,6 +85,7 @@ function colours(look) {
     cloak, cloakS: shade(cloak, -0.22), cloakL: shade(cloak, 0.2),
     cape, capeS: shade(cape, -0.25), capeL: shade(cape, 0.2),
     oil, oilS: shade(oil, -0.24), oilL: shade(oil, 0.22),
+    denim, denimS: shade(denim, -0.24), denimL: shade(denim, 0.2),
   }
 }
 
@@ -447,6 +453,26 @@ function hat(pc, c, look, dy, view) {
         pc.px(7, 5 + dy, c.hatL)
       }
     }
+  } else if (kind === 'flatcap') {
+    // A flat cap: a low crown sloping forward to a short stiff peak, flatter and wider than the
+    // everyday cap, with its button on top. The crown overhangs the peak at the front, which is
+    // what tells it from a cap with a crown that stands up.
+    if (side) {
+      pc.hline(4, 11, 2 + dy, c.hat)
+      pc.rect(3, 3 + dy, 9, 2, c.hat)
+      pc.hline(2, 4, 5 + dy, c.hatS) // the peak, out over the eyes
+      pc.hline(5, 11, 4 + dy, c.hatS)
+      pc.px(7, 1 + dy, c.hatS) // the button
+      pc.hline(5, 8, 2 + dy, c.hatL)
+    } else {
+      pc.hline(5, 10, 2 + dy, c.hat)
+      pc.rect(4, 3 + dy, 8, 2, c.hat)
+      pc.hline(3, 12, 4 + dy, c.hat)
+      pc.px(8, 1 + dy, c.hatS)
+      pc.hline(5, 8, 2 + dy, c.hatL)
+      if (view === 'front') pc.hline(5, 10, 5 + dy, c.hatS)
+      else pc.hline(4, 11, 4 + dy, c.hatS)
+    }
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
@@ -548,6 +574,26 @@ function topFront(pc, c, look, dy, back) {
       pc.px(7, 17 + dy, P.brass)
     }
   }
+  if (t === 'dungarees') {
+    // Dungarees: a bib over the chest on two straps, and the legs of them over the trousers. The
+    // bib is narrower than the body so the shirt shows either side of it, which is what keeps the
+    // villager's own colour; brass buttons where the straps meet it.
+    if (back) {
+      pc.line(5, 12 + dy, 8, 16 + dy, c.denim)
+      pc.line(10, 12 + dy, 7, 16 + dy, c.denimS)
+      pc.rect(5, 16 + dy, 6, 3, c.denim)
+    } else {
+      pc.rect(6, 13 + dy, 4, 4, c.denim)
+      pc.hline(6, 9, 13 + dy, c.denimL)
+      pc.vline(9, 14 + dy, 16 + dy, c.denimS)
+      for (const x of [5, 10]) pc.vline(x, 12 + dy, 13 + dy, c.denim)
+      pc.px(6, 13 + dy, P.gilt)
+      pc.px(9, 13 + dy, P.gilt)
+      pc.hline(7, 8, 15 + dy, c.denimS) // the bib pocket
+      pc.rect(5, 17 + dy, 6, 2, c.denim)
+    }
+    pc.hline(5, 10, 17 + dy, c.denimS)
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -599,6 +645,14 @@ function topSide(pc, c, look, dy) {
     pc.hline(6, 10, 18 + dy, c.oilS)
     pc.px(5, 13 + dy, c.oil)
     pc.px(6, 15 + dy, P.brass)
+  }
+  if (t === 'dungarees') {
+    // Side on, a strap over the shoulder down to the bib, and the bib and legs below it.
+    pc.vline(8, 12 + dy, 13 + dy, c.denim)
+    pc.rect(6, 14 + dy, 3, 3, c.denim)
+    pc.px(8, 14 + dy, P.gilt)
+    pc.rect(6, 17 + dy, 4, 2, c.denim)
+    pc.hline(6, 9, 17 + dy, c.denimS)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)
