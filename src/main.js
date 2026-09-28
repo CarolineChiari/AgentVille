@@ -225,6 +225,14 @@ function applyUiVisible() {
   camera.insetRight = sidebarWidth() * camera.dpr
 }
 
+/** Show or hide the panels, and say how to get them back: hidden, nothing on screen does. */
+function toggleUi() {
+  settings.uiVisible = !settings.uiVisible
+  saveSettings(settings)
+  applyUiVisible()
+  if (!settings.uiVisible) toast('Panels hidden — press H to bring them back.')
+}
+
 // ---------- pointer ----------
 
 let press = null
@@ -330,9 +338,7 @@ addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, select, textarea')) return
   // Ctrl on Windows, where the OS keeps the Windows key's shortcuts for itself.
   if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
-    settings.uiVisible = !settings.uiVisible
-    saveSettings(settings)
-    applyUiVisible()
+    toggleUi()
     return
   }
   // macOS sends no keyup for a key let go while ⌘ is down, so a held key would drive on forever.
@@ -375,11 +381,7 @@ addEventListener('keydown', (e) => {
       else if (transcript.openId) transcript.close()
       break
     }
-    case 'h': case 'H':
-      settings.uiVisible = !settings.uiVisible
-      saveSettings(settings)
-      applyUiVisible()
-      break
+    case 'h': case 'H': toggleUi(); break
     case ',': hud.showSheet('settings'); break
     case '?': hud.showSheet('help'); break
     case 'Escape':

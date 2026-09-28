@@ -54,7 +54,10 @@ option, optgroup { background-color: var(--bg); color: var(--text); }
 
 #hud { position: fixed; inset: 0; pointer-events: none; }
 #hud > * { pointer-events: auto; }
-body.hud-hidden #hud { display: none; }
+/* H hides the panels, not the HUD: the card, transcript, room bar, dialogs and toasts are how a
+   click on the map does anything, so hiding them would leave the village looking but dead. */
+body.hud-hidden #hud > .side,
+body.hud-hidden #hud > .hint { display: none; }
 
 /* ---------- sidebar ---------- */
 .side {
