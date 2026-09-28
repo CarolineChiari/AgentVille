@@ -41,6 +41,7 @@ export function makeThread(harness, harnessName, f) {
     source: f.source || '',
     canOpen: f.canOpen ?? Boolean(f.opensIn),
     opensIn: f.opensIn || '',
+    editor: f.editor || '',
     ref: f.ref || {},
   }
 }

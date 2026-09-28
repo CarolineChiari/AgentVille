@@ -31,6 +31,8 @@
  * @property {boolean} canOpen
  * @property {string}  opensIn         Where Open always goes ('VS Code', 'Cursor'), or '' when it
  *                                     follows the person's Open-in setting
+ * @property {string}  editor          The link scheme that opens a file from this thread
+ *                                     ('cursor', 'antigravity'), or '' for the harness's default
  * @property {object}  ref             Opaque; handed straight back on open
  *
  * @typedef {object} HarnessAdapter
@@ -77,5 +79,5 @@
 export const THREAD_FIELDS = [
   'id', 'harness', 'harnessName', 'title', 'preview', 'project', 'projectPath', 'worktree', 'cwd',
   'gitBranch', 'model', 'effort', 'createdAt', 'lastActivityAt', 'lastFocusedAt', 'running', 'unread',
-  'hasError', 'prState', 'prNumber', 'prUrl', 'archived', 'sizeBytes', 'source', 'canOpen', 'opensIn', 'ref',
+  'hasError', 'prState', 'prNumber', 'prUrl', 'archived', 'sizeBytes', 'source', 'canOpen', 'opensIn', 'editor', 'ref',
 ]

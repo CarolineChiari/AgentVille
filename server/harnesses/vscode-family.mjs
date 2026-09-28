@@ -85,4 +85,4 @@ function pathUrl(scheme, target) {
 }
 
 /** The editors that answer a `<scheme>://file/…` link. Anything else never reaches the OS. */
-export const FILE_URL_SCHEMES = new Set(['vscode', 'cursor', 'antigravity-ide'])
+export const FILE_URL_SCHEMES = new Set(['vscode', 'cursor', 'antigravity', 'antigravity-ide'])

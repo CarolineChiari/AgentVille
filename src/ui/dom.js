@@ -30,9 +30,14 @@ export function bytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
-/** The Open button's words. A harness with one place to go names it; Claude follows the Open-in setting. */
+/**
+ * The Open button's words. A harness with one place to go names it; Claude follows the Open-in
+ * setting. That setting is Claude's alone: another harness's thread with nowhere to open it
+ * must not claim VS Code.
+ */
 export function openLabel(t, openIn) {
   if (t?.opensIn) return `Open in ${t.opensIn}`
+  if (t?.harness && t.harness !== 'claude-code') return 'Open'
   return openIn === 'vscode' ? 'Open in VS Code' : 'Open'
 }
 

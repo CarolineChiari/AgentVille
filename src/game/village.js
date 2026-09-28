@@ -977,7 +977,7 @@ export class Village {
     const t = this.thread(id)
     if (!t || !file || this.demo) return
     try {
-      await api.openFile(t.cwd || t.projectPath, file, EDITOR_SCHEME[t.harness] || 'vscode')
+      await api.openFile(t.cwd || t.projectPath, file, t.editor || EDITOR_SCHEME[t.harness] || 'vscode')
       this.toast(`Opening ${file}`)
     } catch (err) {
       this.toast(err.message, 'error')

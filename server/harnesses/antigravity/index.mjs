@@ -1,8 +1,8 @@
 // The Google Antigravity adapter, read-only. Antigravity ships as three apps with separate
 // histories, each under its own folder in ~/.gemini:
 //   antigravity-cli/   the `agy` CLI
-//   antigravity-ide/   Antigravity IDE (the VS Code fork, `antigravity-ide://`)
-//   antigravity/       the Antigravity desktop app
+//   antigravity-ide/   Antigravity IDE (`antigravity-ide://`)
+//   antigravity/       the Antigravity app, Google's VS Code fork (`antigravity://`)
 // The conversations themselves are encrypted protobuf, but each app also keeps
 // `conversation_summaries.db` (SQLite): title, first prompt, workspace, last change, and
 // whether it is idle. That is what the village is built from. The CLI also writes a readable
@@ -30,6 +30,16 @@ export const SURFACES = [
   { dir: 'antigravity', source: 'desktop' },
 ]
 const surfaceBySource = (s) => SURFACES.find((x) => x.source === s) || null
+
+/**
+ * The editors that can open a conversation's folder. The Antigravity app is the one most people
+ * have: its data folder is `Antigravity` and it answers `antigravity://`. Looking only for
+ * `Antigravity IDE` left every one of their conversations with nothing to open it in.
+ */
+export const EDITORS = [
+  { id: 'app', label: 'Antigravity', appFolder: 'Antigravity', scheme: 'antigravity' },
+  { id: 'ide', label: 'Antigravity IDE', appFolder: 'Antigravity IDE', scheme: 'antigravity-ide' },
+]
 
 // `not_fully_idle` is left set when an app quits mid-run, so it only means "working" this soon.
 const RUNNING_WINDOW_MS = 15 * 60 * 1000
@@ -75,15 +85,20 @@ export function createAntigravityAdapter(opts = {}) {
   const platform = opts.platform ?? process.platform
   const now = opts.now ?? Date.now
   const gemini = path.join(home, '.gemini')
-  const ideUserDir = editorUserDir('Antigravity IDE', { home, env, platform })
+  const editorDirs = EDITORS.map((e) => editorUserDir(e.appFolder, { home, env, platform }))
   const cache = new Map() // summaries db → { key, rows }
 
   const agyExe = () => (opts.agyPath !== undefined ? opts.agyPath : findExe('agy', { home, env, platform, dirs: [path.join(home, '.local', 'bin')] }))
-  const ideInstalled = async () => Boolean(ideUserDir) && (await exists(ideUserDir))
+  /** The installed editors, the one that made a conversation first when it is there. */
+  async function editors(source = '') {
+    const out = []
+    for (let i = 0; i < EDITORS.length; i++) if (editorDirs[i] && (await exists(editorDirs[i]))) out.push(EDITORS[i])
+    return source === 'ide' ? [...out.filter((e) => e.id === 'ide'), ...out.filter((e) => e.id !== 'ide')] : out
+  }
 
   async function detect() {
     for (const s of SURFACES) if (await exists(path.join(gemini, s.dir))) return true
-    return (await ideInstalled()) || Boolean(await agyExe())
+    return (await editors()).length > 0 || Boolean(await agyExe())
   }
 
   async function mtimeKey(file) {
@@ -110,7 +125,9 @@ export function createAntigravityAdapter(opts = {}) {
 
   async function scanThreads() {
     const t = now()
-    const [ide, agy] = [await ideInstalled(), await agyExe()]
+    const agy = await agyExe()
+    const byApp = {}
+    for (const s of SURFACES) byApp[s.source] = (await editors(s.source))[0] || null
     const out = []
     for (const s of SURFACES) {
       for (const r of await summaries(path.join(gemini, s.dir))) {
@@ -124,7 +141,8 @@ export function createAntigravityAdapter(opts = {}) {
         const idle = !num(r.not_fully_idle) || Boolean(num(r.killed))
         const running = !idle && t - at < RUNNING_WINDOW_MS
         // Only the CLI resumes a conversation by id; the apps' histories aren't shared with it.
-        const opensIn = s.source === 'cli' && agy ? 'Terminal' : ide ? 'Antigravity IDE' : ''
+        const editor = byApp[s.source]
+        const opensIn = s.source === 'cli' && agy ? 'Terminal' : editor ? editor.label : ''
         out.push(makeThread(HARNESS_ID, NAME, {
           sessionId: id,
           title: str(r.title).trim(),
@@ -136,6 +154,7 @@ export function createAntigravityAdapter(opts = {}) {
           unread: num(r.step_count) > 0 && idle && !num(r.killed),
           source: s.source,
           opensIn,
+          editor: editor ? editor.scheme : '',
           ref: { conversationId: id, source: s.source, folder },
         }))
       }
@@ -150,10 +169,11 @@ export function createAntigravityAdapter(opts = {}) {
     }
     const exe = r.source === 'cli' ? await agyExe() : null
     if (exe) return { ok: true, where: 'a terminal', terminal: { exe, args: ['--conversation', r.conversationId], cwd: r.folder } }
-    if (await ideInstalled()) {
-      return { ok: true, where: 'Antigravity IDE', url: folderUrl('antigravity-ide', r.folder), note: 'Opening the folder in Antigravity IDE. The conversation is in its Agent Manager.' }
+    const [editor] = await editors(r.source)
+    if (editor) {
+      return { ok: true, where: editor.label, url: folderUrl(editor.scheme, r.folder), note: `Opening the folder in ${editor.label}. The conversation is in its Agent Manager.` }
     }
-    return { ok: false, error: 'Install Antigravity IDE or the agy CLI to open this conversation.' }
+    return { ok: false, error: 'Install Antigravity or the agy CLI to open this conversation.' }
   }
 
   /** Only the CLI keeps a readable transcript; the apps' conversations are encrypted. */
@@ -175,7 +195,7 @@ export function createAntigravityAdapter(opts = {}) {
 
   async function targets() {
     const out = []
-    if (await ideInstalled()) out.push({ id: 'ide', label: 'Antigravity IDE', note: 'Opens the folder in Antigravity IDE; your prompt goes on the clipboard to paste into the agent.' })
+    for (const e of await editors()) out.push({ id: e.id, label: e.label, note: `Opens the folder in ${e.label}; your prompt goes on the clipboard to paste into the agent.` })
     if (await agyExe()) out.push({ id: 'terminal', label: 'Terminal', note: `Opens a terminal in the folder running agy${platform === 'win32' ? '; your prompt goes on the clipboard' : ', starting on your prompt'}.` })
     return out
   }
@@ -189,7 +209,8 @@ export function createAntigravityAdapter(opts = {}) {
       // `-i <prompt>` starts the interactive CLI already working on it.
       return { ok: true, where: 'a terminal', terminal: { exe, args: [], promptArgs: ['-i'], cwd: dir, prompt: text } }
     }
-    if (target === 'ide') return { ok: true, where: 'Antigravity IDE', url: folderUrl('antigravity-ide', dir) }
+    const editor = (await editors()).find((e) => e.id === target)
+    if (editor) return { ok: true, where: editor.label, url: folderUrl(editor.scheme, dir) }
     return { ok: false, error: 'Unknown place to start a session.' }
   }
 

@@ -114,6 +114,7 @@ export function toThread(entry, harnessName) {
     source: entry.source,
     canOpen: isDesktopId(entry.desktopSessionId) || isCliId(entry.cliSessionId),
     opensIn: '',
+    editor: '',
     ref: {
       desktopSessionId: entry.desktopSessionId,
       desktopSessionIds: entry.desktopSessionIds,
