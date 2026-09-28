@@ -398,6 +398,14 @@ The screenshots in this README are the demo village, never a real one. `npm run 
 them again into `docs/screenshots/`, in headless Chrome, Chromium or Edge (`CHROME=/path` picks
 another browser).
 
+## Supporting another harness
+
+Claude Code, Copilot, Cursor and Antigravity are read today; adding another coding-agent tool is
+one new directory under `server/harnesses/` and one line in its registry — nothing else in the
+app needs to change. **[docs/harnesses.md](docs/harnesses.md)** covers the `Thread` shape, the
+adapter's required and optional functions, and the rules every one of them follows (read-only,
+`shell: false`, ids checked before they reach a URL).
+
 ## Keeping it local
 
 The server binds `127.0.0.1`, refuses requests whose `Host` is not local (DNS rebinding), and
