@@ -1,12 +1,23 @@
 // The desktop app: the same server `npm start` runs, started inside Electron's main process, and
 // one window pointed at it. The page is the ordinary web build; it gets no Node and no preload.
-import { app, BrowserWindow, nativeImage, shell } from 'electron'
+import { app, BrowserWindow, nativeImage, session, shell } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
 import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from './env.mjs'
 import { createServer } from '../server/index.mjs'
+import { HEADERS } from '../server/headers.mjs'
 import { createShellOpener } from '../server/opener.mjs'
 import { APP_BG } from '../src/render/sprites/palette.js'
+
+// The server already sends these on every response; this covers the window even if a future
+// change to the server ever drops them, since http.createServer has no default CSP of its own.
+function enforceSecurityHeaders() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders }
+    for (const [name, value] of Object.entries(HEADERS)) responseHeaders[name] = [value]
+    callback({ responseHeaders })
+  })
+}
 
 // Two copies would fight over the port and over data/village.json.
 if (!app.requestSingleInstanceLock()) app.quit()
@@ -80,6 +91,7 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(async () => {
+  enforceSecurityHeaders()
   const started = await startServer()
   server = started.s
   appUrl = started.url
