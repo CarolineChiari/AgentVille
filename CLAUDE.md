@@ -9,7 +9,7 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 
 - `server/` — Node, `.mjs`, no runtime dependencies. `harnesses/<id>/` is the only place that
   knows what a particular harness's files look like. Everything else is written against the
-  `Thread` shape in `server/harnesses/types.mjs`.
+  `Thread` shape in `server/harnesses/types.mjs`. See `docs/harnesses.md` for how to write one.
 - `electron/` — the desktop wrapper: starts `server/` in Electron's main process and opens one
   sandboxed window on it. Pure decisions go in `electron/env.mjs`, which imports nothing from Electron.
 - `src/sim/` — renderer-agnostic simulation in tile units. **No DOM, no canvas**, so it runs
