@@ -2,9 +2,9 @@
 
 A **harness** is a coding-agent tool AgentVille reads sessions from — Claude Code, Copilot, Cursor,
 Antigravity today. Adding one is one new directory under `server/harnesses/` plus one line in
-`server/harnesses/index.mjs`. Everything else — `server/scan.mjs`, `server/api.mjs`, the whole of
-`src/` — is written against the `Thread` shape below and never against a harness, so a new adapter
-needs no changes anywhere else.
+`server/harnesses/index.mjs`, and its own test file under `test/`. Everything else —
+`server/scan.mjs`, `server/api.mjs`, the whole of `src/` — is written against the `Thread` shape
+below and never against a harness, so no other production code needs to change.
 
 Start from the smallest existing adapter that's shaped like the one you're writing:
 `server/harnesses/cursor/index.mjs` and `server/harnesses/antigravity/index.mjs` are single-file,
@@ -52,8 +52,11 @@ see the `HarnessAdapter` typedef in `types.mjs`. Required:
 - `openThread(ref, { target })` — turn a `ref` back into somewhere to go. `target` is the person's
   Open-in preference (`'app'` or `'vscode'`); an adapter with only one place to open ignores it.
 - `newSession(dir, { target, prompt, model, effort })` — one way to start a session in `dir`.
-- `targets()` — where a new session can start *on this machine* right now: `[]` when nothing is
-  installed, so the new-session form only offers what will actually work.
+- `targets()` — where a new session can start *on this machine* right now: an adapter offers only
+  targets it can actually back, so the new-session form never offers something that won't work.
+  Most adapters check what's installed and return `[]` when none of it is (see `cursor/index.mjs`);
+  Claude Code's VS Code target is the exception, always offered, because its extension can't be
+  detected from disk the way an installed app or CLI can.
 
 Optional, added only once you can back them for real:
 
@@ -84,10 +87,12 @@ could start, `models`/`efforts` only for a target that offers a menu (see
 ```
 
 `urls` (plural) is for a link that needs the folder opened first and the session focused second —
-see Claude Code's VS Code path. `terminal: { exe, args, cwd, prompt }` instead asks
+see Claude Code's VS Code path. `terminal: { exe, args, cwd, prompt, promptArgs }` instead asks
 `server/terminal.mjs` for a terminal window running `exe`; `where` finishes the sentence "Opening …
 in", and `promptPassed` says the prompt travelled with the link so the page doesn't also need to
-put it on the clipboard.
+put it on the clipboard. `promptArgs`, when present, go just before the prompt and only with it —
+for a CLI whose flag only makes sense followed by one, like Copilot's `-i` (see
+`copilot/index.mjs`'s `newSession` and `terminal.mjs`'s `commandScript`).
 
 ## Rules every adapter follows
 
@@ -147,6 +152,7 @@ import myHarness from './my-harness/index.mjs'
 export const HARNESSES = [claudeCode, copilot, cursor, antigravity, myHarness]
 ```
 
-That's the only file outside the new directory that needs to change. `detectedHarnesses()` calls
-every adapter's `detect()` on every scan, so installing the harness while the village is open is
-picked up on the next poll with no restart.
+That's the only production file outside the new directory that needs to change — its own tests
+still live in `test/`, per Testing above. `detectedHarnesses()` calls every adapter's `detect()` on
+every scan, so installing the harness while the village is open is picked up on the next poll with
+no restart.
