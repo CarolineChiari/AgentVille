@@ -104,6 +104,7 @@ const hud = createHud(hudRoot, {
   onFly: fly,
   onNewSession: (repo) => newSession.open(repo),
   onEditTasks: (repo) => taskEditor.open(repo),
+  onShowPanels: toggleUi,
 })
 const ui = {
   changed() {
@@ -225,12 +226,10 @@ function applyUiVisible() {
   camera.insetRight = sidebarWidth() * camera.dpr
 }
 
-/** Show or hide the panels, and say how to get them back: hidden, nothing on screen does. */
 function toggleUi() {
   settings.uiVisible = !settings.uiVisible
   saveSettings(settings)
   applyUiVisible()
-  if (!settings.uiVisible) toast('Panels hidden — press H to bring them back.')
 }
 
 // ---------- pointer ----------

@@ -51,7 +51,7 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, canNotify = false }) {
+export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -59,7 +59,12 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   sheet.hidden = true
   const hint = document.createElement('div')
   hint.className = 'hint'
-  root.append(side, sheet, hint)
+  // Only seen while H has hidden the panels (see styles.css): hidden, nothing else says where they went.
+  const back = document.createElement('button')
+  back.className = 'panels-back'
+  back.textContent = 'Press H to see sessions again'
+  back.addEventListener('click', () => onShowPanels())
+  root.append(side, sheet, hint, back)
   const open = { archived: false, hidden: true, folded: false }
   let sheetMode = null
   let stale = false

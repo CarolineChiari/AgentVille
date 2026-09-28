@@ -58,6 +58,21 @@ option, optgroup { background-color: var(--bg); color: var(--text); }
    click on the map does anything, so hiding them would leave the village looking but dead. */
 body.hud-hidden #hud > .side,
 body.hud-hidden #hud > .hint { display: none; }
+.panels-back {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+body.hud-hidden #hud > .panels-back { display: block; }
 
 /* ---------- sidebar ---------- */
 .side {
