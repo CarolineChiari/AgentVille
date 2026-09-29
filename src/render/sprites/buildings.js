@@ -627,7 +627,7 @@ const KINDS = {
  * it always was and nothing here moves a pixel of it. It only ever adds paint inside the sprite:
  * the size never changes, and a `low` building keeps everything below DOORSTEP_CLEAR.
  * Grade 1: window boxes and a hanging sign in the plot's accent. Grade 2: a second chimney, a
- * dormer where the roof has room, and a pennant on the ridge.
+ * dormer where the roof has room; every other kind gets a second sign and flower pots.
  */
 export function drawGrade(pc, o) {
   const grade = o.grade | 0
@@ -669,15 +669,17 @@ export function drawGrade(pc, o) {
     return
   }
   const bottom = pc.h - 14
-  sign(rand() < 0.5 ? 28 : 3, bottom)
+  const first = rand() < 0.5 ? 28 : 3
+  sign(first, bottom)
   if (grade >= 2) {
-    // A pennant on the ridge: find the highest painted pixel in the middle columns.
-    let ridge = -1
-    for (let y = 0; y < pc.h && ridge < 0; y++) if (pc.opaque(15, y) || pc.opaque(16, y)) ridge = y
-    if (ridge - 5 >= top) {
-      pc.vline(15, ridge - 5, ridge - 1, P.metalDark)
-      pc.hline(16, 18, ridge - 5, o.accent)
-      pc.hline(16, 17, ridge - 4, o.accent)
+    // Not a pennant on the ridge: the windmill's sails and the tower's flag move or stand there,
+    // so nothing could be found to stand on across every frame. A second sign on the other wall,
+    // and a pot of flowers at each corner of the doorstep, on ground every kind has.
+    sign(31 - first, bottom)
+    for (const x of [1, 29]) {
+      pc.rect(x, pc.h - 4, 2, 2, P.brick)
+      pc.px(x, pc.h - 5, P.leaf)
+      pc.px(x + 1, pc.h - 5, flowers[(x + o.variant) % flowers.length])
     }
   }
 }

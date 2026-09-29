@@ -84,7 +84,7 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, spots: {}, progress: {}, settings: null,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, spots: {}, progress: {}, grades: {}, settings: null,
   updatedAt: 0,
 })
 
@@ -260,6 +260,20 @@ export class Village {
     return { tiers: new Map(Object.entries(this.state.progress || {}).map(([name, p]) => [name, p.tier])), changed }
   }
 
+  /**
+   * A building's grade: what its transcript earns now, or what it has earned before if that is
+   * more. Saved, so a reload or a misread scan never takes a building's growth away.
+   */
+  _gradeOf(t) {
+    const grades = (this.state.grades ||= {})
+    const g = Math.max(gradeOf(t.sizeBytes), grades[t.id] || 0)
+    if (g > (grades[t.id] || 0)) {
+      grades[t.id] = g
+      this._gradesChanged = true
+    }
+    return g
+  }
+
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
@@ -267,8 +281,12 @@ export class Village {
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
-      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now), grade: gradeOf(t.sizeBytes),
+      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now), grade: this._gradeOf(t),
     }))
+    if (this._gradesChanged) {
+      this._gradesChanged = false
+      dirty = true
+    }
     for (const t of this.view.live) {
       if (!this.state.seen[t.id]) {
         this.state.seen[t.id] = now

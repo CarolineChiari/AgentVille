@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DOORSTEP_CLEAR, ROOF_FAMILIES, chimneyOf, fitted, heightOf, houseSpec } from '../src/render/sprites/buildings.js'
+import { DOORSTEP_CLEAR, ROOF_FAMILIES, buildingFrames, chimneyOf, fitted, heightOf, houseSpec } from '../src/render/sprites/buildings.js'
 import { ACCENTS, PALETTE as P } from '../src/render/sprites/palette.js'
 import { generate } from '../src/render/sprites/registry.js'
 import { KINDS } from '../src/sim/building.js'
@@ -125,13 +125,16 @@ test('grade 0 draws exactly the building it always did; higher grades only add, 
         const f = fitted(kind, variant, roomy)
         const p = { accent: ACCENTS[variant % ACCENTS.length], variant, lit: false, wall: variant % 5, roofs: variant % 4, low: f.low, wear: 0 }
         const name = `building.${f.kind}.3`
-        const base = generate(name, 0, p)
-        assert.ok(same(base, generate(name, 0, { ...p, grade: 0 })), `${f.kind} v${variant} changed at grade 0`)
-        for (const grade of [1, 2]) {
-          const g = generate(name, 0, { ...p, grade })
-          assert.equal(g.h, base.h, `${f.kind} v${variant} grew taller at grade ${grade}`)
-          assert.ok(!same(base, g), `${f.kind} v${variant} shows nothing at grade ${grade}`)
-          if (!roomy) assert.ok(topRow(g) >= DOORSTEP_CLEAR, `${f.kind} v${variant} grade ${grade} reaches row ${topRow(g)}`)
+        for (let frame = 0; frame < buildingFrames(f.kind, 3); frame++) {
+          const base = generate(name, frame, p)
+          assert.ok(same(base, generate(name, frame, { ...p, grade: 0 })), `${f.kind} v${variant} changed at grade 0`)
+          const grades = [1, 2].map((grade) => generate(name, frame, { ...p, grade }))
+          grades.forEach((g, i) => {
+            assert.equal(g.h, base.h, `${f.kind} v${variant} grew taller at grade ${i + 1}`)
+            assert.ok(!same(base, g), `${f.kind} v${variant} frame ${frame} shows nothing at grade ${i + 1}`)
+            if (!roomy) assert.ok(topRow(g) >= DOORSTEP_CLEAR, `${f.kind} v${variant} grade ${i + 1} reaches row ${topRow(g)}`)
+          })
+          assert.ok(!same(grades[0], grades[1]), `${f.kind} v${variant} frame ${frame}: grade 2 looks like grade 1`)
         }
         // A building site shows no grade at all.
         assert.ok(same(generate(`building.${f.kind}.2`, 0, p), generate(`building.${f.kind}.2`, 0, { ...p, grade: 2 })))
