@@ -116,3 +116,26 @@ test('a house down the side keeps its looks and loses only its upstairs and a st
     for (const k of ['material', 'roofColor', 'layout', 'shutters', 'boxes', 'porch', 'woodDoor']) assert.deepEqual(low[k], tall[k], `house ${v}'s ${k} changed`)
   }
 })
+
+test('grade 0 draws exactly the building it always did; higher grades only add, within the same size', () => {
+  const same = (a, b) => a.data.every((v, i) => v === b.data[i])
+  for (const kind of KINDS) {
+    for (const roomy of [true, false]) {
+      for (let variant = 0; variant < 40; variant++) {
+        const f = fitted(kind, variant, roomy)
+        const p = { accent: ACCENTS[variant % ACCENTS.length], variant, lit: false, wall: variant % 5, roofs: variant % 4, low: f.low, wear: 0 }
+        const name = `building.${f.kind}.3`
+        const base = generate(name, 0, p)
+        assert.ok(same(base, generate(name, 0, { ...p, grade: 0 })), `${f.kind} v${variant} changed at grade 0`)
+        for (const grade of [1, 2]) {
+          const g = generate(name, 0, { ...p, grade })
+          assert.equal(g.h, base.h, `${f.kind} v${variant} grew taller at grade ${grade}`)
+          assert.ok(!same(base, g), `${f.kind} v${variant} shows nothing at grade ${grade}`)
+          if (!roomy) assert.ok(topRow(g) >= DOORSTEP_CLEAR, `${f.kind} v${variant} grade ${grade} reaches row ${topRow(g)}`)
+        }
+        // A building site shows no grade at all.
+        assert.ok(same(generate(`building.${f.kind}.2`, 0, p), generate(`building.${f.kind}.2`, 0, { ...p, grade: 2 })))
+      }
+    }
+  }
+})

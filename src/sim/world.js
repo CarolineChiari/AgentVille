@@ -147,7 +147,7 @@ export class World {
   }
 
   /**
-   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number }[]} threads
+   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number, grade?: number }[]} threads
    *        `wear` is how weathered its building looks, a grade from wear.js
    * @param {Map<string, number[][]>} [memory] saved layout; only read on the first call
    * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
@@ -263,6 +263,7 @@ export class World {
         b.roomy = roomy
         b.lit = t.status === 'working' || t.status === 'waiting'
         b.wear = t.wear ?? KEPT
+        b.setGrade(t.grade ?? 0)
       }
     }
     for (const [id, b] of this.buildings) {
@@ -586,7 +587,7 @@ export class World {
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
-        alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
+        alpha: b.alpha, lit: b.lit, wear: b.wear, grade: b.grade, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
         style: this.plots.get(b.plot)?.style ?? plain,
       })),
       villagers: [...this.villagers.values()]

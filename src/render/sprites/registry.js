@@ -49,7 +49,7 @@ export function generate(name, frame, p) {
     case 'villager':
       return drawVillager(p.look, a, b, frame)
     case 'building':
-      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
+      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear, grade: p.grade })
     case 'tile':
       return drawTile(a, Number(b), p)
     case 'deco':

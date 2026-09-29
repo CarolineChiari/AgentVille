@@ -49,3 +49,12 @@ test('a thread stopped on the person is waiting, above working, and cannot be ma
   assert.equal(needsInputLabel('permission prompt'), 'Needs your permission')
   assert.equal(needsInputLabel(''), '')
 })
+
+test('a session grades up with its transcript: a quick question, real work, a long thread', async () => {
+  const { gradeOf } = await import('../src/sim/status.js')
+  assert.equal(gradeOf(0), 0)
+  assert.equal(gradeOf(5_000), 0)
+  assert.equal(gradeOf(100_000), 1)
+  assert.equal(gradeOf(2_000_000), 2)
+  for (let n = 1; n < 1e9; n *= 3) assert.ok(gradeOf(n * 3) >= gradeOf(n), `${n}`)
+})
