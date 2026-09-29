@@ -33,6 +33,7 @@ export class Building {
     this.plot = ''
     this.lit = false
     this.wear = KEPT // how long its thread has sat untouched; see wear.js
+    this.banner = null // the colour of its thread's group's flag, or null in none; see Plot.assignSlots
     // Open ground above it: true on a courtyard's top row, where only the fence and the road
     // are behind it. Down the sides the house above opens its door onto the row just above.
     this.roomy = true

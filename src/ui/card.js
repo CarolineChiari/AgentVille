@@ -2,9 +2,10 @@
 import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
-import { BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
+import { ACCENTS, BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
 import { NAME_MAX } from '../game/names.js'
+import { GROUP_NAME_MAX, sameName } from '../game/groups.js'
 
 const GAP = 18
 /** Files listed in a card's Built section before it offers the rest. */
@@ -19,7 +20,10 @@ const ISSUE_CARD_STEP = 8
 /** A renamed thread's title says what it was called before. */
 const wasTitle = (t) => (t.harnessTitle ? `${t.title} — was “${t.harnessTitle}”` : t.title)
 
-export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onRecruit = () => {} } = {}) {
+/** The group picker's last choice, which asks for a name and makes a group of it. No group id has a colon. */
+const NEW_GROUP = ':new'
+
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -34,6 +38,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let built = null // the last answer, or null while it is being read
   let builtAll = false // Show all: the whole list rather than the first few
   let renaming = null // the thread whose name is being typed; the card isn't redrawn under it
+  let grouping = null // the thread a new group is being named for; the same
 
   /** Swap the title for a box to type a name in. */
   function startRename() {
@@ -62,10 +67,40 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else village.onChange()
   }
 
+  /** Swap the group picker for a box to name a new group in; the thread goes into it. */
+  function startGroup() {
+    const t = village.thread(village.selected)
+    const pick = card.querySelector('.group-pick select')
+    if (!t || !pick) return
+    grouping = t.id
+    const input = document.createElement('input')
+    input.className = 'new-group'
+    input.maxLength = GROUP_NAME_MAX
+    input.placeholder = 'Name the new group'
+    input.title = 'Enter to make it and put this session in it, Esc to leave it'
+    input.setAttribute('aria-label', 'Name the new group')
+    pick.replaceWith(input)
+    input.focus()
+  }
+
+  /** Make the group named and put the thread in it; a name the repo already has is that group. */
+  function endGroup(keep) {
+    const input = card.querySelector('input.new-group')
+    const id = grouping
+    grouping = null
+    shownKey = '' // redraw with the picker back in place
+    const t = keep && input?.value.trim() && id ? village.thread(id) : null
+    const had = t && village.groupsOf(t.project).find((g) => sameName(g.name, input.value))
+    const group = had ? had.id : t ? village.addGroup(t.project, input.value) : ''
+    if (group && group !== t.group?.id) village.setGroup(id, group)
+    else village.onChange()
+  }
+
   card.addEventListener('keydown', (e) => {
-    if (!e.target.matches('input.rename')) return
-    if (e.key === 'Enter') endRename(true)
-    else if (e.key === 'Escape') endRename(false)
+    const box = e.target.matches('input.rename') ? endRename : e.target.matches('input.new-group') ? endGroup : null
+    if (!box) return
+    if (e.key === 'Enter') box(true)
+    else if (e.key === 'Escape') box(false)
     else return
     e.preventDefault()
     e.stopPropagation()
@@ -74,6 +109,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   // Clicking away keeps what was typed, as a rename in a file list does.
   card.addEventListener('focusout', (e) => {
     if (e.target.matches('input.rename') && renaming) endRename(true)
+    else if (e.target.matches('input.new-group') && grouping) endGroup(true)
   })
 
   card.addEventListener('dblclick', (e) => {
@@ -82,6 +118,12 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
+    else if (e.target.matches('select[data-f="group"]')) {
+      // Let go of it first: the card keeps a focused picker as it is, and this one has done its job.
+      e.target.blur()
+      if (e.target.value === NEW_GROUP) startGroup()
+      else village.setGroup(village.selected, e.target.value)
+    }
   })
 
   card.addEventListener('click', (e) => {
@@ -98,6 +140,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'inside') village.enter(village.selected)
     else if (act === 'close') village.select(null)
     else if (act === 'rename') startRename()
+    else if (act === 'editGroups') {
+      const t = village.thread(village.selected)
+      if (t) onEditGroups(t.project)
+    }
     else if (act === 'file') village.openFile(builtId, b.dataset.path)
     else if (act === 'moreFiles') {
       builtAll = true
@@ -158,6 +204,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      ${groupPicker(t)}
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
@@ -169,6 +216,23 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </div>
       <div class="built"><h4>Built</h4>${builtSection()}</div>
       ${tasksOpen ? taskList(t) : ''}`
+  }
+
+  /**
+   * Which of its repo's groups it is in, to put it in another or in none, or to make a new one and
+   * put it in that. The flag beside it is the one its house flies.
+   */
+  function groupPicker(t) {
+    const groups = village.groupsOf(t.project)
+    const id = t.group?.id || ''
+    const option = (value, label, on) => `<option value="${esc(value)}" ${on ? 'selected' : ''}>${esc(label)}</option>`
+    return `<div class="group-pick">
+      <span class="flag" ${t.group ? `style="background:${ACCENTS[t.group.color % ACCENTS.length]}"` : ''}></span>
+      <label>Group <select data-f="group" title="Sessions in a group live side by side and fly its flag (G)">
+        ${option('', 'None', !id)}${groups.map((g) => option(g.id, g.name, g.id === id)).join('')}${option(NEW_GROUP, 'New group…', false)}
+      </select></label>
+      ${groups.length ? `<button class="btn link" data-act="editGroups" title="${esc(`Every group in ${t.project}`)}">Edit</button>` : ''}
+    </div>`
   }
 
   /** The ready-made tasks, or why there are none right now. */
@@ -245,6 +309,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     const color = PETALS[f.color % PETALS.length]
     const meta = [
       ['Repo', t.project],
+      t.group && ['Group', t.group.name],
       t.worktree && ['Worktree', t.worktree],
       t.gitBranch && ['Branch', t.gitBranch],
       t.model && ['Model', t.model],
@@ -363,11 +428,26 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   }
 
   return {
+    /** Open the selected villager's group picker, for the G key. False when there is none to open. */
+    pickGroup() {
+      const pick = !card.hidden && card.querySelector('select[data-f="group"]')
+      if (!pick) return false
+      pick.focus()
+      try {
+        pick.showPicker()
+      } catch {
+        // Not every browser can open a select from a key; focused, the arrow keys still pick.
+      }
+      return true
+    },
+
     /** Content: called when the selection or the scan changes. */
     update() {
       // Picking something else keeps what was typed; staying put leaves the box alone while you type.
       if (renaming && (renaming !== village.selected || village.focused)) endRename(true)
       else if (renaming) return
+      if (grouping && (grouping !== village.selected || village.focused)) endGroup(true)
+      else if (grouping) return
       // Inside a building the room's own panel says everything the card would, in more room.
       if (village.focused) {
         card.hidden = true
@@ -406,7 +486,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}`
+      // A group picker held open is left open: a poll redrawing the card under it would shut it.
+      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus')) return
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)

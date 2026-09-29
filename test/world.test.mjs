@@ -601,3 +601,32 @@ test('a landmark\'s tier brings scenery into its plot\'s fence line, and never s
   assert.ok(!w.nav.isBlocked(Math.floor(gate.x), gate.y - 1), 'the gateway plugs its gap')
   for (const s of props) for (const [x, y] of s.blocks || []) assert.equal(w.map.decoAt(x, y), 0, `a fence still stands under the ${s.sprite}`)
 })
+
+test("a house flies its group's flag, and one in no group none", () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'idle', { group: 'g-x', banner: 4 }), T('t2', 'a')])
+  const flags = Object.fromEntries(w.snapshot().buildings.map((b) => [b.id, b.banner]))
+  assert.deepEqual(flags, { t1: 4, t2: null })
+  w.setRoster([T('t1', 'a'), T('t2', 'a', 'idle', { group: 'g-x', banner: 7 })])
+  assert.deepEqual(Object.fromEntries(w.snapshot().buildings.map((b) => [b.id, b.banner])), { t1: null, t2: 7 })
+})
+
+test('put in a group, a villager moves house to stand with it, and walks there', () => {
+  const w = new World()
+  // Waiting on you, so each stands at its own door rather than pottering about the yard.
+  const roster = [T('t1', 'a', 'working', { group: 'g-x', banner: 1 }), T('t2', 'a', 'waiting'), T('t3', 'a', 'waiting'), T('t4', 'a', 'waiting')]
+  w.setRoster(roster)
+  run(w, 25)
+  const b1 = w.buildings.get('t1')
+  const far = ['t2', 't3', 't4'].sort((x, y) => {
+    const d = (id) => Math.hypot(w.buildings.get(id).x - b1.x, w.buildings.get(id).y - b1.y)
+    return d(y) - d(x)
+  })[0]
+  const was = { x: w.buildings.get(far).x, y: w.buildings.get(far).y }
+  w.setRoster(roster.map((t) => (t.id === far ? { ...t, group: 'g-x', banner: 1 } : t)))
+  const b = w.buildings.get(far)
+  assert.notDeepEqual({ x: b.x, y: b.y }, was, 'its house moved')
+  assert.equal(Math.hypot(b.x - b1.x, b.y - b1.y), 3, 'next door to the rest of its group')
+  run(w, 20)
+  assert.ok(fromStand(w.villager(far), b) < 0.7, 'and it went home to it')
+})

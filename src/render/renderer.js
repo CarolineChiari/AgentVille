@@ -20,7 +20,7 @@ import {
 } from './square.js'
 import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
-import { BADGE_H, BADGE_W } from './sprites/effects.js'
+import { BADGE_H, BADGE_W, BANNER_H, BANNER_POLE } from './sprites/effects.js'
 
 const CHUNK = CELL_TILES * T
 const TILE_NAME = {
@@ -67,6 +67,15 @@ const CLOUD_SHADE = 0.3
 const DUSK_STRENGTH = 0.6
 /** Birds fly this high: their shadows fall this far below them, in world px. */
 const BIRD_HEIGHT = 44
+/**
+ * The column of a house's 32 px its group's flag is planted in: by its front corner, right of the
+ * door most buildings keep near the middle, with the pennant flying out over the path beside it.
+ * Planted on the ground rather than the roof, as a house down a courtyard's side must keep clear
+ * of the doorstep above it (DOORSTEP_CLEAR in sprites/buildings.js), and so must its flag.
+ */
+const BANNER_AT = 27
+/** How often a flag's pennant lifts in the wind, per second, give or take. */
+const BANNER_FLUTTER = 1.3
 /** One in this many garden flowers, and one in this many wildflower tiles, has a butterfly. */
 const BUTTERFLY_GARDEN = 6
 const BUTTERFLY_WILD = 4
@@ -379,6 +388,12 @@ export class Canvas2dRenderer {
     if (wear === GLEAMING && b.alpha >= 1) {
       this._drawSweep(img, x, y, this._hash(b.id), time)
       this.gleaming.push([img, x, y, this._hash(b.id)])
+    }
+    // The flag of the group its thread is in. Each on its own gust, so a row of them never flaps as one.
+    if (Number.isInteger(b.banner)) {
+      const gust = Math.floor(time * BANNER_FLUTTER + (this._hash(b.id) % 100) / 100) % 2
+      const flag = this._sprite(`fx.banner.${b.banner}`, gust, undefined, theme)
+      this._blit(flag, b.x * T + BANNER_AT - BANNER_POLE, (b.y + b.h) * T - BANNER_H + 1, b.alpha)
     }
   }
 

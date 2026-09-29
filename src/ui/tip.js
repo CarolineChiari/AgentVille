@@ -9,8 +9,8 @@ export const TIP_DELAY_MS = 250
 const OFFSET_PX = 14
 
 /**
- * What the tip says about a thread: its name, its folder, and when it last did anything. Working
- * and waiting say so instead of a time, since "just now" would undersell both.
+ * What the tip says about a thread: its name, its folder and the group it is in there, and when it
+ * last did anything. Working and waiting say so instead of a time, since "just now" would undersell both.
  * @param {object} t a Thread
  * @returns {{ title: string, where: string, when: string } | null}
  */
@@ -19,7 +19,7 @@ export function tipOf(t, now = Date.now()) {
   const when = t.needsInput ? 'Waiting on you'
     : t.running ? 'Working now'
     : `Last active ${ago(t.lastActivityAt, now)}`
-  return { title: t.title || 'Untitled', where: t.project || '', when }
+  return { title: t.title || 'Untitled', where: [t.project, t.group?.name].filter(Boolean).join(' · '), when }
 }
 
 /** The dwell: `hover(id, x, y)` on every move, and the tip shows once the same id has held for the delay. */

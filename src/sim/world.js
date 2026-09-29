@@ -147,8 +147,10 @@ export class World {
   }
 
   /**
-   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number }[]} threads
-   *        `wear` is how weathered its building looks, a grade from wear.js
+   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number, group?: string, banner?: number|null }[]} threads
+   *        `wear` is how weathered its building looks, a grade from wear.js. `group` is the id of
+   *        the group it is in on its plot, '' for none, which decides where its house stands (see
+   *        Plot.assignSlots); `banner` is that group's colour, the flag its house flies
    * @param {Map<string, number[][]>} [memory] saved layout; only read on the first call
    * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
    *        finished work per repo, oldest first; each becomes a flower in that plot's garden, and an
@@ -162,15 +164,15 @@ export class World {
    */
   setRoster(threads, memory, gardens = new Map(), boards = new Map(), tiers = new Map()) {
     if (this.first && memory) this.memory = new Map(memory)
-    const groups = new Map()
+    const byPlot = new Map()
     for (const t of threads) {
       if (!t.project) continue
-      if (!groups.has(t.project)) groups.set(t.project, [])
-      groups.get(t.project).push(t)
+      if (!byPlot.has(t.project)) byPlot.set(t.project, [])
+      byPlot.get(t.project).push(t)
     }
     // A repo whose threads are all finished still has its garden, so it keeps its plot.
-    const names = new Set([...groups.keys(), ...[...gardens].filter(([, f]) => f.length).map(([n]) => n)])
-    const projects = [...names].map((name) => ({ name, size: groups.get(name)?.length ?? 0, garden: gardens.get(name)?.length ?? 0 }))
+    const names = new Set([...byPlot.keys(), ...[...gardens].filter(([, f]) => f.length).map(([n]) => n)])
+    const projects = [...names].map((name) => ({ name, size: byPlot.get(name)?.length ?? 0, garden: gardens.get(name)?.length ?? 0 }))
     const { cells, memory: nextMemory } = allocatePlots(projects, this.memory)
     this.memory = nextMemory
 
@@ -189,7 +191,7 @@ export class World {
         this.plots.set(name, plot)
       }
       if (plot.setCells(c)) dirty = true
-      plot.assignSlots(groups.get(name) || [])
+      plot.assignSlots(byPlot.get(name) || [])
       // The field is ploughed a row ahead of its flowers, so a new row of soil is new ground.
       if (plot.setPlanted(gardens.get(name)?.length ?? 0)) dirty = true
       // A new tier brings new things to stand in the fence line: new ground.
@@ -245,7 +247,8 @@ export class World {
 
     // Buildings.
     const live = new Set()
-    for (const [name, list] of groups) {
+    const moved = new Set() // houses that stood somewhere else a moment ago
+    for (const [name, list] of byPlot) {
       const plot = this.plots.get(name)
       if (!plot) continue
       for (const t of list) {
@@ -259,10 +262,14 @@ export class World {
           dirty = true
         }
         const { x, y, roomy } = plot.slotTile(slot)
-        if (b.place(x, y, name)) dirty = true
+        if (b.place(x, y, name)) {
+          dirty = true
+          moved.add(t.id)
+        }
         b.roomy = roomy
         b.lit = t.status === 'working' || t.status === 'waiting'
         b.wear = t.wear ?? KEPT
+        b.banner = Number.isInteger(t.banner) ? t.banner : null
       }
     }
     for (const [id, b] of this.buildings) {
@@ -283,7 +290,8 @@ export class World {
       let v = this.villagers.get(t.id)
       if (v && v.loco !== 'gone') {
         v.status = t.status
-        if (v.building !== b) {
+        // Its house has moved (a new group, or the plot grew): off to the new one, whatever it was doing.
+        if (v.building !== b || moved.has(t.id)) {
           v.building = b
           v.goal = null
         }
@@ -586,7 +594,7 @@ export class World {
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
-        alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0,
+        alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0, banner: b.banner,
         style: this.plots.get(b.plot)?.style ?? plain,
       })),
       villagers: [...this.villagers.values()]
