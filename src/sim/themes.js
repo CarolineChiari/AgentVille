@@ -259,6 +259,37 @@ export const THEMES = {
     // threads build here.
     landmark: { one: 'landmark', tiers: ['Hay bales', 'Scarecrow', 'Dovecote', 'Oast house', 'Water tower', 'Windmill'] },
   },
+  thanksgiving: {
+    label: 'Thanksgiving harvest',
+    dims: {
+      // Corn stalks tied to posts, stacked hay, split rails hung with gourds, and a painted picket.
+      fence: ['cornshock', 'haystack', 'splitrail', 'picket'],
+      yard: ['leaves', 'goldlawn', 'earth', 'flagstone'],
+      wall: ['clapboard', 'barnwood', 'logs', 'fieldstone', 'brick'],
+      // Paint for the roofs, doors and awnings: cranberry, burnt orange, sage and mustard, in four
+      // families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'harvest-farm', label: 'Harvest farm', blurb: 'Red barnwood and log walls, corn stalks tied to the posts, hay in the yard', fence: ['cornshock', 'haystack'], yard: ['earth', 'goldlawn'], wall: ['barnwood', 'logs'], roofs: [0] },
+      { id: 'family-homes', label: 'Family homes', blurb: 'Cream clapboard and brick, pies cooling on the sills and a long table set outside', fence: ['picket', 'splitrail'], yard: ['goldlawn', 'flagstone'], wall: ['clapboard', 'brick'], roofs: [1] },
+      { id: 'autumn-woods', label: 'Autumn woods', blurb: 'Log cabins and fieldstone under drifts of fallen leaves and split rails', fence: ['splitrail', 'cornshock'], yard: ['leaves'], wall: ['logs', 'fieldstone'], roofs: [2] },
+      { id: 'pie-bakery', label: 'Pie bakery', blurb: 'Brick ovens, striped awnings and pies by the dozen behind white pickets', fence: ['picket'], yard: ['flagstone', 'goldlawn'], wall: ['brick', 'clapboard'], roofs: [3] },
+    ],
+    auto: ['harvest-farm', 'family-homes', 'autumn-woods', 'pie-bakery'],
+    // Finished work is the harvest brought in: a pumpkin, a squash, an ear of corn, each kind of
+    // work its own. An open PR's is still green on the vine. The glyph is a floral-heart leaf, which
+    // none of the village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the harbour's ❂, the
+    // farm's ♣ or the open issues' ⚑ is.
+    finished: {
+      one: 'gourd', many: 'gourds', place: 'harvest patch', glyph: '\u2767', grow: 'Bring in the harvest for pull requests',
+      names: {
+        fix: 'Pumpkin', feature: 'Corn stalk', refactor: 'Butternut squash', docs: 'Wheat sheaf', test: 'Cranberries',
+        ui: 'Indian corn', infra: 'Acorn squash', data: 'Corn cob', perf: 'Crookneck squash', review: 'Bottle gourd',
+        research: 'Sweet potato', misc: 'Warty gourd',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

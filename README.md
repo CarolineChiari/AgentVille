@@ -131,13 +131,20 @@ come ripe in each plot's kitchen garden instead of a flower: a tomato for a bug 
 data work, a runner bean for research. Its landmarks climb from a stack of bales to a windmill with
 its sails going round.
 
+Or a Thanksgiving harvest, where the fences are corn stalks tied to posts, stacked hay and split
+rails, the ground is fallen leaves, golden lawn and old flagstones, the threads build family
+homes with a pie cooling on the sill, log cabins, a pie bakery, harvest barns and a long table
+set outside, and finished work is a pumpkin, a squash or an ear of corn brought in from each
+plot's harvest patch instead of a flower: a pumpkin for a bug fix, a corn cob for data work, a
+bottle gourd for a review.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
 greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
 pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
 Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
 cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a market garden on the
-farm. A
+farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
