@@ -569,10 +569,11 @@ export class World {
   }
 
   /**
-   * @param {{ selected?: string|null, hovered?: string|null, selectedPlot?: string|null }} [opts]
-   *        `selectedPlot` rings its landmark while nothing on it is selected
+   * @param {{ selected?: string|null, hovered?: string|null, selectedPlot?: string|null, spotlit?: Set<string> }} [opts]
+   *        `selectedPlot` rings its landmark while nothing on it is selected; `spotlit` are the
+   *        villagers someone asked to keep an eye on
    */
-  snapshot({ selected = null, hovered = null, selectedPlot = null } = {}) {
+  snapshot({ selected = null, hovered = null, selectedPlot = null, spotlit = null } = {}) {
     const urgent = new Set()
     const active = new Set()
     const busy = new Set()
@@ -603,6 +604,7 @@ export class World {
         .map((v) => ({
           id: v.id, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: this._look(v), status: v.status,
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
+          spotlit: Boolean(spotlit?.has(v.id)),
         })),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
       boards: [...this.boards.values()].map((b) => ({ ...b, selected: b.id === selected, hovered: b.id === hovered })),

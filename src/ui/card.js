@@ -6,6 +6,7 @@ import { ACCENTS, BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.
 import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
 import { NAME_MAX } from '../game/names.js'
 import { GROUP_NAME_MAX, sameName } from '../game/groups.js'
+import { SPOTLIGHT_SPANS, timeLeft } from '../game/spotlight.js'
 
 const GAP = 18
 /** Files listed in a card's Built section before it offers the rest. */
@@ -22,6 +23,8 @@ const wasTitle = (t) => (t.harnessTitle ? `${t.title} — was “${t.harnessTitl
 
 /** The group picker's last choice, which asks for a name and makes a group of it. No group id has a colon. */
 const NEW_GROUP = ':new'
+/** The spotlight picker's choice while one is lit: leaves it as it is. No span id has a colon. */
+const KEEP_SPOTLIGHT = ':keep'
 
 export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
@@ -118,7 +121,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
-    else if (e.target.matches('select[data-f="group"]')) {
+    else if (e.target.matches('select[data-f="spotlight"]')) {
+      e.target.blur()
+      if (e.target.value !== KEEP_SPOTLIGHT) village.spotlight(village.selected, e.target.value)
+    } else if (e.target.matches('select[data-f="group"]')) {
       // Let go of it first: the card keeps a focused picker as it is, and this one has done its job.
       e.target.blur()
       if (e.target.value === NEW_GROUP) startGroup()
@@ -206,6 +212,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       ${groupPicker(t)}
+      ${spotlightPicker(t)}
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
@@ -234,6 +241,22 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         ${option('', 'None', !id)}${groups.map((g) => option(g.id, g.name, g.id === id)).join('')}${option(NEW_GROUP, 'New group…', false)}
       </select></label>
       ${groups.length ? `<button class="btn link" data-act="editGroups" title="${esc(`Every group in ${t.project}`)}">Edit</button>` : ''}
+    </div>`
+  }
+
+  /**
+   * Whether a big arrow stands over it, and for how long: pick a span to light it (again, from
+   * now), or Off. While it is lit the picker says how long is left.
+   */
+  function spotlightPicker(t) {
+    const until = village.spotlightOf(t.id)
+    const option = (value, label, on) => `<option value="${esc(value)}" ${on ? 'selected' : ''}>${esc(label)}</option>`
+    return `<div class="group-pick spotlight-pick">
+      <span class="flag" ${until ? `style="background:${P.spotlight}"` : ''}></span>
+      <label>Spotlight <select data-f="spotlight" title="Stand a big arrow over it for a while, so you can follow it (F flies to it)">
+        ${until ? option(KEEP_SPOTLIGHT, `On, ${timeLeft(until)}`, true) : ''}${option('', 'Off', !until)}
+        ${SPOTLIGHT_SPANS.map((sp) => option(sp.id, `${until ? 'Restart for' : 'For'} ${sp.label}`, false)).join('')}
+      </select></label>
     </div>`
   }
 
@@ -503,9 +526,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${timeLeft(village.spotlightOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
-      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus')) return
+      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus')) return
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)

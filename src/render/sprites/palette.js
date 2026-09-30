@@ -169,6 +169,9 @@ export const PALETTE = {
   highlight: '#ffffff', // under a hovered flower
   glitterGlow: '#ffe278', // the pulse under an open PR's bud
   labelInk: '#1c1624', // the halo round a plot's name
+  // The arrow over a spotlit villager: a pink no status badge, flower or accent reads as, so it only ever means "this one".
+  spotlight: '#ff4fc8',
+  spotlightLight: '#ffb3ea',
 
   // ---------- the construction theme (src/render/themes/construction/) ----------
   // Work gear. Hard hats are yellow for most, then white, orange, blue and green. Hi-vis yellow is

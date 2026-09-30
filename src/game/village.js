@@ -15,6 +15,7 @@ import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../si
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
 import { cleanName, withNames } from './names.js'
+import { cleanSpotlights, litIds, spanById, withSpotlight } from './spotlight.js'
 import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, partition, sameName, withGroups } from './groups.js'
 
 const SAVE_DELAY = 500
@@ -95,7 +96,7 @@ function demoChanges(t, path = '') {
 
 const emptyState = () => ({
   version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
-  spots: {}, progress: {}, grades: {}, settings: null, updatedAt: 0,
+  spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
 })
 
 export class Village {
@@ -315,6 +316,12 @@ export class Village {
     this._pinBoards()
     const grown = this._grow(now)
     if (grown.changed) dirty = true
+    // A spotlight that has gone out is forgotten, so village.json doesn't collect them.
+    const lit = cleanSpotlights(this.state.spotlights, now)
+    if (Object.keys(lit).length !== Object.keys(this.state.spotlights || {}).length) {
+      this.state.spotlights = lit
+      dirty = true
+    }
     this.world.setLandmarkSpot(this.settings.landmarkSpot, this._spots())
     this.world.setTheme(this.theme, this._picks(), this._everywhere())
     const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards, grown.tiers)
@@ -820,6 +827,48 @@ export class Village {
     this.apply()
     this.queueSave()
     this.toast(`Archived “${t.title}”`)
+  }
+
+  // ---------- spotlights ----------
+
+  /** When `id`'s spotlight goes out, or 0 when it has none. */
+  spotlightOf(id = this.selected) {
+    const until = this.state.spotlights?.[id] || 0
+    return until > Date.now() ? until : 0
+  }
+
+  /** Ids with a spotlight still lit, for the frame: the renderer stands an arrow over each. */
+  spotlit(now = Date.now()) {
+    return litIds(this.state.spotlights, now)
+  }
+
+  /**
+   * Keep an arrow over a villager for one of SPOTLIGHT_SPANS (by id), or put it out with ''.
+   * Lighting it again starts the span over from now.
+   */
+  spotlight(id = this.selected, spanId = '') {
+    const t = this.thread(id)
+    if (!t || this.isFinished(id)) return
+    const span = spanById(spanId)
+    this.state.spotlights = withSpotlight(this.state.spotlights, id, span ? span.ms : 0)
+    this.queueSave()
+    this.onChange()
+    this.toast(span ? `Spotlighting “${t.title}” for ${span.label}. F flies to it.` : `Spotlight off for “${t.title}”`)
+  }
+
+  /** The next spotlit villager standing in the village, soonest to go out first. */
+  nextSpotlit() {
+    const lit = Object.entries(cleanSpotlights(this.state.spotlights))
+      .filter(([id]) => this.world.villager(id))
+      .sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
+    if (!lit.length) {
+      this.toast('Nobody is spotlit. Pick a villager and choose Spotlight on its card.')
+      return null
+    }
+    this._spotIndex = ((this._spotIndex ?? -1) + 1) % lit.length
+    const id = lit[this._spotIndex][0]
+    this.select(id)
+    return id
   }
 
   /** Put the names people gave their threads over the harnesses' titles, and each in its group. */

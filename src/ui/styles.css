@@ -202,6 +202,7 @@ body[data-theme='elvish'] .side::before {
 .thread-row:hover, .thread-row.selected { background: rgba(255, 255, 255, 0.07); }
 .thread-row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .thread-row .s { font-size: 11px; color: var(--muted); }
+.thread-row .spot { font-size: 10px; margin-right: 4px; }
 
 /* A group's flag, as its houses fly it: a pennant with a swallowtail, in the group's colour. */
 .flag { display: inline-block; flex: none; width: 11px; height: 8px; clip-path: polygon(0 0, 100% 0, 72% 50%, 100% 100%, 0 100%); background: rgba(255, 255, 255, 0.14); }
