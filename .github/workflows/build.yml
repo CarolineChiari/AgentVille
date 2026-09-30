@@ -100,6 +100,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.new == 'true'
     needs: [version, package]
     runs-on: ubuntu-latest
+    # Downloading the builds and publishing takes about a minute and a half. A download that
+    # stalls never fails on its own, and the job would sit there for GitHub's six-hour default.
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
