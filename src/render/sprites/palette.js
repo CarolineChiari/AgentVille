@@ -622,6 +622,70 @@ export const PALETTE = {
   fenceWire: '#8f9496', // wire strands, and the barbs on them
   fenceWireDark: '#5f6466',
 
+  // ---------- the Thanksgiving theme (src/render/themes/thanksgiving/) ----------
+  // Paint and cloth for the harvest table and the houses: cranberry, burnt orange, mustard, sage,
+  // cream, chestnut, plum and slate teal. A plot's buildings share a family of three (PAINT_FAMILIES
+  // in thanksgiving/buildings.js).
+  harvestPaint: ['#9c2f3a', '#c8621f', '#d9a02b', '#6f7f3f', '#f2e6c8', '#7a4a2e', '#6b3a52', '#4d6b6a'],
+  // Clapboard siding in cream, and barn boards gone brown-red, the two walls that aren't the
+  // farm's or the village's.
+  clapCream: '#eadcb8',
+  clapCreamDark: '#c9b98f',
+  clapCreamLight: '#f6ecd0',
+  barnwood: '#8a4a34',
+  barnwoodDark: '#6a3324',
+  barnwoodLight: '#a8664a',
+  // Leaves: maple red, birch gold, oak brown. (The village's `autumn` is the orange between them.)
+  mapleRed: '#b5432a',
+  mapleRedDark: '#8a2f1e',
+  birchGold: '#e0a32e',
+  oakBrown: '#7a4e2b',
+  // The harvest: cranberries, the kernels of Indian corn, a pie's crust and the fillings in it.
+  cranberry: '#a3243b',
+  cranberryLight: '#cf4a5e',
+  kernelGold: '#f0c93c',
+  kernelRed: '#8e2f2f',
+  kernelPlum: '#5b3a6b',
+  crust: '#d9a25e',
+  crustDark: '#b47a3a',
+  crustLight: '#eec37f',
+  pieFilling: '#c87a24',
+  squash: '#d99a45', // butternut and acorn squash: paler than a pumpkin
+  squashDark: '#b0742a',
+  linen: '#f3ead6', // the long table's cloth
+  linenShade: '#d8ccb0',
+  // Ground by yard tone: fallen leaves over grass, a golden lawn gone to hay, turned russet earth
+  // and old flagstones. Each is base, shade, light and deepest; then the same in a dry patch and in
+  // a lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  harvestGround: [
+    ['#a06f36', '#875a2a', '#b98a4c', '#6d4720'],
+    ['#b8ab4f', '#9f9440', '#cdc366', '#857b31'],
+    ['#805538', '#69442b', '#976a48', '#553622'],
+    ['#aa9c88', '#918471', '#c0b39f', '#786c5c'],
+  ],
+  harvestGroundSunny: [
+    ['#aa7732', '#916226', '#c39248', '#774f1c'],
+    ['#c2b34b', '#a99c3c', '#d7cb62', '#8f832d'],
+    ['#8a5d34', '#734c27', '#a17244', '#5f3e1e'],
+    ['#b4a484', '#9b8c6d', '#cabb9b', '#827458'],
+  ],
+  harvestGroundLush: [
+    ['#966b30', '#7d5624', '#af8646', '#63431a'],
+    ['#aea749', '#95903a', '#c3bf60', '#7b772b'],
+    ['#765132', '#5f4025', '#8d6642', '#4b321c'],
+    ['#a09882', '#87806b', '#b6af99', '#6e6856'],
+  ],
+  // The lane round a plot: packed leaf-strewn earth, paler than the ground so the plots read.
+  harvestLane: '#c9a678',
+  harvestLaneDark: '#ab8a5e',
+  harvestLaneLight: '#dcc194',
+  harvestLaneEdge: '#8e6f47',
+  // The pumpkin patch: mulched soil under straw, darker than the plot's ground so the harvest stands out.
+  patchSoil: '#5e4030',
+  patchSoilDark: '#4a3225',
+  patchSoilLight: '#775540',
+  patchSoilDeep: '#3b271c',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

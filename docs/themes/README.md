@@ -202,6 +202,29 @@ farm's board across them.
 
 ![The demo village as a working farm](../screenshots/farm.png)
 
+## Thanksgiving harvest · `thanksgiving`
+
+A village on harvest day: corn stalks tied to posts, pumpkins on every step, pies cooling on the
+sills and a long table set outside under bunting.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Harvest farm | `harvest-farm` | Red barnwood and log walls, corn stalks tied to the posts, hay in the yard |
+| Family homes | `family-homes` | Cream clapboard and brick, pies cooling on the sills and a long table set outside |
+| Autumn woods | `autumn-woods` | Log cabins and fieldstone under drifts of fallen leaves and split rails |
+| Pie bakery | `pie-bakery` | Brick ovens, striped awnings and pies by the dozen behind white pickets |
+
+**Built from** — fences: corn shocks on posts, stacked hay, split rails, white pickets ·
+ground: fallen leaves, golden lawn, russet earth, flagstones · walls: clapboard, barnwood, logs,
+fieldstone, brick · four families of paint.
+**Buildings**: a family homestead, a log cabin, a bakery, a harvest barn and a long outdoor table.
+**Finished work**: a **gourd** in the **harvest patch** (❧) — a pumpkin for a bug fix, a corn
+stalk for a new feature, a butternut squash for a refactor, a wheat sheaf for docs, cranberries for
+tests, Indian corn for design, a corn cob for data work. An open pull request's gourd is still green
+on the vine.
+**Landmark**: the village's own.
+**Rooms**: a family kitchen, a harvest barn, a pie pantry and a woodland cabin.
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).
