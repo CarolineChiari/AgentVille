@@ -59,21 +59,30 @@ export async function scanLines(file, start, onLine) {
   try {
     const { size } = await fh.stat()
     let at = start
-    let carry = Buffer.alloc(0)
+    // The start of a line still waiting for its newline, a piece per chunk. Joined once, when the
+    // line ends: joining on every chunk would copy a many-megabyte tool result over and over.
+    let parts = []
+    let pending = 0
     while (at < size) {
       const buf = Buffer.allocUnsafe(Math.min(SCAN_CHUNK, size - at))
       const { bytesRead } = await fh.read(buf, 0, buf.length, at)
       if (!bytesRead) break
       at += bytesRead
-      const data = carry.length ? Buffer.concat([carry, buf.subarray(0, bytesRead)]) : buf.subarray(0, bytesRead)
+      const data = buf.subarray(0, bytesRead)
       let from = 0
       for (let nl = data.indexOf(0x0a); nl >= 0; nl = data.indexOf(0x0a, from)) {
-        onLine(data.toString('utf8', from, nl))
+        const line = parts.length ? Buffer.concat([...parts, data.subarray(from, nl)]) : data.subarray(from, nl)
+        parts = []
+        pending = 0
+        onLine(line.toString('utf8'))
         from = nl + 1
       }
-      carry = Buffer.from(data.subarray(from))
+      if (from < bytesRead) {
+        parts.push(data.subarray(from)) // each chunk has its own buffer, so a view of it stays valid
+        pending += bytesRead - from
+      }
     }
-    return at - carry.length
+    return at - pending
   } finally {
     await fh.close()
   }

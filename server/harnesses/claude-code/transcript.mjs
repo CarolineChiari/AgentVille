@@ -83,10 +83,14 @@ export function readTranscriptMeta(records) {
   return meta
 }
 
-/** A `pr-link` record's PR, `{ number, url }`, or null. Only a real number and a GitHub https URL count. */
+/**
+ * A `pr-link` record's PR, `{ number, url }`, or null. Both a real number and a GitHub https URL
+ * are needed: a number alone can't say which repo it is in, and would be taken for the wrong PR.
+ */
 export function prLinkOf(r) {
   if (r?.type !== 'pr-link' || !Number.isInteger(r.prNumber) || r.prNumber <= 0) return null
-  return { number: r.prNumber, url: typeof r.prUrl === 'string' && /^https:\/\/github\.com\//.test(r.prUrl) ? r.prUrl : '' }
+  if (typeof r.prUrl !== 'string' || !/^https:\/\/github\.com\//.test(r.prUrl)) return null
+  return { number: r.prNumber, url: r.prUrl }
 }
 
 /**
@@ -95,12 +99,9 @@ export function prLinkOf(r) {
  */
 export const PRS_MAX = 50
 
-/** Add a PR to a thread's list: once per number, a later link filling in a URL the first lacked. */
+/** Add a PR to a thread's list, once per link: two repos can each have a PR with the same number. */
 export function addPr(list, pr) {
-  if (!pr) return list
-  const had = list.find((p) => p.number === pr.number)
-  if (had) had.url = pr.url || had.url
-  else if (list.length < PRS_MAX) list.push({ ...pr })
+  if (pr && !list.some((p) => p.url === pr.url) && list.length < PRS_MAX) list.push({ ...pr })
   return list
 }
 

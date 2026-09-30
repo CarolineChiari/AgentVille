@@ -123,7 +123,7 @@ export function createClaudeCodeAdapter(opts = {}) {
    */
   async function transcriptPrs(t) {
     let hit = prCache.get(t.file)
-    if (!hit || t.size < hit.offset) hit = { offset: 0, size: -1, prs: [] }
+    if (!hit || t.size < Math.max(hit.offset, hit.size)) hit = { offset: 0, size: -1, prs: [] }
     if (hit.size !== t.size) {
       try {
         hit.offset = await scanLines(t.file, hit.offset, (line) => {

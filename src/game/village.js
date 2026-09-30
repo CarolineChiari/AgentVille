@@ -20,6 +20,8 @@ import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, 
 const SAVE_DELAY = 500
 /** A GitHub `owner/repo`, the only thing that goes into a repo's link. */
 const SLUG_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+/** A PR's page on GitHub: its `owner/repo`, and its number. */
+const PR_URL_RE = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/pull\/(\d+)(?:[/?#]|$)/
 /**
  * Branches every thread in a repo may sit on. A PR opened from one of these, from a fork, was
  * not opened by whichever thread happens to be on it.
@@ -545,18 +547,25 @@ export class Village {
 
   /**
    * Every PR a conversation is behind, first opened first: the ones it linked itself, and any in
-   * its repo's PR list opened from the branch it worked on. What the list knows of a PR (its title,
-   * whether it merged) is added when it has it.
+   * its repo's PR list opened from the branch it worked on. A PR is known by its repo and number,
+   * never its number alone: a conversation can link a PR in another repo with the same number.
+   * What the repo's list knows of a PR (its title, whether it merged) is added when it has it.
    */
   threadPrs(t) {
     if (!t) return []
-    const listed = this.demo ? [] : this.prs.repos?.[t.project]?.prs || []
+    const repo = this.demo ? null : this.prs.repos?.[t.project]
+    const listed = repo?.prs || []
+    const home = String(repo?.slug || '').toLowerCase()
     const byNumber = new Map(listed.map((pr) => [pr.number, pr]))
     const out = new Map()
     const add = (number, url) => {
-      if (!Number.isInteger(number) || number <= 0 || out.has(number)) return
-      const pr = byNumber.get(number)
-      out.set(number, { number, url: pr?.url || url || '', title: pr?.title || '', state: pr?.state || '' })
+      if (!Number.isInteger(number) || number <= 0 || typeof url !== 'string') return
+      const m = PR_URL_RE.exec(url)
+      if (!m) return
+      const key = `${m[1].toLowerCase()}#${number}`
+      if (out.has(key)) return
+      const pr = m[1].toLowerCase() === home && Number(m[2]) === number ? byNumber.get(number) : null
+      out.set(key, { key, number, url, title: pr?.title || '', state: pr?.state || '' })
     }
     for (const p of Array.isArray(t.prs) ? t.prs : []) add(p?.number, p?.url)
     add(t.prNumber, t.prUrl)
@@ -564,12 +573,12 @@ export class Village {
     if (t.gitBranch && !SHARED_BRANCHES.has(t.gitBranch)) {
       for (const pr of [...listed].sort((a, b) => a.createdAt - b.createdAt)) if (pr.branch === t.gitBranch) add(pr.number, pr.url)
     }
-    return [...out.values()].filter((p) => /^https:\/\/github\.com\//.test(p.url))
+    return [...out.values()]
   }
 
-  /** One of a conversation's PRs, in the browser. */
-  async openThreadPr(id, number) {
-    const pr = this.threadPrs(this.thread(id)).find((p) => p.number === number)
+  /** One of a conversation's PRs, by its `owner/repo#number` key, in the browser. */
+  async openThreadPr(id, key) {
+    const pr = this.threadPrs(this.thread(id)).find((p) => p.key === key)
     if (!pr) return
     try {
       await api.openUrl(pr.url)

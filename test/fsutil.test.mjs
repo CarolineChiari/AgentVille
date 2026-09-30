@@ -64,3 +64,16 @@ test('scanLines reads whole lines on from an offset and stops before a half-writ
   assert.equal(await scanLines(file, end, (l) => seen.push(l)), fs.statSync(file).size)
   assert.deepEqual(seen, ['three'])
 })
+
+test('scanLines joins a line that runs across many chunks', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const file = path.join(home, 'big.jsonl')
+  const long = 'é'.repeat(1_600_000) // over three megabytes: several chunks, split mid-character
+  fs.writeFileSync(file, `a\n${long}\nb\n${long.slice(0, 1000)}`)
+  const seen = []
+  const end = await scanLines(file, 0, (l) => seen.push(l))
+  assert.deepEqual(seen.map((l) => l.length), [1, long.length, 1])
+  assert.equal(seen[1], long)
+  assert.equal(end, Buffer.byteLength(`a\n${long}\nb\n`))
+})

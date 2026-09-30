@@ -303,5 +303,28 @@ test('every PR a transcript links is listed, however far past its head, and read
   assert.equal(th.prs[1].url, 'https://github.com/me/app/pull/7')
   fs.appendFileSync(file, `${JSON.stringify(link(9))}\n${JSON.stringify({ type: 'pr-link', prNumber: 10, prUrl: 'https://evil.example/10' })}\n`)
   ;[th] = await adapter.scanThreads()
-  assert.deepEqual(th.prs.map((p) => [p.number, p.url]), [[3, link(3).prUrl], [7, link(7).prUrl], [9, link(9).prUrl], [10, '']])
+  // A link without a GitHub URL can't say which repo it is in: it is left out, not guessed at.
+  assert.deepEqual(th.prs.map((p) => [p.number, p.url]), [[3, link(3).prUrl], [7, link(7).prUrl], [9, link(9).prUrl]])
+  // A record half-written when it was read, then the file rewritten shorter than it was but still
+  // past where its last whole line ended: that is a new file, read again from the top.
+  fs.appendFileSync(file, `{"type":"assistant","message":"${'y'.repeat(5000)}`)
+  await adapter.scanThreads()
+  const head = `${JSON.stringify(userRecord('ship it'))}\n${JSON.stringify(link(4))}\n`
+  const was = fs.statSync(file).size
+  fs.writeFileSync(file, head + 'x'.repeat(was - 1000 - Buffer.byteLength(head)))
+  ;[th] = await adapter.scanThreads()
+  assert.deepEqual(th.prs.map((p) => p.number), [4])
+})
+
+test('the same number in two repos is two PRs', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const records = [
+    userRecord('ship it'),
+    { type: 'pr-link', prNumber: 7, prUrl: 'https://github.com/me/app/pull/7' },
+    { type: 'pr-link', prNumber: 7, prUrl: 'https://github.com/me/lib/pull/7' },
+  ]
+  writeTranscript(home, { id: uuid(41), records, mtime: NOW - 60_000 })
+  const [th] = await adapterFor(home).scanThreads()
+  assert.deepEqual(th.prs.map((p) => p.url), ['https://github.com/me/app/pull/7', 'https://github.com/me/lib/pull/7'])
 })

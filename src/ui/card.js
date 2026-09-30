@@ -136,7 +136,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
     else if (act === 'openThread') village.open(b.dataset.id)
-    else if (act === 'threadPr') village.openThreadPr(village.selected, Number(b.dataset.number))
+    else if (act === 'threadPr') village.openThreadPr(village.selected, b.dataset.key)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'inside') village.enter(village.selected)
     else if (act === 'close') village.select(null)
@@ -244,7 +244,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     const row = (p) => {
       const state = p.state === 'MERGED' ? 'merged' : p.state === 'OPEN' ? 'open' : ''
       const mark = state === 'merged' ? '✓' : state === 'open' ? '✦' : '·'
-      return `<li><button class="btn link pr" data-act="threadPr" data-number="${p.number}" title="${esc(`Open PR #${p.number}${p.title ? ` — ${p.title}` : ''}${state ? ` (${state})` : ''} on GitHub`)}">
+      return `<li><button class="btn link pr" data-act="threadPr" data-key="${esc(p.key)}" title="${esc(`Open PR #${p.number}${p.title ? ` — ${p.title}` : ''}${state ? ` (${state})` : ''} on GitHub`)}">
         <span class="mark ${state}">${mark}</span><span class="num">#${p.number}</span><span class="name">${esc(p.title || p.url.replace(/^https:\/\/github\.com\//, ''))}</span>
       </button></li>`
     }
