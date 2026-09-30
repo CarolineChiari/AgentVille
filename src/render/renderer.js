@@ -368,7 +368,7 @@ export class Canvas2dRenderer {
     // Only a finished building shows its age; a site going up is always new.
     const wear = b.stage >= 3 ? b.wear ?? KEPT : KEPT
     const img = this._sprite(`building.${kind}.${b.stage}`, frame, {
-      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low, wear,
+      accent: ACCENTS[b.accent % ACCENTS.length], variant: b.variant, lit, wall: style.wall, roofs: style.roofs, low, wear, grade: b.stage >= 3 ? b.grade ?? 0 : 0,
     }, theme)
     const H = B.heightOf(kind, b.variant, low)
     const shadow = b.stage >= 2 ? B.shadowOf(kind) : 0
