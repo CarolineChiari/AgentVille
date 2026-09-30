@@ -499,7 +499,7 @@ export const INTERIORS = {
       stand: { x: 9, y: 3 },
       extra: [
         { kind: 'lamp', x: 8, y: 1 },
-        { kind: 'plant', x: 9, y: 3, variant: 2 },
+        { kind: 'plant', x: 10, y: 3, variant: 2 },
       ],
     }),
   ],

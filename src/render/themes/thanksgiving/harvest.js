@@ -1,10 +1,10 @@
 // Finished work at Thanksgiving: the harvest brought in from the plot's patch, where the village
 // grows a flower. A gourd keeps everything a flower says: what it is says what kind of work it was
 // (a pumpkin for a bug fix, a corn cob for data, a bottle gourd for a review), its skin is the pull
-// request's colour, a white one is an unlabeled PR, and an open PR's is still green on the vine.
+// request's colour, a white one is an unlabeled PR, and an open PR's gourd is still green on the vine.
 //
-// Its size and how tall it stands come from the flower kind's own `size` and `stem`, so the five
-// kinds within a work type differ from each other as the five daisies do.
+// Its size and how tall it stands come from the flower kind's own `size` and `stem`, so the kinds
+// within a work type differ from each other as the village's daisies do.
 import { PALETTE as P, shade } from '../../sprites/palette.js'
 import { PixelCanvas } from '../../sprites/pixel.js'
 import { FLOWER_H, FLOWER_W } from '../../sprites/flowers.js'

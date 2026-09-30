@@ -220,8 +220,8 @@ fieldstone, brick · four families of paint.
 **Buildings**: a family homestead, a log cabin, a bakery, a harvest barn and a long outdoor table.
 **Finished work**: a **gourd** in the **harvest patch** (❧) — a pumpkin for a bug fix, a corn
 stalk for a new feature, a butternut squash for a refactor, a wheat sheaf for docs, cranberries for
-tests, Indian corn for design, a corn cob for data work. An open pull request's is still green on
-the vine.
+tests, Indian corn for design, a corn cob for data work. An open pull request's gourd is still green
+on the vine.
 **Landmark**: the village's own.
 **Rooms**: a family kitchen, a harvest barn, a pie pantry and a woodland cabin.
 

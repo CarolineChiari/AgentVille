@@ -278,7 +278,7 @@ export const THEMES = {
     ],
     auto: ['harvest-farm', 'family-homes', 'autumn-woods', 'pie-bakery'],
     // Finished work is the harvest brought in: a pumpkin, a squash, an ear of corn, each kind of
-    // work its own. An open PR's is still green on the vine. The glyph is a floral-heart leaf, which
+    // work its own. An open PR's gourd is still green on the vine. The glyph is a floral-heart leaf, which
     // none of the village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the harbour's ❂, the
     // farm's ♣ or the open issues' ⚑ is.
     finished: {
