@@ -316,12 +316,9 @@ export class Village {
     this._pinBoards()
     const grown = this._grow(now)
     if (grown.changed) dirty = true
-    // A spotlight that has gone out is forgotten, so village.json doesn't collect them.
-    const lit = cleanSpotlights(this.state.spotlights, now)
-    if (Object.keys(lit).length !== Object.keys(this.state.spotlights || {}).length) {
-      this.state.spotlights = lit
-      dirty = true
-    }
+    // A spotlight that has gone out is left for the server to drop on the next write. Deleting it
+    // here would be a change of this tab's own, and a merge with another tab that had just lit it
+    // again would take that as putting it out.
     this.world.setLandmarkSpot(this.settings.landmarkSpot, this._spots())
     this.world.setTheme(this.theme, this._picks(), this._everywhere())
     const memory = this.world.setRoster(roster, first ? new Map(Object.entries(this.state.plots)) : undefined, this.gardens, this.boards, grown.tiers)
@@ -846,7 +843,11 @@ export class Village {
 
   /** Whether `id`'s spotlight shows a marker someone picked, rather than its own theme's. */
   spotlightPicked(id = this.selected) {
-    return Boolean(this.state.spotlights?.[id]?.marker)
+    const e = this.state.spotlights?.[id]
+    if (!e?.marker) return false
+    // A pick naming a marker that no longer exists shows its own theme's, and says so.
+    const m = this.spotlightMarker(id)
+    return m.theme === e.theme && m.id === e.marker
   }
 
   /** Hold up another marker over `id`: `theme` and `marker` from any theme, or '' for its own theme's. */
@@ -885,8 +886,10 @@ export class Village {
       this.toast('Nobody is spotlit. Pick a villager and choose Spotlight on its card.')
       return null
     }
-    this._spotIndex = ((this._spotIndex ?? -1) + 1) % lit.length
-    const id = lit[this._spotIndex][0]
+    // On from the last one flown to, by id: an index would skip or repeat once one before it went out.
+    const at = lit.findIndex(([id]) => id === this._spotLast)
+    const id = lit[(at + 1) % lit.length][0]
+    this._spotLast = id
     this.select(id)
     return id
   }

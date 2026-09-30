@@ -5,6 +5,8 @@ import { edgePointer } from '../src/render/spotlight.js'
 import { THEMES, markerFor } from '../src/sim/themes.js'
 import { mergeState } from '../src/game/merge-state.js'
 import { normalizeState } from '../server/state.mjs'
+import { World } from '../src/sim/world.js'
+import { Village } from '../src/game/village.js'
 
 const NOW = 1_700_000_000_000
 const HOUR = 3_600_000
@@ -88,4 +90,48 @@ test('the edge pointer hides while its villager is in view, and aims at it from 
   assert.ok(Math.abs(up.angle + Math.PI / 2) < 1e-9)
   const corner = edgePointer(-1000, 1000, box, 10)
   assert.ok(corner.x >= 10 && corner.x <= 190 && corner.y >= 10 && corner.y <= 90)
+})
+
+/** A demo village of `ids`, driven the way the page drives it. */
+function village(ids) {
+  const v = new Village({ world: new World(), settings: { hideDormant: false }, demo: true })
+  const now = Date.now()
+  v.scannedThreads = ids.map((id) => ({ id, project: 'orchard', projectPath: '/demo/orchard', createdAt: now - 1000, lastActivityAt: now, title: id }))
+  v._name()
+  v.scanned = true
+  v.apply()
+  return v
+}
+
+test('a spotlight that went out is left for the server, so a merge keeps another tab lighting it again', () => {
+  const v = village(['a'])
+  const gone = { until: Date.now() - 1, theme: '', marker: '' }
+  v.state.spotlights = { a: gone }
+  v.apply()
+  assert.deepEqual(v.state.spotlights, { a: gone }, 'applying took it out as if someone had')
+  assert.equal(v.spotlightOf('a'), 0)
+  const renewed = { until: Date.now() + HOUR, theme: '', marker: '' }
+  const merged = mergeState({ spotlights: { a: gone } }, v.state, { spotlights: { a: renewed } })
+  assert.deepEqual(merged.spotlights, { a: renewed })
+})
+
+test('a picked marker that no longer exists shows its own theme\'s, and the card says so', () => {
+  const v = village(['a'])
+  const until = Date.now() + HOUR
+  v.state.spotlights = { a: { until, theme: 'farm', marker: 'hen' } }
+  assert.equal(v.spotlightPicked('a'), true)
+  v.state.spotlights = { a: { until, theme: 'farm', marker: 'long-gone' } }
+  assert.equal(v.spotlightPicked('a'), false)
+  assert.equal(v.spotlightMarker('a').id, THEMES.village.spotlights[0].id)
+})
+
+test('F goes on from the last spotlit villager flown to, even after one before it goes out', () => {
+  const v = village(['a', 'b', 'c'])
+  const at = Date.now()
+  v.state.spotlights = { a: { until: at + HOUR }, b: { until: at + 2 * HOUR }, c: { until: at + 3 * HOUR } }
+  assert.equal(v.nextSpotlit(), 'a')
+  assert.equal(v.nextSpotlit(), 'b')
+  delete v.state.spotlights.a
+  assert.equal(v.nextSpotlit(), 'c')
+  assert.equal(v.nextSpotlit(), 'b')
 })
