@@ -203,6 +203,39 @@ body[data-theme='elvish'] .side::before {
 .thread-row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .thread-row .s { font-size: 11px; color: var(--muted); }
 
+/* A group's flag, as its houses fly it: a pennant with a swallowtail, in the group's colour. */
+.flag { display: inline-block; flex: none; width: 11px; height: 8px; clip-path: polygon(0 0, 100% 0, 72% 50%, 100% 100%, 0 100%); background: rgba(255, 255, 255, 0.14); }
+/* A repo's groups in its panel: a heading each, its sessions under it, those in none after them. */
+.group-head { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.group-head:first-child { margin-top: 0; }
+.group-head .gh-fold {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.group-head .gh-fold:hover { background: rgba(255, 255, 255, 0.07); }
+.group-head .gh-fold:focus-visible { outline: 1px solid var(--accent); }
+.group-head .fold { width: 8px; color: var(--muted); font-size: 10px; }
+.group-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-head .badges { display: flex; gap: 4px; font-size: 11px; font-weight: 400; }
+.group-head .badges span { padding: 0 5px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); }
+.group-head .badges .waiting { color: #1b1a2e; background: var(--accent); }
+.group-head .badges .blocked { color: #fff; background: var(--danger); }
+.group-head .badges .done { color: #1b1a2e; background: var(--done); }
+.group-head .badges .working { color: #1b1a2e; background: var(--info); }
+.group-head .gh-new { padding: 0 7px; line-height: 18px; }
+.group-head.rest { padding: 3px 6px 3px 20px; font-size: 12px; color: var(--muted); }
+.threads .group-head ~ .thread-row { padding-left: 20px; }
+.group-empty { margin: 2px 0 4px; padding-left: 20px; font-size: 11px; color: var(--muted); }
+
 button.btn {
   font: inherit;
   font-size: 12px;
@@ -254,6 +287,11 @@ kbd { font: 10px var(--mono); opacity: 0.6; margin-left: 4px; }
 .card .meta li span:last-child { color: var(--text); font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card .preview { margin: 8px 0 0; font-size: 12px; color: var(--muted); max-height: 54px; overflow: hidden; }
 .card .note { font-size: 11px; color: var(--muted); align-self: center; }
+.card .group-pick { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.card .group-pick label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.card .group-pick select { flex: 1; min-width: 0; font: inherit; color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-border); border-radius: 6px; padding: 2px 4px; }
+.card .group-pick .btn.link { padding: 2px 4px; background: none; border-color: transparent; color: var(--muted); }
+.card .group-pick input.new-group { flex: 1; min-width: 0; font: inherit; color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 6px; margin: 0; -webkit-user-select: text; user-select: text; }
 .card .tasks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
 .card .tasks .note { flex-basis: 100%; margin: 0; }
 p.tasks.note { display: block; margin: 8px 0 0; }
@@ -398,6 +436,22 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .taskeditor .tasklist li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .taskeditor .tasklist li.editing span { color: var(--accent); font-weight: 600; }
 .taskeditor .tasklist li.empty { color: var(--muted); }
+
+/* ---------- group editor ---------- */
+.groupeditor { top: 12%; }
+.groupeditor h3 { margin: 12px 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.groupeditor .grouplist, .groupeditor .members { list-style: none; margin: 8px 0; padding: 0; max-height: 180px; overflow: auto; }
+.groupeditor .grouplist li { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+.groupeditor .grouplist li.empty, .groupeditor .members li.empty { color: var(--muted); font-size: 13px; }
+.groupeditor .grouplist input, .groupeditor .add input, .groupeditor .members select { display: inline-block; flex: 1; min-width: 0; width: auto; margin: 0; padding: 4px 7px; }
+.groupeditor .grouplist .n { min-width: 16px; text-align: right; font-size: 12px; color: var(--muted); }
+.groupeditor .swatch { flex: none; width: 18px; height: 18px; padding: 0; border: 2px solid rgba(255, 255, 255, 0.18); border-radius: 50%; cursor: pointer; }
+.groupeditor .swatch:hover, .groupeditor .swatch.on { border-color: var(--text); }
+.groupeditor .grouplist li.palette { flex-wrap: wrap; gap: 4px; padding: 4px 0 6px 24px; }
+.groupeditor .add { display: flex; gap: 6px; align-items: center; }
+.groupeditor .members li { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 13px; }
+.groupeditor .members .t { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.groupeditor .members select { flex: 0 1 45%; }
 
 /* ---------- transcript ---------- */
 /* ---------- inside a building ---------- */

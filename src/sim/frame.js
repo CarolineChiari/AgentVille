@@ -13,9 +13,10 @@
  * @property {{ id: string, sprite: string, variant?: number, x: number, y: number, blocks?: number[][], plot?: string }[]} statics
  *           Scenery; (x, y) is the bottom centre of its tile. `blocks` lists the tiles it stands on, if nobody can walk through it.
  *           One with a `plot` belongs to that plot (what its landmark brought, see propsOf) and is drawn in its theme.
- * @property {{ id: string, kind: string, variant: number, stage: number, progress: number, x: number, y: number, w: number, h: number, alpha: number, lit: boolean, wear: number, grade: number, roomy: boolean, plot: string, accent: number, style: PlotStyle }[]} buildings
+ * @property {{ id: string, kind: string, variant: number, stage: number, progress: number, x: number, y: number, w: number, h: number, alpha: number, lit: boolean, wear: number, grade: number, roomy: boolean, plot: string, accent: number, banner: number|null, style: PlotStyle }[]} buildings
  *           `style` is its plot's. `wear` is how weathered it looks, a grade from wear.js: it gleams
- *           while its thread works and runs down the longer it sits.
+ *           while its thread works and runs down the longer it sits. `banner` is the flag it flies
+ *           for the group its thread is in, a colour like `accent`, or null when it is in none.
  *           `roomy` is true on a courtyard's top row, with open ground above it;
  *           down the sides the house above opens its door onto the row just above, so nothing tall fits.
  * @property {{ id: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string }[]} villagers

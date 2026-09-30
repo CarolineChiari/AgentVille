@@ -55,6 +55,8 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
           ${folders.map((f) => `<option value="${esc(f.path)}" ${f.path === pre ? 'selected' : ''}>${esc(f.name)}</option>`).join('')}
           <option value="${OTHER}" ${pre === OTHER ? 'selected' : ''}>Another folder…</option>
         </select></label>
+      <label class="stack" data-f="grouprow" hidden>Group <span class="hint-inline">it joins as it walks in</span>
+        <select data-f="group"></select></label>
       <div data-f="elsewhere" ${pre === OTHER ? '' : 'hidden'}>
         <input type="text" data-f="other" placeholder="/full/path/to/folder" spellcheck="false">
         <div class="browse">
@@ -72,6 +74,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       <div class="actions"><button class="btn primary" data-act="start">Start<kbd>${submitKey()}</kbd></button><button class="btn" data-act="cancel">Cancel</button></div>`
     renderTargets()
     renderChips()
+    renderGroups()
     if (pre === OTHER) browse('')
   }
 
@@ -107,6 +110,15 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
   function renderChips() {
     const el = box.querySelector('[data-f="chips"]')
     if (el) el.innerHTML = village.tasksFor(project()).map((x) => `<button class="btn" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')
+  }
+
+  /** The chosen repo's groups, one for the new session to join; not offered for a folder with none. */
+  function renderGroups(picked = box.querySelector('[data-f="group"]')?.value || '') {
+    const row = box.querySelector('[data-f="grouprow"]')
+    if (!row) return
+    const groups = village.groupsOf(project())
+    row.hidden = !groups.length
+    row.querySelector('select').innerHTML = options([['', 'No group'], ...groups.map((g) => [g.id, g.name])], picked)
   }
 
   /** The "Open in" menu for the chosen harness, and its model/effort menus when that target has them. */
@@ -161,7 +173,8 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     if (t.models) s.newModel = model
     if (t.efforts) s.newEffort = effort
     onRemember()
-    const ok = await village.startSession(f, box.querySelector('[data-f="prompt"]').value.trim(), { harness: h.id, target: t.id, model, effort })
+    const group = box.querySelector('[data-f="grouprow"]')?.hidden ? '' : box.querySelector('[data-f="group"]')?.value || ''
+    const ok = await village.startSession(f, box.querySelector('[data-f="prompt"]').value.trim(), { harness: h.id, target: t.id, model, effort, group })
     if (ok) close()
   }
 
@@ -171,6 +184,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     else if (f === 'target') renderChoices(village.settings.newModel, village.settings.newEffort)
     if (f === 'folder') {
       renderChips()
+      renderGroups('')
       const elsewhere = box.querySelector('[data-f="elsewhere"]')
       const was = elsewhere.hidden
       elsewhere.hidden = e.target.value !== OTHER
@@ -209,9 +223,13 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     else if (e.key === 'Escape') close()
   })
 
-  /** `prompt` starts the form with a first prompt already written, e.g. an issue to fix. */
-  function open(preselect = village.selectedPlot, { prompt = '' } = {}) {
+  /**
+   * `prompt` starts the form with a first prompt already written, e.g. an issue to fix; `group`
+   * with one of the repo's groups picked for the session to join.
+   */
+  function open(preselect = village.selectedPlot, { prompt = '', group = '' } = {}) {
     render(preselect)
+    if (group) renderGroups(group)
     const p = box.querySelector('[data-f="prompt"]')
     if (p && prompt) p.value = prompt
     box.hidden = false

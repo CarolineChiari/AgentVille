@@ -3,6 +3,7 @@ import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { cleanTasks } from '../src/game/tasks.js'
 import { cleanNames } from '../src/game/names.js'
+import { cleanGroupMap, cleanGroupOf } from '../src/game/groups.js'
 
 export const STATE_VERSION = 1
 const FILE = 'village.json'
@@ -19,6 +20,8 @@ export function emptyState() {
     tasks: {},
     looks: {},
     names: {},
+    groups: {},
+    groupOf: {},
     spots: {},
     progress: {},
     grades: {},
@@ -144,6 +147,8 @@ export function normalizeState(raw) {
     tasks: taskMap(s.tasks),
     looks: lookMap(s.looks, s.subthemes),
     names: cleanNames(s.names),
+    groups: cleanGroupMap(s.groups),
+    groupOf: cleanGroupOf(s.groupOf),
     spots: spotMap(s.spots),
     progress: progressMap(s.progress),
     grades: gradeMap(s.grades),

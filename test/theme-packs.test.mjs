@@ -160,7 +160,7 @@ for (const id of THEME_IDS) {
   test(`${id}: whatever it draws of the village's effects is the same size, so it still means the same`, () => {
     // A pack may restyle an effect the whole village asks for — the birds over a harbour are
     // gulls — but the renderer places these by their size, and they mean the same in every theme.
-    for (const name of ['fx.bird', 'fx.z', 'fx.crystal', 'fx.butterfly.0', 'fx.pigeon.w', 'fx.pigeon.e', 'fx.bunting']) {
+    for (const name of ['fx.bird', 'fx.z', 'fx.crystal', 'fx.butterfly.0', 'fx.pigeon.w', 'fx.pigeon.e', 'fx.bunting', 'fx.banner.0']) {
       for (const frame of [0, 1]) {
         const p = { accents: '0,1' }
         const own = pack.sprite?.(name, frame, { ...p, theme: id })

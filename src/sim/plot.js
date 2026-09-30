@@ -4,6 +4,7 @@ import { key, unkey } from './grid.js'
 import { signature } from './layout.js'
 import { DEFAULT_SPOT, flowerAt, isFenceGap, isTrail, landmarkSpotOf, propsOf, rectOf, shapeOf, tilledRows } from './shape.js'
 import { STATUS_RANK } from './status.js'
+import { SLOT_PITCH } from './constants.js'
 import { plotStyle } from './style.js'
 
 /** Ground kinds. None is saved anywhere, so the numbers are free to change. */
@@ -31,6 +32,7 @@ export class Plot {
     this.shape = null
     this.slotKeys = [] // every house position, "x,y" of its top-left tile, preferred first
     this.slotOf = new Map() // thread id → slot key
+    this.groupOf = new Map() // thread id → the group it was in when its house was placed; see assignSlots
     this.planted = 0 // flowers asked for, so the soil can be worked out again if the field changes
     this.tilled = 0 // tile rows of the field ploughed so far
     this.tier = 0 // how far its landmark has risen; see progress.js
@@ -105,11 +107,21 @@ export class Plot {
    * something (stuck, waiting on you, done, working) takes the slot of one strictly quieter,
    * sleepiest first. Handing slots out oldest first left the newest threads homeless, and those
    * are the ones you are working in. Equal ranks never displace each other, so nothing churns.
+   *
+   * Threads in the same group (`t.group`) live side by side. A newcomer in one takes the free slot
+   * nearest the rest of its group. Anybody else, the first of a group included, takes the free slot
+   * nearest the middle that isn't beside another group's house, so that every group keeps room to
+   * grow, and only if there is none the one nearest the middle; and the groups move in before
+   * anybody in none, a group at a time. A thread you put in another group moves only if that brings
+   * it nearer the rest of that group: to a free slot, or else into the house of a thread in no
+   * group, who takes its old one. That is the one time a house moves for another's sake, and only
+   * because you asked. A plot with no groups is laid out exactly as it always was.
    */
   assignSlots(threads) {
     const ids = new Set(threads.map((t) => t.id))
     const exists = new Set(this.slotKeys)
     for (const id of [...this.slotOf.keys()]) if (!ids.has(id)) this.slotOf.delete(id)
+    for (const id of [...this.groupOf.keys()]) if (!ids.has(id)) this.groupOf.delete(id)
     const used = new Set()
     for (const [id, s] of this.slotOf) {
       if (exists.has(s) && !used.has(s)) used.add(s)
@@ -120,11 +132,15 @@ export class Plot {
     const rank = (t) => STATUS_RANK[t.status] ?? STATUS_RANK.idle
     const older = (a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1)
     const sorted = [...threads].sort((a, b) => rank(a) - rank(b) || older(a, b))
-    let next = 0
+
+    // Who moves in: everybody while there is room, then the most urgent in place of the quietest.
+    const incoming = []
+    let room = free.length
     for (const t of sorted) {
       if (this.slotOf.has(t.id)) continue
-      if (next < free.length) {
-        this.slotOf.set(t.id, free[next++])
+      if (room > 0) {
+        room--
+        incoming.push(t)
         continue
       }
       // Full. The quietest holder, and of those the oldest, gives way if it is quieter than `t`.
@@ -136,8 +152,70 @@ export class Plot {
       }
       // Sorted most urgent first: if this one can't displace anybody, nobody after it can.
       if (!victim) break
-      this.slotOf.set(t.id, this.slotOf.get(victim.id))
+      free.push(this.slotOf.get(victim.id))
       this.slotOf.delete(victim.id)
+      this.groupOf.delete(victim.id)
+      incoming.push(t)
+    }
+
+    const apart = (a, b) => {
+      const [ax, ay] = unkey(a)
+      const [bx, by] = unkey(b)
+      return Math.hypot(ax - bx, ay - by)
+    }
+    // How near a slot is to the houses of `group`, leaving out `self`'s: the nearest one's distance.
+    const near = (slot, group, self) => {
+      let best = Infinity
+      for (const [id, s] of this.slotOf) if (id !== self && byId.get(id)?.group === group) best = Math.min(best, apart(s, slot))
+      return best
+    }
+    // Next door to a house of any group but `own`: neighbours along a row or down a side are a pitch apart.
+    const beside = (slot, own) => [...this.slotOf].some(([id, s]) => byId.get(id)?.group && byId.get(id).group !== own && apart(s, slot) <= SLOT_PITCH)
+    // Of `slots`, the one nearest the rest of t's group, the earlier of two as near. For a thread in
+    // no group, or the first of its group here, the first of them beside no other group, else the
+    // first of them: in `slots`' order, which puts the most central first.
+    const nearest = (t, slots) => {
+      let best = slots[0]
+      let d = t.group ? near(best, t.group, t.id) : Infinity
+      if (d === Infinity) return slots.find((s) => !beside(s, t.group)) ?? best
+      for (const s of slots) {
+        const e = near(s, t.group, t.id)
+        if (e < d) [best, d] = [s, e]
+      }
+      return best
+    }
+
+    // Where each moves in. Each group together, in the order their most urgent arrived, then the rest.
+    const order = [...new Set(incoming.map((t) => t.group || ''))].filter(Boolean)
+    const moving = [...order.flatMap((g) => incoming.filter((t) => t.group === g)), ...incoming.filter((t) => !t.group)]
+    for (const t of moving) {
+      const s = nearest(t, free)
+      free.splice(free.indexOf(s), 1)
+      this.slotOf.set(t.id, s)
+      this.groupOf.set(t.id, t.group || '')
+    }
+
+    // Put in another group since it moved in: nearer the rest of it, if anywhere is. A free slot
+    // first, as near as a house in no group is, so nobody moves who needn't.
+    for (const t of sorted) {
+      const here = this.slotOf.get(t.id)
+      const was = this.groupOf.get(t.id)
+      if (here === undefined || was === (t.group || '')) continue
+      this.groupOf.set(t.id, t.group || '')
+      if (!t.group) continue
+      let best = here
+      let d = near(here, t.group, t.id)
+      if (d === Infinity) continue
+      const homes = [...this.slotOf].filter(([id]) => id !== t.id && !byId.get(id)?.group).map(([, s]) => s)
+      for (const s of [...free, ...homes]) {
+        const e = near(s, t.group, t.id)
+        if (e < d) [best, d] = [s, e]
+      }
+      if (best === here) continue
+      const other = [...this.slotOf].find(([, s]) => s === best)?.[0]
+      if (other) this.slotOf.set(other, here)
+      else free.splice(free.indexOf(best), 1, here)
+      this.slotOf.set(t.id, best)
     }
   }
 
