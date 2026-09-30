@@ -36,6 +36,7 @@ export function makeThread(harness, harnessName, f) {
     prState: '',
     prNumber: 0,
     prUrl: '',
+    prs: [],
     archived: Boolean(f.archived),
     sizeBytes: f.sizeBytes || 0,
     source: f.source || '',

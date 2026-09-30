@@ -136,6 +136,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
     else if (act === 'openThread') village.open(b.dataset.id)
+    else if (act === 'threadPr') village.openThreadPr(village.selected, Number(b.dataset.number))
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
     else if (act === 'inside') village.enter(village.selected)
     else if (act === 'close') village.select(null)
@@ -214,6 +215,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
       </div>
+      ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>
       ${tasksOpen ? taskList(t) : ''}`
   }
@@ -233,6 +235,20 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </select></label>
       ${groups.length ? `<button class="btn link" data-act="editGroups" title="${esc(`Every group in ${t.project}`)}">Edit</button>` : ''}
     </div>`
+  }
+
+  /** Every PR the conversation is behind, each a link to it on GitHub. Nothing at all when there are none. */
+  function prList(t) {
+    const prs = village.threadPrs(t)
+    if (!prs.length) return ''
+    const row = (p) => {
+      const state = p.state === 'MERGED' ? 'merged' : p.state === 'OPEN' ? 'open' : ''
+      const mark = state === 'merged' ? '✓' : state === 'open' ? '✦' : '·'
+      return `<li><button class="btn link pr" data-act="threadPr" data-number="${p.number}" title="${esc(`Open PR #${p.number}${p.title ? ` — ${p.title}` : ''}${state ? ` (${state})` : ''} on GitHub`)}">
+        <span class="mark ${state}">${mark}</span><span class="num">#${p.number}</span><span class="name">${esc(p.title || p.url.replace(/^https:\/\/github\.com\//, ''))}</span>
+      </button></li>`
+    }
+    return `<div class="prs"><h4>PR${prs.length === 1 ? '' : 's'}</h4><ul>${prs.map(row).join('')}</ul></div>`
   }
 
   /** The ready-made tasks, or why there are none right now. */
@@ -335,6 +351,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : `<span class="note">Archived in ${esc(t.harnessName || 'Claude')}</span>`}
       </div>
+      ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>`
     const c = card.querySelector('canvas.avatar')
     const g = c.getContext('2d')
@@ -486,7 +503,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
       if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus')) return
       if (id !== shownId || key !== shownKey) {

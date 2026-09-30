@@ -25,6 +25,7 @@
  * @property {string}  prState         `'MERGED'` triggers the celebration
  * @property {number}  prNumber        The PR this thread opened or linked, 0 if none
  * @property {string}  prUrl           Its https://github.com/… URL, or ''
+ * @property {{ number: number, url: string }[]} prs  Every PR the thread linked, first linked first
  * @property {boolean} archived        Archived in the harness's own records (read-only)
  * @property {number}  sizeBytes       Transcript size in bytes
  * @property {string}  source          Free-form bookkeeping (`'desktop'` / `'cli'`)
@@ -77,5 +78,5 @@
 export const THREAD_FIELDS = [
   'id', 'harness', 'harnessName', 'title', 'preview', 'project', 'projectPath', 'worktree', 'cwd',
   'gitBranch', 'model', 'effort', 'createdAt', 'lastActivityAt', 'lastFocusedAt', 'running', 'unread',
-  'hasError', 'prState', 'prNumber', 'prUrl', 'archived', 'sizeBytes', 'source', 'canOpen', 'opensIn', 'ref',
+  'hasError', 'prState', 'prNumber', 'prUrl', 'prs', 'archived', 'sizeBytes', 'source', 'canOpen', 'opensIn', 'ref',
 ]

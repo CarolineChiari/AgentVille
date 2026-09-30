@@ -1,6 +1,7 @@
 // Pure: folding the desktop app's records and the CLI's transcripts into one thread each.
 import { HARNESS_ID, isCliId, isDesktopId, threadId } from './ids.mjs'
 import { projectOf } from './project.mjs'
+import { addPr } from './transcript.mjs'
 
 /** How long an empty desktop record may exist before it is treated as abandoned bookkeeping. */
 export const NEW_SESSION_MS = 10 * 60 * 1000
@@ -30,6 +31,7 @@ export function emptyEntry(id) {
     prState: '',
     prNumber: 0,
     prUrl: '',
+    prs: [],
     archived: false,
     sizeBytes: 0,
     hasTranscript: false,
@@ -65,6 +67,7 @@ export function mergeThread(a, b) {
   out.prState = keep.prState || other.prState
   out.prNumber = keep.prNumber || other.prNumber
   out.prUrl = keep.prUrl || other.prUrl
+  out.prs = other.prs.reduce((list, p) => addPr(list, p), keep.prs.map((p) => ({ ...p })))
   out.archived = keep.archived && other.archived
   out.sizeBytes = Math.max(keep.sizeBytes, other.sizeBytes)
   out.hasTranscript = keep.hasTranscript || other.hasTranscript
@@ -109,6 +112,7 @@ export function toThread(entry, harnessName) {
     prState: entry.prState,
     prNumber: entry.prNumber,
     prUrl: entry.prUrl,
+    prs: entry.prs,
     archived: entry.archived,
     sizeBytes: entry.sizeBytes,
     source: entry.source,

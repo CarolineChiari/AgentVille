@@ -287,3 +287,21 @@ test('continueThread refuses when the CLI is not installed', async () => {
   const a = createClaudeCodeAdapter({ home: '/nowhere', env: {}, platform: 'win32' })
   assert.equal((await a.continueThread({ cliSessionId: uuid(1), cwd: '/work/app' }, { prompt: 'x' })).ok, false)
 })
+
+test('every PR a transcript links is listed, however far past its head, and read on as it grows', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const id = uuid(40)
+  const link = (n) => ({ type: 'pr-link', prNumber: n, prUrl: `https://github.com/me/app/pull/${n}` })
+  // Past the head the rest of the metadata is read from.
+  const filler = Array.from({ length: 400 }, (_, i) => assistantRecord(text(`${'x'.repeat(1000)} ${i}`)))
+  const records = [userRecord('ship it'), link(3), ...filler, link(7), link(3)]
+  const file = writeTranscript(home, { id, records, mtime: NOW - 60_000 })
+  const adapter = adapterFor(home)
+  let [th] = await adapter.scanThreads()
+  assert.deepEqual(th.prs.map((p) => p.number), [3, 7])
+  assert.equal(th.prs[1].url, 'https://github.com/me/app/pull/7')
+  fs.appendFileSync(file, `${JSON.stringify(link(9))}\n${JSON.stringify({ type: 'pr-link', prNumber: 10, prUrl: 'https://evil.example/10' })}\n`)
+  ;[th] = await adapter.scanThreads()
+  assert.deepEqual(th.prs.map((p) => [p.number, p.url]), [[3, link(3).prUrl], [7, link(7).prUrl], [9, link(9).prUrl], [10, '']])
+})

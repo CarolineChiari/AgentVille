@@ -6,7 +6,7 @@ import { ConflictError, createStateStore } from './state.mjs'
 import { createOpener, realFileUnder, resolveFolder } from './opener.mjs'
 import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
-import { createIssueStore, createPrStore, createReleaseStore } from './github.mjs'
+import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf } from './github.mjs'
 import { createRepoStore } from './repo.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
@@ -293,6 +293,14 @@ export function createApiMiddleware(opts = {}) {
       if (u.protocol !== 'https:' || u.hostname !== 'github.com') return [400, { ok: false, error: 'Only GitHub links can be opened.' }]
       const launched = await opener.launch(u.href)
       return launched.ok ? [200, { ok: true }] : [500, launched]
+    },
+
+    // The GitHub repo a folder's origin points at, read from its .git/config: nothing is fetched or
+    // run, so this needs no switch. `slug` is '' for a folder with no GitHub remote.
+    'POST /api/github-repo': async (body) => {
+      const dir = await resolveFolder(body?.folder)
+      if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
+      return [200, { ok: true, slug: (await githubRepoOf(dir)) || '' }]
     },
 
     'POST /api/reveal': async (body) => {
