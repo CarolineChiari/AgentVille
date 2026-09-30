@@ -19,8 +19,9 @@
  *           for the group its thread is in, a colour like `accent`, or null when it is in none.
  *           `roomy` is true on a courtyard's top row, with open ground above it;
  *           down the sides the house above opens its door onto the row just above, so nothing tall fits.
- * @property {{ id: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string, spotlit: boolean }[]} villagers
- *           `spotlit` means someone asked to keep an eye on it for a while: an arrow stands over it.
+ * @property {{ id: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string, spotlight: { theme: string, id: string }|null }[]} villagers
+ *           `spotlight` is set while someone is keeping an eye on it: the marker held up over it,
+ *           `fx.spotlight.<id>` drawn in `theme`, which may be any theme's, not only its plot's.
  * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers
  *           Finished work; (x, y) is the base of the stem. `born` is sim time, null if always there.
  *           `white` marks an unlabeled PR; `open` a PR still waiting to merge (drawn as a glittering bud).

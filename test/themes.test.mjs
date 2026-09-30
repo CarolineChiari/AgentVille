@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_THEME, THEMES, THEME_ID, THEME_IDS, dress, finishedName, finishedWords, recipeOf, subthemeFor, themeOf } from '../src/sim/themes.js'
+import { DEFAULT_THEME, THEMES, THEME_ID, THEME_IDS, dress, finishedName, finishedWords, recipeOf, subthemeFor, themeOf, SPOTLIGHT_MARKERS } from '../src/sim/themes.js'
 import { FLOWER_KINDS, WORK } from '../src/sim/flowers.js'
 import { PLAIN_STYLE, plainStyle, plotStyle } from '../src/sim/style.js'
 import { HATS, TOPS, lookFor } from '../src/sim/villager.js'
@@ -25,6 +25,20 @@ test('every theme and sub-theme has an id that can be saved, a label, and a pack
     assert.ok(t.auto.length && t.auto.every((a) => ids.includes(a)), `${id}'s auto list names a sub-theme it doesn't have`)
   }
   assert.ok(THEMES[DEFAULT_THEME])
+})
+
+test('every theme brings its markers for a spotlight, each with an id that can be saved and a label', () => {
+  for (const id of THEME_IDS) {
+    const list = THEMES[id].spotlights
+    assert.equal(list.length, SPOTLIGHT_MARKERS, `${id} has ${list.length} spotlight markers, not ${SPOTLIGHT_MARKERS}`)
+    assert.equal(new Set(list.map((m) => m.id)).size, list.length, `${id} names a marker twice`)
+    for (const m of list) {
+      assert.match(m.id, THEME_ID)
+      assert.ok(m.label, `${id}/${m.id} needs a label`)
+    }
+  }
+  // The village's first is the pink arrow a spotlight has always been.
+  assert.equal(THEMES[DEFAULT_THEME].spotlights[0].id, 'arrow')
 })
 
 test('every theme has words for finished work, and a name for every kind of it', () => {

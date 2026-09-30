@@ -154,7 +154,7 @@ export function normalizeState(raw) {
     spots: spotMap(s.spots),
     progress: progressMap(s.progress),
     grades: gradeMap(s.grades),
-    // Thread id → when its spotlight goes out. Ones already out are dropped on the next write.
+    // Thread id → when its spotlight goes out and what it shows. Ones already out are dropped on the next write.
     spotlights: cleanSpotlights(s.spotlights),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,

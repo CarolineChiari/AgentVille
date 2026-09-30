@@ -7,6 +7,7 @@ import { buildingFrames, chimneyOf, drawHarvestBuilding, fitted, heightOf, shado
 import { drawHarvest } from './harvest.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, harvestCover, patches } from './ground.js'
 import { drawHarvestInterior } from './interiors.js'
+import { drawHarvestSpotlight } from './spotlights.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const thanksgiving = {
@@ -15,6 +16,9 @@ export const thanksgiving = {
     const [group, a, b] = name.split('.')
     const n = Number(b || 0)
     switch (group) {
+      case 'fx':
+        // Its own markers for a spotlight. Every other effect means what it does in every theme.
+        return a === 'spotlight' ? drawHarvestSpotlight(b) : null
       case 'building':
         return drawHarvestBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
       case 'fence':

@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { SPOTLIGHT_MAX_MS, SPOTLIGHT_SPANS, cleanSpotlights, litIds, spanById, timeLeft, withSpotlight } from '../src/game/spotlight.js'
-import { ARROW, ARROW_H, ARROW_W, edgePointer } from '../src/render/spotlight.js'
+import { SPOTLIGHT_MAX_MS, SPOTLIGHT_SPANS, cleanSpotlights, litIds, spanById, timeLeft, withMarker, withSpotlight } from '../src/game/spotlight.js'
+import { edgePointer } from '../src/render/spotlight.js'
+import { THEMES, markerFor } from '../src/sim/themes.js'
 import { mergeState } from '../src/game/merge-state.js'
 import { normalizeState } from '../server/state.mjs'
 
@@ -15,21 +16,46 @@ test('a day is on offer, and every span has a distinct id with no colon', () => 
   assert.equal(spanById('nope'), null)
 })
 
-test('lighting a spotlight runs from now, and lighting it again starts over', () => {
+test('lighting a spotlight runs from now, lighting it again starts over and keeps its marker', () => {
   let s = withSpotlight({}, 'a', HOUR, NOW)
-  assert.deepEqual(s, { a: NOW + HOUR })
+  assert.deepEqual(s, { a: { theme: '', marker: '', until: NOW + HOUR } })
+  s = withMarker(s, 'a', 'halloween', 'bat')
   s = withSpotlight(s, 'a', 24 * HOUR, NOW + 10)
-  assert.deepEqual(s, { a: NOW + 10 + 24 * HOUR })
+  assert.deepEqual(s, { a: { theme: 'halloween', marker: 'bat', until: NOW + 10 + 24 * HOUR } })
   assert.deepEqual(withSpotlight(s, 'a', 0, NOW), {})
-  assert.equal(withSpotlight({}, 'b', 99 * SPOTLIGHT_MAX_MS, NOW).b, NOW + SPOTLIGHT_MAX_MS)
+  assert.equal(withSpotlight({}, 'b', 99 * SPOTLIGHT_MAX_MS, NOW).b.until, NOW + SPOTLIGHT_MAX_MS)
 })
 
-test('spotlights that went out, or were never real, are dropped', () => {
-  const raw = { a: NOW + HOUR, b: NOW - 1, c: 'x', d: NOW + 2 * SPOTLIGHT_MAX_MS, e: NaN, __proto__: NOW + HOUR }
-  assert.deepEqual(cleanSpotlights(raw, NOW), { a: NOW + HOUR })
+test('a marker is only picked for a spotlight that is lit, and a bad one goes back to its own theme\'s', () => {
+  const s = withSpotlight({}, 'a', HOUR, NOW)
+  assert.deepEqual(withMarker(s, 'b', 'farm', 'hen'), s)
+  assert.deepEqual(withMarker(s, 'a', 'farm', 'hen').a, { theme: 'farm', marker: 'hen', until: NOW + HOUR })
+  assert.deepEqual(withMarker(s, 'a', 'Farm!', 'hen').a, { theme: '', marker: '', until: NOW + HOUR })
+  assert.deepEqual(withMarker(withMarker(s, 'a', 'farm', 'hen'), 'a').a, { theme: '', marker: '', until: NOW + HOUR })
+})
+
+test('spotlights that went out, or were never real, are dropped, and a bare time is one with no marker', () => {
+  const raw = {
+    a: { until: NOW + HOUR, theme: 'seaside', marker: 'anchor' }, b: { until: NOW - 1 }, c: 'x', d: { until: NOW + 2 * SPOTLIGHT_MAX_MS },
+    e: { until: NaN }, f: NOW + HOUR, g: { until: NOW + HOUR, theme: 'seaside', marker: '../x' }, __proto__: NOW + HOUR,
+  }
+  assert.deepEqual(cleanSpotlights(raw, NOW), {
+    a: { until: NOW + HOUR, theme: 'seaside', marker: 'anchor' },
+    f: { until: NOW + HOUR, theme: '', marker: '' },
+    g: { until: NOW + HOUR, theme: '', marker: '' },
+  })
   assert.deepEqual(cleanSpotlights([NOW], NOW), {})
   assert.deepEqual(cleanSpotlights(null, NOW), {})
-  assert.deepEqual([...litIds(raw, NOW)], ['a'])
+  assert.deepEqual([...litIds(raw, NOW)], [['a', { theme: 'seaside', marker: 'anchor' }], ['f', { theme: '', marker: '' }], ['g', { theme: '', marker: '' }]])
+})
+
+test('a spotlight shows the marker picked from any theme, else its own plot\'s theme\'s first', () => {
+  assert.deepEqual(markerFor({ theme: 'halloween', marker: 'ghost' }, 'farm'), { theme: 'halloween', id: 'ghost' })
+  assert.deepEqual(markerFor({ theme: '', marker: '' }, 'farm'), { theme: 'farm', id: THEMES.farm.spotlights[0].id })
+  assert.deepEqual(markerFor(null, 'seaside'), { theme: 'seaside', id: THEMES.seaside.spotlights[0].id })
+  // A marker that went away, or one of another theme's names, falls back rather than drawing nothing.
+  assert.deepEqual(markerFor({ theme: 'farm', marker: 'ghost' }, 'village'), { theme: 'village', id: 'arrow' })
+  assert.deepEqual(markerFor({ theme: 'gone', marker: 'x' }, 'nowhere'), { theme: 'village', id: 'arrow' })
 })
 
 test('the card says how long is left in the largest units that fit', () => {
@@ -41,23 +67,12 @@ test('the card says how long is left in the largest units that fit', () => {
   assert.equal(timeLeft(NOW - 1, NOW), '')
 })
 
-test('village.json keeps spotlights, and two tabs merge them key by key', () => {
+test('village.json keeps spotlights and their markers, and two tabs merge them key by key', () => {
   const until = Date.now() + HOUR
-  assert.deepEqual(normalizeState({ spotlights: { a: until, b: 5 } }).spotlights, { a: until })
+  assert.deepEqual(normalizeState({ spotlights: { a: { until, theme: 'elvish', marker: 'moon' }, b: 5 } }).spotlights, { a: { until, theme: 'elvish', marker: 'moon' } })
   assert.deepEqual(normalizeState({}).spotlights, {})
-  const out = mergeState({ spotlights: {} }, { spotlights: { a: 1 } }, { spotlights: { b: 2 } })
-  assert.deepEqual(out.spotlights, { a: 1, b: 2 })
-})
-
-test('the arrow is symmetric about its middle column and every row is its width', () => {
-  assert.equal(ARROW.length, ARROW_H)
-  for (const row of ARROW) {
-    assert.equal(row.length, ARROW_W)
-    // The light down one side is still the arrow: symmetric in outline.
-    const shape = row.replace(/[+o]/g, 'o')
-    assert.equal(shape, [...shape].reverse().join(''))
-  }
-  assert.equal(ARROW.at(-1)[(ARROW_W - 1) / 2], 'X') // it comes to a point in the middle
+  const out = mergeState({ spotlights: {} }, { spotlights: { a: { until: 1 } } }, { spotlights: { b: { until: 2 } } })
+  assert.deepEqual(out.spotlights, { a: { until: 1 }, b: { until: 2 } })
 })
 
 test('the edge pointer hides while its villager is in view, and aims at it from the edge otherwise', () => {

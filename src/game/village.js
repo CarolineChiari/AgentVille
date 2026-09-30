@@ -11,11 +11,11 @@ import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
-import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../sim/themes.js'
+import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
 import { cleanName, withNames } from './names.js'
-import { cleanSpotlights, litIds, spanById, withSpotlight } from './spotlight.js'
+import { cleanSpotlights, litIds, spanById, withMarker, withSpotlight } from './spotlight.js'
 import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, partition, sameName, withGroups } from './groups.js'
 
 const SAVE_DELAY = 500
@@ -833,17 +833,37 @@ export class Village {
 
   /** When `id`'s spotlight goes out, or 0 when it has none. */
   spotlightOf(id = this.selected) {
-    const until = this.state.spotlights?.[id] || 0
+    const until = this.state.spotlights?.[id]?.until || 0
     return until > Date.now() ? until : 0
   }
 
-  /** Ids with a spotlight still lit, for the frame: the renderer stands an arrow over each. */
+  /** The marker `id`'s spotlight shows, `{ theme, id }`: its pick, or its own plot's theme's first. */
+  spotlightMarker(id = this.selected) {
+    const e = this.state.spotlights?.[id]
+    const plot = this.world.plots.get(this.thread(id)?.project)
+    return markerFor(e && { theme: e.theme, marker: e.marker }, plot?.style?.theme ?? this.theme)
+  }
+
+  /** Whether `id`'s spotlight shows a marker someone picked, rather than its own theme's. */
+  spotlightPicked(id = this.selected) {
+    return Boolean(this.state.spotlights?.[id]?.marker)
+  }
+
+  /** Hold up another marker over `id`: `theme` and `marker` from any theme, or '' for its own theme's. */
+  setSpotlightMarker(id = this.selected, theme = '', marker = '') {
+    if (!this.spotlightOf(id)) return
+    this.state.spotlights = withMarker(this.state.spotlights, id, theme, marker)
+    this.queueSave()
+    this.onChange()
+  }
+
+  /** Id → marker pick for every spotlight still lit, for the frame: the renderer holds a marker up over each. */
   spotlit(now = Date.now()) {
     return litIds(this.state.spotlights, now)
   }
 
   /**
-   * Keep an arrow over a villager for one of SPOTLIGHT_SPANS (by id), or put it out with ''.
+   * Hold a marker up over a villager for one of SPOTLIGHT_SPANS (by id), or put it out with ''.
    * Lighting it again starts the span over from now.
    */
   spotlight(id = this.selected, spanId = '') {
@@ -860,7 +880,7 @@ export class Village {
   nextSpotlit() {
     const lit = Object.entries(cleanSpotlights(this.state.spotlights))
       .filter(([id]) => this.world.villager(id))
-      .sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
+      .sort((a, b) => a[1].until - b[1].until || (a[0] < b[0] ? -1 : 1))
     if (!lit.length) {
       this.toast('Nobody is spotlit. Pick a villager and choose Spotlight on its card.')
       return null

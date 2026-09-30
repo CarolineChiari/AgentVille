@@ -1,28 +1,11 @@
-// Pure: where the arrow for a spotlit villager goes. Over its head while it is on screen; pinned to
+// Pure: where the marker for a spotlit villager goes. Over its head while it is on screen; pinned to
 // the edge of the view and pointing at it while it is off, so it can always be found. No canvas.
 
 /**
- * The arrow over a villager's head, pointing down, one string per row: `X` its outline, `o` its
- * fill, `+` the light down its left side. Nine wide so it has a centre column; wider than a
- * villager so it reads from zoomed out.
+ * World pixels per marker pixel (see src/render/sprites/spotlights.js): at one a marker was no
+ * taller than a badge, and got lost among them.
  */
-export const ARROW = [
-  '..XXXXX..',
-  '..X+ooX..',
-  '..X+ooX..',
-  '..X+ooX..',
-  '..X+ooX..',
-  'XXX+ooXXX',
-  'X+ooooooX',
-  '.X+ooooX.',
-  '..X+ooX..',
-  '...XoX...',
-  '....X....',
-]
-export const ARROW_W = 9
-export const ARROW_H = ARROW.length
-/** World pixels per arrow pixel: at one it was no taller than a badge, and got lost among them. */
-export const ARROW_SCALE = 2
+export const MARKER_SCALE = 2
 
 /**
  * Where to pin the pointer for something at (sx, sy) on screen, or null while it is in view.

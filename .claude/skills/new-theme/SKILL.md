@@ -54,8 +54,9 @@ In `src/sim/themes.js` add an entry to `THEMES` (append; never reorder): `label`
 from `dims`), `auto` (the sub-themes folders are handed; changing it reshuffles folders), an
 optional `outfit` naming a hat and a top, and `finished`: what finished work is called (`one`,
 `many`, `place`, a one-character `glyph` that isn't the issues' ⚑, the `grow` setting's label,
-and optional `names` per kind of work), and optionally `landmark`: `one` and six `tiers` names,
-smallest first. The sidebar, cards and settings use these words. New
+and optional `names` per kind of work), `spotlights`: five `{ id, label }` markers someone can
+hold up over a villager they're following (the first is the theme's default; append only), and
+optionally `landmark`: `one` and six `tiers` names, smallest first. The sidebar, cards and settings use these words. New
 hats or tops go at the end of `HATS` / `TOPS` in `src/sim/villager.js` and get drawn in
 `src/render/sprites/villagers.js`; nobody picks them for themselves (`EVERYDAY_HATS`). Ids match
 `THEME_ID`.
@@ -97,6 +98,10 @@ The rules the renderer relies on (all tested in `test/theme-packs.test.mjs`):
 - Finished work (`flower.<kind>.<stage>`, params `color`): the flower's 9×13, standing on pixel
   (4, 11), each kind of work its own look, a bud unlike a bloom. Its field (`tile.bed.0` for the top
   row, `.1` below, params `tone`) is full tiles, and marks each spot on the village's 8 px grid.
+- Spotlight markers (`fx.spotlight.<id>` for each of its five, in `spotlights.js`, answered in its
+  `fx` case): 11×12 text art through `fromArt`, outlined in `INK`, reaching the bottom rows of the
+  box, each unlike the others, in palette colours. Any theme's marker may stand over any villager,
+  so it has to read on every theme's ground.
 - Landmarks (optional; `landmark.<tier>.<stage>` with the pack's `landmark: { heightOf, shadowOf,
   frames }`): 32 px wide, `heightOf(tier)` tall, taller each tier and 72 at most, on their bottom
   rows; stages as a building's. `lit` lights windows after dark, `busy` means somebody on the plot

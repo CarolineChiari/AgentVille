@@ -88,7 +88,7 @@ the counts are kept in `data/repos.json`, refreshed every half hour.
 | A lamp, a bench, planters, a rose arch in the fence | What each tier of landmark brings with it |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
 | A little flag by a building's door | The session is in one of the repo's groups; a group's houses stand side by side |
-| A big pink arrow over a villager | You spotlit it, to keep an eye on it for a while |
+| A big marker over a villager, pink at its feet | You spotlit it, to keep an eye on it for a while |
 
 ![A villager holding up a ? is selected: its card says it's asking you a question and offers Open in VS Code and Transcript, and the sidebar lists everything else going on in its repo](docs/screenshots/needs-you.png)
 
@@ -286,11 +286,20 @@ its group, so restoring it puts it back in it.
 ### Spotlights
 
 To keep track of one session for a while, pick how long under **Spotlight** on its card: an hour,
-four hours, a day, three days or a week. Until then a big pink arrow bobs over its head, its row in
-the sidebar carries a pink ▼, and when it walks out of view a pink pointer at the edge of the
-screen shows which way it went. `F` flies to the next spotlit villager. Picking a span again starts
-it over from now, and **Off** puts it out early. Spotlights are kept in `data/village.json` and
-forgotten once they go out.
+four hours, a day, three days or a week. Until then a big marker bobs over its head with a pink
+glow at its feet, its row in the sidebar carries a pink ▼, and when it walks out of view a pink
+pointer at the edge of the screen, with its marker beside it, shows which way it went. `F` flies to
+the next spotlit villager. Picking a span again starts it over from now, and **Off** puts it out
+early.
+
+Every theme brings five markers of its own: the village's pink arrow, star, heart, balloon and
+crown; the site's cone, hard hat, crane hook, warning sign and beacon; the elves' leaf, moon,
+lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat and candle; the
+harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
+sunflower and milk churn; and Thanksgiving's maple leaf, acorn, pie, corn cob and turkey. A spotlight
+shows its own plot's theme's first until you pick another under **Marker** on the card, from any
+theme, so three villagers you're following can each carry a different one. Spotlights are kept in
+`data/village.json` and forgotten once they go out.
 
 ### The gardens
 
