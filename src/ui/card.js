@@ -3,9 +3,10 @@ import { esc, ago, bytes, openLabel } from './dom.js'
 import { STATUS_LABEL, needsInputLabel, transcriptProgress } from '../sim/status.js'
 import { sprites } from '../render/sprites/registry.js'
 import { ACCENTS, BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
-import { DEFAULT_THEME, finishedWords } from '../sim/themes.js'
+import { DEFAULT_THEME, THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
 import { NAME_MAX } from '../game/names.js'
 import { GROUP_NAME_MAX, sameName } from '../game/groups.js'
+import { SPOTLIGHT_SPANS, timeLeft } from '../game/spotlight.js'
 
 const GAP = 18
 /** Files listed in a card's Built section before it offers the rest. */
@@ -22,6 +23,8 @@ const wasTitle = (t) => (t.harnessTitle ? `${t.title} — was “${t.harnessTitl
 
 /** The group picker's last choice, which asks for a name and makes a group of it. No group id has a colon. */
 const NEW_GROUP = ':new'
+/** The spotlight picker's choice while one is lit: leaves it as it is. No span id has a colon. */
+const KEEP_SPOTLIGHT = ':keep'
 
 export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
   const card = document.createElement('div')
@@ -118,7 +121,14 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
-    else if (e.target.matches('select[data-f="group"]')) {
+    else if (e.target.matches('select[data-f="spotlight"]')) {
+      e.target.blur()
+      if (e.target.value !== KEEP_SPOTLIGHT) village.spotlight(village.selected, e.target.value)
+    } else if (e.target.matches('select[data-f="marker"]')) {
+      e.target.blur()
+      const [theme = '', marker = ''] = e.target.value.split('/')
+      village.setSpotlightMarker(village.selected, theme, marker)
+    } else if (e.target.matches('select[data-f="group"]')) {
       // Let go of it first: the card keeps a focused picker as it is, and this one has done its job.
       e.target.blur()
       if (e.target.value === NEW_GROUP) startGroup()
@@ -206,6 +216,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
       ${groupPicker(t)}
+      ${spotlightPicker(t)}
+      ${markerPicker(t)}
       <div class="bar" title="How far along the transcript is"><i style="width:${Math.round(transcriptProgress(t.sizeBytes) * 100)}%"></i></div>
       <div class="actions">
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
@@ -218,6 +230,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>
       ${tasksOpen ? taskList(t) : ''}`
+    drawMarker(t.id)
   }
 
   /**
@@ -235,6 +248,53 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       </select></label>
       ${groups.length ? `<button class="btn link" data-act="editGroups" title="${esc(`Every group in ${t.project}`)}">Edit</button>` : ''}
     </div>`
+  }
+
+  /**
+   * Whether a big marker stands over it, and for how long: pick a span to light it (again, from
+   * now), or Off. While it is lit the picker says how long is left.
+   */
+  function spotlightPicker(t) {
+    const until = village.spotlightOf(t.id)
+    const option = (value, label, on) => `<option value="${esc(value)}" ${on ? 'selected' : ''}>${esc(label)}</option>`
+    return `<div class="group-pick spotlight-pick">
+      <span class="flag" ${until ? `style="background:${P.spotlight}"` : ''}></span>
+      <label>Spotlight <select data-f="spotlight" title="Hold a big marker up over it for a while, so you can follow it (F flies to it)">
+        ${until ? option(KEEP_SPOTLIGHT, `On, ${timeLeft(until)}`, true) : ''}${option('', 'Off', !until)}
+        ${SPOTLIGHT_SPANS.map((sp) => option(sp.id, `${until ? 'Restart for' : 'For'} ${sp.label}`, false)).join('')}
+      </select></label>
+    </div>`
+  }
+
+  /**
+   * While it is spotlit, what is held up over it: its own theme's first marker, or any marker of
+   * any theme, grouped by theme. The little picture beside it is the marker itself.
+   */
+  function markerPicker(t) {
+    if (!village.spotlightOf(t.id)) return ''
+    const now = village.spotlightMarker(t.id)
+    const picked = village.spotlightPicked(t.id)
+    const own = THEMES[now.theme]?.spotlights.find((m) => m.id === now.id)?.label || ''
+    const option = (value, label, on) => `<option value="${esc(value)}" ${on ? 'selected' : ''}>${esc(label)}</option>`
+    const groups = THEME_IDS.map((id) => `<optgroup label="${esc(THEMES[id].label)}">${
+      THEMES[id].spotlights.map((m) => option(`${id}/${m.id}`, m.label, picked && now.theme === id && now.id === m.id)).join('')
+    }</optgroup>`).join('')
+    return `<div class="group-pick spotlight-pick">
+      <canvas class="marker" width="11" height="12" title="${esc(own)}"></canvas>
+      <label>Marker <select data-f="marker" title="What is held up over it: any theme's">
+        ${option('', picked ? 'Its own theme’s' : `Its own theme’s: ${own}`, !picked)}${groups}
+      </select></label>
+    </div>`
+  }
+
+  /** The marker in the card's marker picker, as it stands over the villager. */
+  function drawMarker(id) {
+    const c = card.querySelector('canvas.marker')
+    if (!c) return
+    const m = village.spotlightMarker(id)
+    const g = c.getContext('2d')
+    g.clearRect(0, 0, c.width, c.height)
+    g.drawImage(sprites.get(`fx.spotlight.${m.id}`, 0, m.theme === DEFAULT_THEME ? undefined : { theme: m.theme }), 0, 0)
   }
 
   /** Every PR the conversation is behind, each a link to it on GitHub. Nothing at all when there are none. */
@@ -503,9 +563,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
-      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus')) return
+      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus')) return
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)

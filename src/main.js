@@ -358,6 +358,7 @@ addEventListener('keydown', (e) => {
     case 'r': case 'R': { const id = village.nextDone(); if (id) fly({ villager: id }); break }
     case 'p': case 'P': { const id = village.nextOpenPr(); if (id) fly({ villager: id }); break }
     case 'i': case 'I': { const id = village.nextIssueBoard(); if (id) fly({ villager: id }); break }
+    case 'f': case 'F': { const id = village.nextSpotlit(); if (id) fly({ villager: id }); break }
     case 'Enter': village.open(); break
     case 'v': case 'V': village.viewed(); break
     // Well away from WASD, so a slip while moving never archives anything.
@@ -438,7 +439,7 @@ function loop(now) {
   world.tick(dt)
   camera.steer(heading(held), hurry, dt)
   camera.update(dt)
-  lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot })
+  lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot, spotlit: village.spotlit() })
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()
   const night = 1 - dayFactor(hour)
   renderer.render(lastFrame, {

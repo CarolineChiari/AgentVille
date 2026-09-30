@@ -9,6 +9,7 @@ import { drawJack } from './jacks.js'
 import { drawHallowLandmark, drawHallowProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, hallowCover, patches } from './ground.js'
 import { drawHallowInterior } from './interiors.js'
+import { drawHallowSpotlight } from './spotlights.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const halloween = {
@@ -17,6 +18,9 @@ export const halloween = {
     const [group, a, b] = name.split('.')
     const n = Number(b || 0)
     switch (group) {
+      case 'fx':
+        // Its own markers for a spotlight. Every other effect means what it does in every theme.
+        return a === 'spotlight' ? drawHallowSpotlight(b) : null
       case 'building':
         return drawHallowBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
       case 'fence':

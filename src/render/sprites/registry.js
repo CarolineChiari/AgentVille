@@ -18,6 +18,8 @@
 //                                        furniture. A variant means something different per piece;
 //                                        see INTERIOR_VARIANTS in interiors.js)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
+//         fx.spotlight.<id>             (what is held up over a spotlit villager: a marker of its
+//                                        theme's, by id from src/sim/themes.js; see spotlights.js)
 //         fx.banner.<color>             (a group's flag, planted by its houses' doors; color into
 //                                        ACCENTS; two frames, the pennant's tail down and lifted)
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
@@ -36,6 +38,7 @@ import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
 import { drawBadge, drawBanner, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 import { drawLandmark } from './landmarks.js'
+import { drawSpotlight } from './spotlights.js'
 import { drawInterior } from './interiors.js'
 import { PACKS } from '../themes/index.js'
 
@@ -68,6 +71,7 @@ export function generate(name, frame, p) {
       return drawInterior(a, Number(b || 0))
     case 'fx':
       if (a === 'badge') return drawBadge(b)
+      if (a === 'spotlight') return drawSpotlight(b)
       if (a === 'banner') return drawBanner(b, frame)
       if (a === 'z') return drawZ()
       if (a === 'ring') return drawRing(b)

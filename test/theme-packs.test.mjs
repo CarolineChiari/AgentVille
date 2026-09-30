@@ -16,6 +16,7 @@ import { interiorsOf } from '../src/sim/interiors.js'
 import { MAX_TIER } from '../src/sim/progress.js'
 import { THEMES, THEME_IDS, dress } from '../src/sim/themes.js'
 import { KINDS } from '../src/sim/building.js'
+import { MARKER_H, MARKER_W } from '../src/render/sprites/spotlights.js'
 import { lookFor } from '../src/sim/villager.js'
 import { KEPT, WEAR } from '../src/sim/wear.js'
 
@@ -301,6 +302,22 @@ for (const id of THEME_IDS) {
     // One of each kind of work, in one colour: no two alike.
     const firsts = WORK.map((w) => at(`flower.${FLOWER_KINDS.findIndex((k) => k.work === w.id)}.2`, 0, { color: PETALS[1] }))
     firsts.forEach((a, i) => firsts.forEach((b, j) => i < j && assert.ok(!same(a, b), `${WORK[i].id} and ${WORK[j].id} look alike`)))
+  })
+
+  test(`${id}: every marker it brings for a spotlight is its own drawing, a marker's size, in the palette's colours`, () => {
+    const drawn = THEMES[id].spotlights.map((m) => {
+      // Its own: the village's registry would otherwise hand back the village's arrow.
+      const pc = id === 'village' ? generate(`fx.spotlight.${m.id}`, 0, {}) : pack.sprite?.(`fx.spotlight.${m.id}`, 0, { theme: id })
+      assert.ok(pc, `${m.id} isn't drawn by its pack`)
+      assert.equal(pc.w, MARKER_W, `${m.id} is ${pc.w} px wide`)
+      assert.equal(pc.h, MARKER_H, `${m.id} is ${pc.h} px tall`)
+      assert.ok(opaque(pc) > 30, `${m.id} is nearly empty`)
+      // It hangs just over the villager's badge: it reaches down near the bottom of its box.
+      assert.ok(grounded(pc, 3), `${m.id} floats high in its box`)
+      for (const c of colours(pc)) assert.ok(PALETTE_COLOURS.has(c), `${m.id} uses ${c}, which isn't in the palette`)
+      return pc
+    })
+    drawn.forEach((a, i) => drawn.forEach((b, j) => i < j && assert.ok(!same(a, b), `${THEMES[id].spotlights[i].id} and ${THEMES[id].spotlights[j].id} look alike`)))
   })
 
   test(`${id}: the field finished work stands in is full tiles in every ground`, () => {

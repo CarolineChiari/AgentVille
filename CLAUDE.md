@@ -50,6 +50,10 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   on is the village's. A room means the same thing in every theme: every one has the board, a shelf
   of files, a pinboard of commits, a desk whose monitor is lit while the session works, a chair, a
   bed, a rug and a door out.
+- A theme brings five markers for a spotlight (`spotlights` in themes.js, drawn by its pack as
+  `fx.spotlight.<id>`, 11×12, from text art in its `spotlights.js`). A spotlight shows its plot's
+  theme's first unless one of any theme's was picked; the pink at the villager's feet and the edge
+  pointer mean "spotlit" in every theme.
 - `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules, and
   `test/interiors.test.mjs` holds every room to the sim's. To make a new theme, follow the
   `new-theme` skill in `.claude/skills/new-theme/`.

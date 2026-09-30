@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.71.0",
+  "version": "0.74.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -41,7 +41,8 @@
       "src/render/sprites/palette.js",
       "src/game/tasks.js",
       "src/game/names.js",
-      "src/game/groups.js"
+      "src/game/groups.js",
+      "src/game/spotlight.js"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",

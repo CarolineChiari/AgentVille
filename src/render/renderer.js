@@ -21,6 +21,8 @@ import {
 import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W, BANNER_H, BANNER_POLE } from './sprites/effects.js'
+import { MARKER_SCALE, edgePointer } from './spotlight.js'
+import { MARKER_H, MARKER_W } from './sprites/spotlights.js'
 
 const CHUNK = CELL_TILES * T
 const TILE_NAME = {
@@ -944,6 +946,71 @@ export class Canvas2dRenderer {
     }
   }
 
+  /**
+   * A big bobbing marker over every spotlit villager, above where its badge goes whether or not it
+   * has one, so it doesn't jump when a badge comes and goes. The marker is any theme's, drawn in
+   * that theme; the pink at its feet and the pointer at the edge of the screen are every theme's.
+   */
+  _drawSpotlights(frame) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    const k = MARKER_SCALE
+    for (const v of frame.villagers) {
+      if (!v.spotlight) continue
+      const img = this._sprite(`fx.spotlight.${v.spotlight.id}`, 0, undefined, v.spotlight.theme)
+      const bob = Math.round(Math.sin(frame.time * 4) * 2)
+      const wx = Math.round(v.x * T - (MARKER_W * k) / 2)
+      const wy = Math.round(v.y * T - VILLAGER_H - BADGE_H - MARKER_H * k - 1 + bob - hopOf(v))
+      // A pulse on the ground at its feet, so it stands out in a crowd too.
+      const pulse = 0.5 + 0.5 * Math.sin(frame.time * 3)
+      ctx.globalAlpha = (0.25 + 0.25 * pulse) * v.alpha
+      ctx.fillStyle = P.spotlight
+      ctx.beginPath()
+      ctx.ellipse(cam.offX + v.x * T * s, cam.offY + (v.y * T - 1) * s, (7 + pulse * 2) * s, (3 + pulse) * s, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = Math.max(0, v.alpha)
+      ctx.drawImage(img, cam.offX + wx * s, cam.offY + wy * s, MARKER_W * k * s, MARKER_H * k * s)
+      ctx.globalAlpha = 1
+      // Off screen: aim at the marker, where the eye would look for it.
+      const sx = cam.offX + v.x * T * s
+      const sy = cam.offY + (v.y * T - VILLAGER_H) * s
+      const box = { left: cam.insetLeft, top: 0, right: cam.width - cam.insetRight, bottom: cam.height }
+      const size = 12 * cam.dpr
+      const at = edgePointer(sx, sy, box, size * 3.2)
+      if (at) this._drawEdgePointer(at, size, frame.time, img)
+    }
+  }
+
+  /**
+   * A pink triangle pinned to the edge of the view, aimed at `at.angle` and nudging that way, with
+   * the villager's marker just behind it so two pointers at once say which is which.
+   */
+  _drawEdgePointer(at, size, time, img) {
+    const { ctx } = this
+    const dpr = this.camera.dpr
+    const mw = MARKER_W * 2 * dpr
+    const mh = MARKER_H * 2 * dpr
+    const back = size + mh * 0.6
+    ctx.drawImage(img, Math.round(at.x - Math.cos(at.angle) * back - mw / 2), Math.round(at.y - Math.sin(at.angle) * back - mh / 2), mw, mh)
+    const nudge = Math.sin(time * 5) * size * 0.2
+    ctx.save()
+    ctx.translate(at.x + Math.cos(at.angle) * nudge, at.y + Math.sin(at.angle) * nudge)
+    ctx.rotate(at.angle)
+    ctx.beginPath()
+    ctx.moveTo(size, 0)
+    ctx.lineTo(-size * 0.7, -size * 0.8)
+    ctx.lineTo(-size * 0.35, 0)
+    ctx.lineTo(-size * 0.7, size * 0.8)
+    ctx.closePath()
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 3 * this.camera.dpr
+    ctx.strokeStyle = P.labelInk
+    ctx.stroke()
+    ctx.fillStyle = P.spotlight
+    ctx.fill()
+    ctx.restore()
+  }
+
   _drawLabels(frame, ui) {
     const { ctx, camera: cam } = this
     const dpr = cam.dpr
@@ -1055,6 +1122,7 @@ export class Canvas2dRenderer {
     this._drawGlitter(frame)
     this._drawSparkles(frame)
     this._drawBadges(frame)
+    this._drawSpotlights(frame)
     this._drawLabels(frame, ui)
   }
 

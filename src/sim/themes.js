@@ -41,6 +41,9 @@ export const DEFAULT_THEME = 'village'
  * @property {Finished} finished  what finished work is called here
  * @property {Landmark} [landmark]  what stands in the middle of each plot's field, tier by tier;
  *           left out, the village's
+ * @property {{ id: string, label: string }[]} spotlights  SPOTLIGHT_MARKERS things to hold up over a
+ *           villager someone is keeping an eye on (its pack draws `fx.spotlight.<id>`). The first is
+ *           what a spotlight in this theme shows until someone picks another. Only ever append.
  *
  * @typedef {object} Finished  The words for finished work, which the village calls flowers. A
  *           theme may draw it as something else (its pack draws `flower.*`), but it still says
@@ -64,6 +67,7 @@ export const DEFAULT_THEME = 'village'
 export const THEMES = {
   village: {
     label: 'Countryside village',
+    spotlights: [{ id: 'arrow', label: 'Pink arrow' }, { id: 'star', label: 'Gold star' }, { id: 'heart', label: 'Heart' }, { id: 'balloon', label: 'Balloon' }, { id: 'crown', label: 'Crown' }],
     dims: {
       fence: ['rail', 'picket', 'stone', 'hedge'],
       yard: ['fresh', 'deep', 'golden'],
@@ -85,6 +89,7 @@ export const THEMES = {
   },
   construction: {
     label: 'Construction site',
+    spotlights: [{ id: 'cone', label: 'Traffic cone' }, { id: 'hard-hat', label: 'Hard hat' }, { id: 'hook', label: 'Crane hook' }, { id: 'warning', label: 'Warning sign' }, { id: 'beacon', label: 'Amber beacon' }],
     dims: {
       fence: ['mesh', 'hoarding', 'barrier', 'netting'],
       yard: ['gravel', 'dirt', 'sand', 'slab'],
@@ -116,6 +121,7 @@ export const THEMES = {
   },
   elvish: {
     label: 'Elvish realm',
+    spotlights: [{ id: 'leaf', label: 'Mallorn leaf' }, { id: 'moon', label: 'Crescent moon' }, { id: 'lantern', label: 'Elf lantern' }, { id: 'crystal', label: 'Crystal' }, { id: 'wisp', label: 'Wisp' }],
     dims: {
       fence: ['woven', 'briar', 'filigree', 'standing'],
       yard: ['glade', 'moss', 'loam', 'silversand'],
@@ -149,6 +155,7 @@ export const THEMES = {
   },
   halloween: {
     label: 'Halloween night',
+    spotlights: [{ id: 'jack', label: 'Jack-o’-lantern' }, { id: 'bat', label: 'Bat' }, { id: 'ghost', label: 'Ghost' }, { id: 'witch-hat', label: 'Witch’s hat' }, { id: 'candle', label: 'Candle' }],
     dims: {
       fence: ['crooked', 'ironwork', 'cornstalk', 'lights'],
       yard: ['frost', 'mulch', 'mist', 'flagstone'],
@@ -184,6 +191,7 @@ export const THEMES = {
   },
   seaside: {
     label: 'Seaside harbour',
+    spotlights: [{ id: 'anchor', label: 'Anchor' }, { id: 'buoy', label: 'Buoy' }, { id: 'starfish', label: 'Starfish' }, { id: 'scallop', label: 'Scallop shell' }, { id: 'bottle', label: 'Message in a bottle' }],
     dims: {
       fence: ['rope', 'net', 'groyne', 'railing'],
       yard: ['sand', 'shingle', 'boardwalk', 'harbourstone'],
@@ -222,6 +230,7 @@ export const THEMES = {
   },
   farm: {
     label: 'Working farm',
+    spotlights: [{ id: 'apple', label: 'Apple' }, { id: 'hen', label: 'Hen' }, { id: 'bale', label: 'Hay bale' }, { id: 'sunflower', label: 'Sunflower' }, { id: 'churn', label: 'Milk churn' }],
     dims: {
       fence: ['postrail', 'wire', 'wattle', 'paddock'],
       yard: ['pasture', 'stubble', 'furrow', 'farmyard'],
@@ -261,6 +270,7 @@ export const THEMES = {
   },
   thanksgiving: {
     label: 'Thanksgiving harvest',
+    spotlights: [{ id: 'maple', label: 'Maple leaf' }, { id: 'acorn', label: 'Acorn' }, { id: 'pie', label: 'Pie' }, { id: 'corn', label: 'Corn cob' }, { id: 'turkey', label: 'Turkey' }],
     dims: {
       // Corn stalks tied to posts, stacked hay, split rails hung with gourds, and a painted picket.
       fence: ['cornshock', 'haystack', 'splitrail', 'picket'],
@@ -318,6 +328,24 @@ export function subthemeFor(name, theme, ...choices) {
   const t = themeOf(theme)
   for (const c of choices) if (typeof c === 'string' && recipeOf(t, c)) return c
   return pick(rngFor(`subtheme:${t}:${name}`), THEMES[t].auto)
+}
+
+/** How many markers every theme brings for spotlights, so each picker has a full row to choose from. */
+export const SPOTLIGHT_MARKERS = 5
+
+/** A theme's spotlight markers; see Theme. */
+export const spotlightMarkers = (theme) => THEMES[themeOf(theme)].spotlights
+
+/**
+ * The marker a spotlight shows, `{ theme, id }`: the one picked, from any theme, if it still
+ * exists, else the first marker of `plotTheme`, the theme the villager's own plot wears.
+ */
+export function markerFor(pick, plotTheme) {
+  if (pick && typeof pick.theme === 'string' && Object.hasOwn(THEMES, pick.theme) && THEMES[pick.theme].spotlights.some((m) => m.id === pick.marker)) {
+    return { theme: pick.theme, id: pick.marker }
+  }
+  const theme = themeOf(plotTheme)
+  return { theme, id: THEMES[theme].spotlights[0].id }
 }
 
 /** The words for finished work in a theme; see Finished. */

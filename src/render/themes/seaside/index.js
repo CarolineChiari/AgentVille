@@ -13,6 +13,7 @@ import { drawSeaLandmark, drawSeaProp, heightOf as landmarkHeight, landmarkFrame
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, seaCover } from './ground.js'
 import { drawGull } from './gulls.js'
 import { drawSeaInterior } from './interiors.js'
+import { drawSeaSpotlight } from './spotlights.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const seaside = {
@@ -52,6 +53,7 @@ export const seaside = {
       case 'fx':
         // The birds over a harbour are gulls. Everything else in fx says what it means in every
         // theme — badges, rings, smoke, shadows — and is left exactly as it is.
+        if (a === 'spotlight') return drawSeaSpotlight(b)
         return a === 'bird' ? drawGull(frame) : null
     }
     return null

@@ -1,7 +1,7 @@
 // The sidebar, the settings and help sheets, and the hint. Plain DOM with event delegation; it is
 // re-rendered from `village` whenever the scan or the selection changes, never per frame.
 import { esc, ago } from './dom.js'
-import { ACCENTS } from '../render/sprites/palette.js'
+import { ACCENTS, PALETTE as P } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
@@ -43,6 +43,7 @@ const HELP = [
   ['T', 'Transcript of the selected thread'],
   ['B', 'Step inside its building (Esc comes back out)'],
   ['G', 'Put it in a group'],
+  ['F', 'Next spotlit villager (the big marker over its head)'],
   ['H', 'Hide the panels'],
   [',', 'Settings'],
   ['Esc', 'Deselect'],
@@ -178,7 +179,9 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   }
 
   function threadRow(t) {
-    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
+    // The spotlight's pink, the colour at a spotlit villager's feet, so the list says who is spotlit too.
+    const lit = village.spotlightOf(t.id) ? `<span class="spot" role="img" aria-label="Spotlit" style="color:${P.spotlight}" title="Spotlit (F flies to it)">▼</span>` : ''
+    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}">${lit}<span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
   }
 
   /**

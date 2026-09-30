@@ -1,0 +1,80 @@
+// The harbour's markers for a spotlight (named in src/sim/themes.js). The anchor is galvanised:
+// in the harbour's own dark iron it vanished against quay stone. See
+// src/render/sprites/spotlights.js for what every theme's markers share.
+import { PALETTE as P } from '../../sprites/palette.js'
+import { INK, drawMarker } from '../../sprites/spotlights.js'
+
+const MARKERS = {
+  anchor: [[
+    '....XXX....',
+    '...XI.IX...',
+    '....XXX....',
+    '..XXXIXXX..',
+    '..XIIIIiX..',
+    '..XXXIXXX..',
+    '....XIX....',
+    'X...XIX...X',
+    'XIX.XIX.XiX',
+    '.XIXXIXXiX.',
+    '..XIIIiiX..',
+    '...XXXXX...',
+  ], { X: INK, I: P.tinLight, i: P.tin }],
+  buoy: [[
+    '.....X.....',
+    '....XgX....',
+    '.....X.....',
+    '....XXX....',
+    '...XrrrX...',
+    '..XrrrrrX..',
+    '..XwwwwwX..',
+    '..XrrrrrX..',
+    '.XwwwwwwwX.',
+    '.XrrrrrrrX.',
+    'XXXXXXXXXXX',
+    '...........',
+  ], { X: INK, r: P.buoy[0], w: P.buoy[2], g: P.lampGreen }],
+  starfish: [[
+    '.....X.....',
+    '....XsX....',
+    '....XsX....',
+    'XXXXsssXXXX',
+    'XssssSsssSX',
+    '.XsssssssX.',
+    '..XsSsSsX..',
+    '..XsssssX..',
+    '.XssXXXssX.',
+    '.XsX...XsX.',
+    'XsX.....XsX',
+    'XX.......XX',
+  ], { X: INK, s: P.harbourPaint[5], S: P.harbourPaint[1] }],
+  scallop: [[
+    '...........',
+    '...XXXXX...',
+    '..XpwpwpX..',
+    '.XwpwpwpWX.',
+    'XpwpwpwpwWX',
+    'XpwpwpwpwWX',
+    '.XpwpwpwWX.',
+    '..XWpwpWX..',
+    '...XXWXX...',
+    '..XWWXWWX..',
+    '..XXXXXXX..',
+    '...........',
+  ], { X: INK, w: P.shellWhite, W: P.shellShade, p: P.shellPink }],
+  bottle: [[
+    '....XXX....',
+    '....XdX....',
+    '....XgX....',
+    '...XGggX...',
+    '..XGggggX..',
+    '..XGpppgX..',
+    '..XGpppgX..',
+    '..XGpppgX..',
+    '..XGggggX..',
+    '..XGggggX..',
+    '..XXXXXXX..',
+    '...........',
+  ], { X: INK, d: P.driftwood, g: P.glass, G: P.glassLight, p: P.paper }],
+}
+
+export const drawSeaSpotlight = (id) => drawMarker(MARKERS, id)
