@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { isAlive, jsonLines, num, readHead, readTail } from '../server/lib/fsutil.mjs'
+import { isAlive, jsonLines, num, readHead, readTail, scanLines } from '../server/lib/fsutil.mjs'
 import { DEAD_PID, tmpHome } from './helpers/fixtures.mjs'
 
 test('readHead drops a trailing partial line', async (t) => {
@@ -48,4 +48,32 @@ test('num coerces numbers, numeric strings and ISO dates', () => {
   assert.equal(num('2026-01-01T00:00:00Z'), Date.parse('2026-01-01T00:00:00Z'))
   assert.equal(num(NaN, 3), 3)
   assert.equal(num(undefined), 0)
+})
+
+test('scanLines reads whole lines on from an offset and stops before a half-written one', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const file = path.join(home, 'a.jsonl')
+  fs.writeFileSync(file, 'één\ntwo\nthr')
+  const seen = []
+  const end = await scanLines(file, 0, (l) => seen.push(l))
+  assert.deepEqual(seen, ['één', 'two'])
+  assert.equal(end, Buffer.byteLength('één\ntwo\n'))
+  fs.appendFileSync(file, 'ee\n')
+  seen.length = 0
+  assert.equal(await scanLines(file, end, (l) => seen.push(l)), fs.statSync(file).size)
+  assert.deepEqual(seen, ['three'])
+})
+
+test('scanLines joins a line that runs across many chunks', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const file = path.join(home, 'big.jsonl')
+  const long = 'é'.repeat(1_600_000) // over three megabytes: several chunks, split mid-character
+  fs.writeFileSync(file, `a\n${long}\nb\n${long.slice(0, 1000)}`)
+  const seen = []
+  const end = await scanLines(file, 0, (l) => seen.push(l))
+  assert.deepEqual(seen.map((l) => l.length), [1, long.length, 1])
+  assert.equal(seen[1], long)
+  assert.equal(end, Buffer.byteLength(`a\n${long}\nb\n`))
 })

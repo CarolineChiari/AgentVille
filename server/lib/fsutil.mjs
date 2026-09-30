@@ -45,6 +45,49 @@ export async function readTail(file, bytes) {
   }
 }
 
+/** How much of a file `scanLines` holds at once: a transcript can run to hundreds of megabytes. */
+const SCAN_CHUNK = 1024 * 1024
+
+/**
+ * Hand each whole line from byte `start` on to `onLine`, a chunk at a time, and say where the
+ * last whole line ended, so the next call can pick up there as the file grows. A half-written
+ * last line is left for then. Lines are split on the newline byte, so the offsets stay in bytes.
+ * @returns {Promise<number>} the offset just past the last whole line read
+ */
+export async function scanLines(file, start, onLine) {
+  const fh = await fsp.open(file, 'r')
+  try {
+    const { size } = await fh.stat()
+    let at = start
+    // The start of a line still waiting for its newline, a piece per chunk. Joined once, when the
+    // line ends: joining on every chunk would copy a many-megabyte tool result over and over.
+    let parts = []
+    let pending = 0
+    while (at < size) {
+      const buf = Buffer.allocUnsafe(Math.min(SCAN_CHUNK, size - at))
+      const { bytesRead } = await fh.read(buf, 0, buf.length, at)
+      if (!bytesRead) break
+      at += bytesRead
+      const data = buf.subarray(0, bytesRead)
+      let from = 0
+      for (let nl = data.indexOf(0x0a); nl >= 0; nl = data.indexOf(0x0a, from)) {
+        const line = parts.length ? Buffer.concat([...parts, data.subarray(from, nl)]) : data.subarray(from, nl)
+        parts = []
+        pending = 0
+        onLine(line.toString('utf8'))
+        from = nl + 1
+      }
+      if (from < bytesRead) {
+        parts.push(data.subarray(from)) // each chunk has its own buffer, so a view of it stays valid
+        pending += bytesRead - from
+      }
+    }
+    return at - pending
+  } finally {
+    await fh.close()
+  }
+}
+
 /** Parse JSONL leniently: blank, CRLF and half-written lines are skipped, never thrown on. */
 export function jsonLines(text) {
   const out = []

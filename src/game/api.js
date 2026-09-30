@@ -56,5 +56,6 @@ export const fetchIssues = async () => (await json(await fetch('/api/issues'))).
 export const fetchRepos = async () => (await json(await fetch('/api/repos'))).body
 export const fetchVersion = async () => (await json(await fetch('/api/version'))).body
 export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.body)
+export const githubRepo = (folder) => post('/api/github-repo', { folder }).then((r) => r.body)
 export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.body)
 export const sendTask = (harness, ref, folder, prompt, target = '') => post('/api/task', { harness, ref, folder, prompt, target }).then((r) => r.body)

@@ -152,6 +152,19 @@ test('reveal and new-session refuse relative or missing folders', async () => {
   assert.equal((await post('/api/reveal', { folder: os.tmpdir() })).status, 200)
 })
 
+test('github-repo reads the folder\'s origin, and refuses a folder that is not there', async () => {
+  assert.equal((await post('/api/github-repo', { folder: 'relative' })).status, 400)
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'av-gh-'))
+  try {
+    assert.deepEqual(await (await post('/api/github-repo', { folder: dir })).json(), { ok: true, slug: '' })
+    fs.mkdirSync(path.join(dir, '.git'))
+    fs.writeFileSync(path.join(dir, '.git', 'config'), '[remote "origin"]\n\turl = git@github.com:me/app.git\n')
+    assert.deepEqual(await (await post('/api/github-repo', { folder: dir })).json(), { ok: true, slug: 'me/app' })
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('archive recorded under a ref id is recognised', async () => {
   const cur = await (await fetch(`${base}/api/state`)).json()
   await put({ ...cur, archived: ['fake:1'], baseUpdatedAt: cur.updatedAt })

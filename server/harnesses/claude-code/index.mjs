@@ -5,11 +5,11 @@
 import os from 'node:os'
 import path from 'node:path'
 import fsp from 'node:fs/promises'
-import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readTail, exists } from '../../lib/fsutil.mjs'
+import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readTail, exists, scanLines } from '../../lib/fsutil.mjs'
 import { EFFORT_CHOICES, HARNESS_ID, MODEL_CHOICES, isCliId, isDesktopId, isEffort, isModel, threadId } from './ids.mjs'
 import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
-import { awaitingReply, pendingQuestion, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
+import { addPr, awaitingReply, pendingQuestion, prLinkOf, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
 import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
@@ -42,6 +42,7 @@ export function createClaudeCodeAdapter(opts = {}) {
   let lastTranscripts = new Map() // uuid → { file, size, mtime } from the latest scan
   const convoCache = new Map() // file → { key, messages }; a few at most, they can be large
   const changeCache = new Map() // file → { key, log }; same idea, keyed on mtime+size
+  const prCache = new Map() // file → { offset, size, prs }: how far the PR links have been read
 
   async function desktopRoot() {
     if (desktopDir === undefined) desktopDir = await desktopDataDir({ home, env, platform })
@@ -114,6 +115,35 @@ export function createClaudeCodeAdapter(opts = {}) {
     return live
   }
 
+  /**
+   * Every PR the transcript links. A PR is usually opened late in a long conversation, well past
+   * the head the rest of the metadata comes from, so the whole file is read, but only once: a
+   * transcript only ever grows, so each scan reads on from where the last one stopped. One that
+   * got shorter was rewritten, and is read again from the top.
+   */
+  async function transcriptPrs(t) {
+    let hit = prCache.get(t.file)
+    if (!hit || t.size < Math.max(hit.offset, hit.size)) hit = { offset: 0, size: -1, prs: [] }
+    if (hit.size !== t.size) {
+      try {
+        hit.offset = await scanLines(t.file, hit.offset, (line) => {
+          // Most lines are long and none of them PR links: skip them without parsing.
+          if (!line.includes('"pr-link"')) return
+          try {
+            addPr(hit.prs, prLinkOf(JSON.parse(line)))
+          } catch {
+            // Half a record: the next scan starts after it anyway.
+          }
+        })
+        hit.size = t.size
+      } catch {
+        // Gone or unreadable right now: keep what was read, and try again next scan.
+      }
+      prCache.set(t.file, hit)
+    }
+    return hit.prs
+  }
+
   /** Head metadata plus tail "waiting" flag, cached against mtime+size so a big transcript isn't reparsed every poll. */
   async function transcriptInfo(t, wantTail) {
     const key = `${t.mtime}:${t.size}`
@@ -152,9 +182,11 @@ export function createClaudeCodeAdapter(opts = {}) {
       prState: typeof s.prState === 'string' ? s.prState.toUpperCase() : '',
       prNumber: Number.isInteger(s.prNumber) ? s.prNumber : 0,
       prUrl: typeof s.prUrl === 'string' && /^https:\/\/github\.com\//.test(s.prUrl) ? s.prUrl : '',
+      prs: [],
       archived: s.isArchived === true || s.isArchived === 'True',
       source: 'desktop',
     })
+    addPr(e.prs, prLinkOf({ type: 'pr-link', prNumber: e.prNumber, prUrl: e.prUrl }))
     return e
   }
 
@@ -193,6 +225,7 @@ export function createClaudeCodeAdapter(opts = {}) {
         e.prState = e.prState || m.prState
         e.prNumber = e.prNumber || m.prNumber
         e.prUrl = e.prUrl || m.prUrl
+        for (const p of await transcriptPrs(tr)) addPr(e.prs, p)
         e.waiting = Boolean(info.waiting) && e.live && fresh
         e.asking = Boolean(info.asking) && e.live
       }

@@ -50,6 +50,7 @@ export function readTranscriptMeta(records) {
     prState: '',
     prNumber: 0,
     prUrl: '',
+    prs: [],
   }
   for (const r of records) {
     if (!r || typeof r !== 'object') continue
@@ -62,6 +63,7 @@ export function readTranscriptMeta(records) {
       if (!meta.prState) meta.prState = 'OPEN'
       if (Number.isInteger(r.prNumber)) meta.prNumber = r.prNumber
       if (typeof r.prUrl === 'string' && /^https:\/\/github\.com\//.test(r.prUrl)) meta.prUrl = r.prUrl
+      addPr(meta.prs, prLinkOf(r))
     }
     if (!isMain(r)) continue
     if (!meta.cwd && typeof r.cwd === 'string' && r.cwd) meta.cwd = r.cwd
@@ -79,6 +81,28 @@ export function readTranscriptMeta(records) {
     }
   }
   return meta
+}
+
+/**
+ * A `pr-link` record's PR, `{ number, url }`, or null. Both a real number and a GitHub https URL
+ * are needed: a number alone can't say which repo it is in, and would be taken for the wrong PR.
+ */
+export function prLinkOf(r) {
+  if (r?.type !== 'pr-link' || !Number.isInteger(r.prNumber) || r.prNumber <= 0) return null
+  if (typeof r.prUrl !== 'string' || !/^https:\/\/github\.com\//.test(r.prUrl)) return null
+  return { number: r.prNumber, url: r.prUrl }
+}
+
+/**
+ * Every PR a thread links, in the order it first linked them. More than this is a thread that
+ * links the same few over and over by different numbers, or something that isn't a conversation.
+ */
+export const PRS_MAX = 50
+
+/** Add a PR to a thread's list, once per link: two repos can each have a PR with the same number. */
+export function addPr(list, pr) {
+  if (pr && !list.some((p) => p.url === pr.url) && list.length < PRS_MAX) list.push({ ...pr })
+  return list
 }
 
 /** Tools that stop and wait for the person: a question dialog, or a plan waiting for approval. */

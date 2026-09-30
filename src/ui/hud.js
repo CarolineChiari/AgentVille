@@ -157,6 +157,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <div class="actions">
         <button class="btn primary" data-act="new">New session<kbd>C</kbd></button>
         <button class="btn" data-act="reveal">${folderWord()}</button>
+        ${repoButton(r.name)}
         <button class="btn" data-act="copy">Copy path</button>
         <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
         <button class="btn" data-act="groups" title="Put this repo's sessions in groups: each group's houses stand together and fly its flag">Groups${r.groups.length ? ` (${r.groups.length})` : ''}</button>
@@ -168,6 +169,12 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       ${r.flowers ? `<div class="garden-note">${esc(words.glyph)} ${r.flowers} finished — click a ${esc(words.one)} in the ${esc(words.place)} to look back</div>` : ''}
       <div class="threads">${threadList(r)}</div>
     </div>`
+  }
+
+  /** Open repo, for a folder whose origin is on GitHub; nothing for one that isn't, or not yet known. */
+  function repoButton(name) {
+    const slug = village.githubRepo(name)
+    return slug ? `<button class="btn" data-act="openRepo" title="${esc(`${slug} on GitHub`)}">Open repo</button>` : ''
   }
 
   function threadRow(t) {
@@ -308,6 +315,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         break
       }
       case 'reveal': village.reveal(); break
+      case 'openRepo': village.openRepo(); break
       case 'copy': village.copyPath(); break
       case 'tasks': onEditTasks(village.selectedPlot); break
       case 'hide': village.hide(); break

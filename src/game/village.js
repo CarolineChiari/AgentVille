@@ -18,6 +18,15 @@ import { cleanName, withNames } from './names.js'
 import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, partition, sameName, withGroups } from './groups.js'
 
 const SAVE_DELAY = 500
+/** A GitHub `owner/repo`, the only thing that goes into a repo's link. */
+const SLUG_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+/** A PR's page on GitHub: its `owner/repo`, and its number. */
+const PR_URL_RE = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/pull\/(\d+)(?:[/?#]|$)/
+/**
+ * Branches every thread in a repo may sit on. A PR opened from one of these, from a fork, was
+ * not opened by whichever thread happens to be on it.
+ */
+const SHARED_BRANCHES = new Set(['main', 'master', 'trunk', 'develop'])
 
 /** Which editor's `…://file/` link opens a file, per harness. The server checks this list again. */
 const EDITOR_SCHEME = { 'claude-code': 'vscode', copilot: 'vscode', cursor: 'cursor', antigravity: 'antigravity-ide' }
@@ -121,6 +130,7 @@ export class Village {
     this._boardIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.counted = { repos: {}, updating: false } // each repo's lines of code, as the server counted them
+    this.githubRepos = new Map() // folder path → its GitHub 'owner/repo', '' for none, null while asking
     // Whether a newer AgentVille has been released than the one running. `newer` false until told.
     this.release = { current: '', latest: '', url: '', newer: false }
     this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
@@ -497,6 +507,85 @@ export class Village {
     if (!f) return null
     const theme = this.lookOf(f.project).theme
     return { ...f, theme, name: finishedName(theme, f.kind), workLabel: WORK_LABEL[f.work] }
+  }
+
+  /**
+   * The GitHub repo a folder's origin points at, `owner/repo`, or '' when it has none or we don't
+   * know yet. The PR and issue lists already know it; otherwise the server reads the folder's own
+   * .git/config, once per folder, and the panels redraw when it answers.
+   */
+  githubRepo(name) {
+    const known = this.prs.repos?.[name]?.slug || this.issues.repos?.[name]?.slug
+    if (known && !this.demo) return SLUG_RE.test(known) ? known : ''
+    const dir = this.projectPath(name)
+    if (!dir || this.demo) return ''
+    if (!this.githubRepos.has(dir)) {
+      this.githubRepos.set(dir, null)
+      api.githubRepo(dir).then(
+        (r) => {
+          this.githubRepos.set(dir, typeof r?.slug === 'string' && SLUG_RE.test(r.slug) ? r.slug : '')
+          this.onChange()
+        },
+        // Asked again next time the panel is drawn: the folder may have been away for a moment.
+        () => this.githubRepos.delete(dir),
+      )
+    }
+    return this.githubRepos.get(dir) || ''
+  }
+
+  /** The folder's repo on GitHub, in the browser. */
+  async openRepo(name = this.selectedPlot) {
+    const slug = this.githubRepo(name)
+    if (!slug) return
+    try {
+      await api.openUrl(`https://github.com/${slug}`)
+      this.toast(`Opening ${slug}`)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
+  /**
+   * Every PR a conversation is behind, first opened first: the ones it linked itself, and any in
+   * its repo's PR list opened from the branch it worked on. A PR is known by its repo and number,
+   * never its number alone: a conversation can link a PR in another repo with the same number.
+   * What the repo's list knows of a PR (its title, whether it merged) is added when it has it.
+   */
+  threadPrs(t) {
+    if (!t) return []
+    const repo = this.demo ? null : this.prs.repos?.[t.project]
+    const listed = repo?.prs || []
+    const home = String(repo?.slug || '').toLowerCase()
+    const byNumber = new Map(listed.map((pr) => [pr.number, pr]))
+    const out = new Map()
+    const add = (number, url) => {
+      if (!Number.isInteger(number) || number <= 0 || typeof url !== 'string') return
+      const m = PR_URL_RE.exec(url)
+      if (!m) return
+      const key = `${m[1].toLowerCase()}#${number}`
+      if (out.has(key)) return
+      const pr = m[1].toLowerCase() === home && Number(m[2]) === number ? byNumber.get(number) : null
+      out.set(key, { key, number, url, title: pr?.title || '', state: pr?.state || '' })
+    }
+    for (const p of Array.isArray(t.prs) ? t.prs : []) add(p?.number, p?.url)
+    add(t.prNumber, t.prUrl)
+    // A branch many threads share, like main, says nothing about which of them opened what.
+    if (t.gitBranch && !SHARED_BRANCHES.has(t.gitBranch)) {
+      for (const pr of [...listed].sort((a, b) => a.createdAt - b.createdAt)) if (pr.branch === t.gitBranch) add(pr.number, pr.url)
+    }
+    return [...out.values()]
+  }
+
+  /** One of a conversation's PRs, by its `owner/repo#number` key, in the browser. */
+  async openThreadPr(id, key) {
+    const pr = this.threadPrs(this.thread(id)).find((p) => p.key === key)
+    if (!pr) return
+    try {
+      await api.openUrl(pr.url)
+      this.toast(`Opening PR #${pr.number}`)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
   }
 
   async openPr(id = this.selected) {
