@@ -29,3 +29,14 @@ test('about one building in seven is one of the new kinds, each about as often a
   assert.ok(Math.abs(fresh - NEW_KIND_CHANCE) < 0.03, `${(fresh * 100).toFixed(1)}% are new kinds`)
   for (const k of NEW_KINDS) assert.ok(Math.abs(counts[k] / IDS.length - NEW_KIND_CHANCE / NEW_KINDS.length) < 0.02, k)
 })
+
+test('a building keeps the grade its thread earned, and never loses it', () => {
+  const b = new Building('t1')
+  assert.equal(b.grade, 0)
+  b.setGrade(1)
+  b.setGrade(0)
+  assert.equal(b.grade, 1)
+  b.setGrade(2)
+  b.setGrade(1)
+  assert.equal(b.grade, 2)
+})

@@ -622,7 +622,70 @@ const KINDS = {
 }
 
 /**
- * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean, wear?: number }} o
+ * What a session's own work adds to its finished building (`grade`, 0 to 2). Drawn over the
+ * finished sprite from its own stream, after everything else, so grade 0 is exactly the building
+ * it always was and nothing here moves a pixel of it. It only ever adds paint inside the sprite:
+ * the size never changes, and a `low` building keeps everything below DOORSTEP_CLEAR.
+ * Grade 1: window boxes and a hanging sign in the plot's accent. Grade 2: a second chimney, a
+ * dormer where the roof has room; every other kind gets a second sign and flower pots.
+ */
+export function drawGrade(pc, o) {
+  const grade = o.grade | 0
+  if (grade < 1) return
+  const rand = rngFor('grade:' + o.variant)
+  const top = o.low ? DOORSTEP_CLEAR + 1 : 1
+  const trim = shade(o.accent, -0.2)
+  const flowers = [P.flower[0], P.flower[1], P.flower[3], P.flower[4]]
+  // A hanging sign on the wall, to the right of the door where there is room, else the left.
+  const sign = (x, y) => {
+    pc.px(x, y, P.metalDark)
+    pc.hline(x - 1, x + 1, y + 1, P.woodDark)
+    pc.rect(x - 1, y + 2, 3, 3, o.accent)
+    pc.px(x, y + 3, shade(o.accent, 0.3))
+  }
+  if (o.kind === 'house') {
+    const s = houseSpec(o.variant, o.wall || 0, o.roofs || 0, o.low)
+    const gy = s.base - 13
+    const wins = s.layout === 'pair' ? [[6, 6], [20, 6]] : s.layout === 'left' ? [[15, 11]] : [[6, 5], [13, 5]]
+    for (const [x, w] of wins) {
+      if (s.boxes) continue // its windows already carry boxes
+      for (let i = x; i < x + w; i++) pc.px(i, gy + 6, i % 2 ? P.leaf : flowers[(i + o.variant) % flowers.length])
+      pc.hline(x, x + w - 1, gy + 7, trim)
+    }
+    sign(s.layout === 'right' ? 12 : 27, s.base - 12)
+    if (grade >= 2) {
+      // The second chimney goes on the roof's other side from the first.
+      const side = s.chimney && s.chimney.x < 14 ? 21 : 7
+      const ct = Math.max(top, roofY(s.roof, side + 2) - 5)
+      pc.rect(side, ct, 4, s.wallTop - 2 - ct, P.brick)
+      pc.hline(side - 1, side + 4, ct, P.stoneDark)
+      if (!s.dormer && s.roof.shape !== 'hip' && !o.low) {
+        const dy = Math.round(s.roof.yTop + (s.roof.yBot - s.roof.yTop) * 0.45)
+        pc.rect(12, dy, 8, 6, P.plaster)
+        window(pc, 13, dy + 1, o.lit, 6, 4)
+        for (let i = 0; i < 4; i++) pc.hline(11 + i, 20 - i, dy - 1 - i, s.roofColor)
+      }
+    }
+    return
+  }
+  const bottom = pc.h - 14
+  const first = rand() < 0.5 ? 28 : 3
+  sign(first, bottom)
+  if (grade >= 2) {
+    // Not a pennant on the ridge: the windmill's sails and the tower's flag move or stand there,
+    // so nothing could be found to stand on across every frame. A second sign on the other wall,
+    // and a pot of flowers at each corner of the doorstep, on ground every kind has.
+    sign(31 - first, bottom)
+    for (const x of [1, 29]) {
+      pc.rect(x, pc.h - 4, 2, 2, P.brick)
+      pc.px(x, pc.h - 5, P.leaf)
+      pc.px(x + 1, pc.h - 5, flowers[(x + o.variant) % flowers.length])
+    }
+  }
+}
+
+/**
+ * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean, wear?: number, grade?: number }} o
  *        `wall` and `roofs` are the plot's style; `low` comes from `fitted`; `wear` is a grade
  *        from src/sim/wear.js, and only a finished building shows it.
  */
@@ -662,6 +725,7 @@ export function drawBuilding(o) {
     for (let f = 0; f < frames; f++) if (f !== frame % frames) others.push(again(true, f))
     weather(pc, again(false, 0), look, o.variant, others)
   }
+  if (o.stage >= 3) drawGrade(pc, o)
   return pc.outline(P.outline)
 }
 

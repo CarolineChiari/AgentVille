@@ -147,7 +147,7 @@ export class World {
   }
 
   /**
-   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number, group?: string, banner?: number|null }[]} threads
+   * @param {{ id: string, project: string, createdAt: number, status: string, known: boolean, wear?: number, grade?: number, group?: string, banner?: number|null }[]} threads
    *        `wear` is how weathered its building looks, a grade from wear.js. `group` is the id of
    *        the group it is in on its plot, '' for none, which decides where its house stands (see
    *        Plot.assignSlots); `banner` is that group's colour, the flag its house flies
@@ -270,6 +270,7 @@ export class World {
         b.lit = t.status === 'working' || t.status === 'waiting'
         b.wear = t.wear ?? KEPT
         b.banner = Number.isInteger(t.banner) ? t.banner : null
+        b.setGrade(t.grade ?? 0)
       }
     }
     for (const [id, b] of this.buildings) {
@@ -594,7 +595,7 @@ export class World {
       statics: this.statics,
       buildings: [...this.buildings.values()].map((b) => ({
         id: b.id, kind: b.kind, variant: b.variant, stage: b.stage, progress: b.progress, x: b.x, y: b.y, w: b.w, h: b.h,
-        alpha: b.alpha, lit: b.lit, wear: b.wear, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0, banner: b.banner,
+        alpha: b.alpha, lit: b.lit, wear: b.wear, grade: b.grade, roomy: b.roomy, plot: b.plot, accent: this.plots.get(b.plot)?.accent ?? 0, banner: b.banner,
         style: this.plots.get(b.plot)?.style ?? plain,
       })),
       villagers: [...this.villagers.values()]

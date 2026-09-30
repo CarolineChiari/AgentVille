@@ -62,3 +62,8 @@ test('landmarks raised in different tabs both stay raised', () => {
   const out = mergeState(S({ progress: { a: { tier: 1, at: 1 } } }), S({ progress: { a: { tier: 2, at: 5 } } }), S({ progress: { a: { tier: 1, at: 1 }, b: { tier: 3, at: 4 } } }))
   assert.deepEqual(out.progress, { a: { tier: 2, at: 5 }, b: { tier: 3, at: 4 } })
 })
+
+test('a grade earned in one tab survives the other tab saving', () => {
+  const out = mergeState(S({ grades: {} }), S({ grades: { a: 1 } }), S({ grades: { b: 2 } }))
+  assert.deepEqual(out.grades, { a: 1, b: 2 })
+})

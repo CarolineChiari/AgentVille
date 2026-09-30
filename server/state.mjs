@@ -24,6 +24,7 @@ export function emptyState() {
     groupOf: {},
     spots: {},
     progress: {},
+    grades: {},
     settings: null,
     updatedAt: 0,
   }
@@ -124,6 +125,14 @@ const progressMap = (v) => {
   return out
 }
 
+/** Thread id → the grade its building has earned, 1 or 2 (a grade-0 building needs no entry). */
+const gradeMap = (v) => {
+  const out = {}
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out
+  for (const [k, g] of Object.entries(v)) if (k !== '__proto__' && (g === 1 || g === 2)) out[k] = g
+  return out
+}
+
 /** Every field coerced to its type; unknown fields dropped. A hand-edited file cannot crash the page. */
 export function normalizeState(raw) {
   const s = raw && typeof raw === 'object' ? raw : {}
@@ -142,6 +151,7 @@ export function normalizeState(raw) {
     groupOf: cleanGroupOf(s.groupOf),
     spots: spotMap(s.spots),
     progress: progressMap(s.progress),
+    grades: gradeMap(s.grades),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }
