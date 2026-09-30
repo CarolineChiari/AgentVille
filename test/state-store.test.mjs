@@ -114,3 +114,9 @@ test('each repo\'s landmark tier is kept as a whole number in range, with when i
   assert.deepEqual(normalizeState({ progress: { a: { tier: MAX_TIER, at: 1 } } }).progress, { a: { tier: MAX_TIER, at: 1 } })
   assert.deepEqual(normalizeState({ progress: { a: { tier: MAX_TIER + 1, at: 1 } } }).progress, {})
 })
+
+test('earned building grades are kept, and anything but 1 or 2 is dropped', () => {
+  assert.deepEqual(normalizeState({ grades: { a: 2, b: 1, c: 0, d: 3, e: 'x', __proto__: 2 } }).grades, { a: 2, b: 1 })
+  assert.deepEqual(normalizeState({ grades: [1] }).grades, {})
+  assert.deepEqual(normalizeState({}).grades, {})
+})

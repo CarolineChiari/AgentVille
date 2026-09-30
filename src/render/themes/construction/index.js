@@ -7,6 +7,7 @@ import { drawFlag } from './flags.js'
 import { drawSiteLandmark, drawSiteProp, heightOf as landmarkHeight, landmarkFrames, shadowOf as landmarkShadow } from './landmarks.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, patches, siteCover } from './ground.js'
 import { drawSiteInterior } from './interiors.js'
+import { drawSiteSign } from './signs.js'
 
 /** @type {import('../index.js').ThemePack} */
 export const construction = {
@@ -21,6 +22,9 @@ export const construction = {
         return drawFence(Number(a), n)
       case 'flower':
         return drawFlag(Number(a), n, p.color)
+      case 'fx':
+        // A group's mark: a site board, as a flag here would read as finished work.
+        return a === 'banner' ? drawSiteSign(n) : null
       case 'static':
         // Only what a plot's landmark brings: the countryside and the square stay the village's.
         return drawSiteProp(a, n, p)

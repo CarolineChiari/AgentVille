@@ -37,6 +37,31 @@ export function drawZ() {
   return pc.outline(BADGE.working)
 }
 
+/** The flag a group's houses fly, 9×16; see drawBanner. */
+export const BANNER_W = 9
+export const BANNER_H = 16
+/** The column its pole stands in, down to its bottom row: where the renderer plants it. */
+export const BANNER_POLE = 1
+
+/**
+ * The flag every house of a group flies by its door: a pole with a gilt knob and a pennant in the
+ * group's colour, one of the accents. Frame 1 is the pennant's tail lifted by the wind.
+ */
+export function drawBanner(color, frame = 0) {
+  const pc = new PixelCanvas(BANNER_W, BANNER_H)
+  const c = ACCENTS[(Number(color) || 0) % ACCENTS.length]
+  const under = shade(c, -0.2)
+  pc.vline(BANNER_POLE, 2, BANNER_H - 1, P.woodDark)
+  pc.px(BANNER_POLE, 1, P.gilt)
+  pc.hline(2, 6, 2, c)
+  pc.hline(2, 6, 3, c)
+  pc.hline(2, 6, 4, under)
+  const lift = frame % 2
+  pc.px(7, 2 + lift, c)
+  pc.px(7, 3 + lift, under)
+  return pc.outline(P.outline)
+}
+
 /** A ring on the ground under the selected villager. */
 export function drawRing(color) {
   const pc = new PixelCanvas(16, 7)

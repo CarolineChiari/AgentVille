@@ -33,9 +33,16 @@ export class Building {
     this.plot = ''
     this.lit = false
     this.wear = KEPT // how long its thread has sat untouched; see wear.js
+    this.banner = null // the colour of its thread's group's flag, or null in none; see Plot.assignSlots
     // Open ground above it: true on a courtyard's top row, where only the fence and the road
     // are behind it. Down the sides the house above opens its door onto the row just above.
     this.roomy = true
+    this.grade = 0 // how much its thread has done, 0 to 2; see setGrade
+  }
+
+  /** A building keeps what it has gained: a thread's transcript only grows, but a rescan can misread it. */
+  setGrade(grade) {
+    if (grade > this.grade) this.grade = grade
   }
 
   /** 0 foundation · 1 frame · 2 walls · 3 finished. */

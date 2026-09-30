@@ -66,6 +66,15 @@ export function transcriptProgress(sizeBytes) {
   return Math.max(0.03, Math.min(1, (Math.log10(sizeBytes) - 3) / 3.5))
 }
 
+/**
+ * How much a session has built up, 0 to 2, from its transcript: under 0.35 of the log scale is a
+ * quick question, under 0.7 a real piece of work, and past that a long, productive thread.
+ */
+export function gradeOf(sizeBytes) {
+  const p = transcriptProgress(sizeBytes)
+  return p < 0.35 ? 0 : p < 0.7 ? 1 : 2
+}
+
 /** Hand the client's "I looked at this" back onto a thread: viewed since its last activity → not unread. */
 export function applyViewed(t, viewedAt) {
   if (t.needsInput) return t // a live question can't be marked as seen; it has to be answered

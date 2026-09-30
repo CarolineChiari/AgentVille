@@ -11,6 +11,11 @@ test('a resting thread gives its name, its folder and how long ago it was last a
   assert.equal(tipOf(thread({ lastActivityAt: NOW - 30 * 60 * MIN }), NOW).when, 'Last active yesterday')
 })
 
+test('a thread in a group names it after its folder', () => {
+  assert.equal(tipOf(thread({ group: { id: 'g-gate', name: 'Gatehouse', color: 2 } }), NOW).where, 'garden · Gatehouse')
+  assert.equal(tipOf(thread({ group: null }), NOW).where, 'garden')
+})
+
 test('working and waiting say so instead of a time', () => {
   assert.equal(tipOf(thread({ running: true }), NOW).when, 'Working now')
   assert.equal(tipOf(thread({ running: true, needsInput: 'permission prompt' }), NOW).when, 'Waiting on you')

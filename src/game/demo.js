@@ -75,6 +75,25 @@ export function demoThreads(now = Date.now()) {
   return out
 }
 
+/**
+ * Groups for a couple of demo repos, shaped like village.json's `groups` and `groupOf`, so the
+ * demo shows a plot with its sessions in groups and one without. The ids are demoThreads' own.
+ */
+export function demoGroups() {
+  return {
+    groups: {
+      // The colours freeColor hands the first groups made on these plots, as the demo paints them.
+      orchard: [{ id: 'g-data', name: 'Data', color: 1 }, { id: 'g-upkeep', name: 'Upkeep', color: 8 }],
+      tidepool: [{ id: 'g-map', name: 'Map', color: 0 }],
+    },
+    groupOf: {
+      'demo:3': 'g-data', 'demo:7': 'g-data', 'demo:8': 'g-data',
+      'demo:5': 'g-upkeep', 'demo:6': 'g-upkeep',
+      'demo:21': 'g-map', 'demo:22': 'g-map',
+    },
+  }
+}
+
 const ISSUES = [
   ['Crash when the map is empty', ['bug']], ['Add keyboard shortcuts to the card', ['enhancement']],
   ['Docs: explain the garden', ['docs']], ['Slow first load on big repos', ['performance']],

@@ -8,7 +8,8 @@ import { DECO_VARIANTS, STATIC_VARIANTS, TILE_VARIANTS } from '../src/render/spr
 import { BUILDING_W, buildingFrames, heightOf } from '../src/render/sprites/buildings.js'
 import { ANIM_FRAMES, VILLAGER_H, VILLAGER_W } from '../src/render/sprites/villagers.js'
 import { FLOWER_H, FLOWER_W } from '../src/render/sprites/flowers.js'
-import { ACCENTS, BADGE, BUTTERFLIES, PETALS } from '../src/render/sprites/palette.js'
+import { ACCENTS, BADGE, BUTTERFLIES, PETALS, hexToRgb } from '../src/render/sprites/palette.js'
+import { BANNER_H, BANNER_POLE, BANNER_W } from '../src/render/sprites/effects.js'
 import { KINDS } from '../src/sim/building.js'
 import { FLOWER_KINDS } from '../src/sim/flowers.js'
 import { lookFor } from '../src/sim/villager.js'
@@ -155,6 +156,23 @@ test('badges, rings and shadows draw', () => {
   assert.deepEqual([narrow.w, narrow.h], [10, 3])
   const wide = generate('fx.shadow.36x6', 0, {})
   assert.deepEqual([wide.w, wide.h], [36, 6])
+})
+
+test("a group's flag stands on its pole's foot in the group's colour, and its pennant lifts in the wind", () => {
+  const has = (pc, hex) => {
+    const { r, g, b } = hexToRgb(hex)
+    for (let i = 0; i < pc.data.length; i += 4) if (pc.data[i + 3] && pc.data[i] === r && pc.data[i + 1] === g && pc.data[i + 2] === b) return true
+    return false
+  }
+  for (let c = 0; c < ACCENTS.length; c++) {
+    const [down, up] = [0, 1].map((f) => generate(`fx.banner.${c}`, f, {}))
+    for (const pc of [down, up]) {
+      assert.deepEqual([pc.w, pc.h], [BANNER_W, BANNER_H])
+      assert.ok(pc.opaque(BANNER_POLE, BANNER_H - 1), 'its pole reaches the ground')
+      assert.ok(has(pc, ACCENTS[c]), `flag ${c} flies its colour`)
+    }
+    assert.ok(!same(down, up), `flag ${c} never moves`)
+  }
 })
 
 test('butterflies and birds beat their wings', () => {

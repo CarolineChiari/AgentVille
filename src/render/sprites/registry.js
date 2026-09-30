@@ -18,6 +18,8 @@
 //                                        furniture. A variant means something different per piece;
 //                                        see INTERIOR_VARIANTS in interiors.js)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
+//         fx.banner.<color>             (a group's flag, planted by its houses' doors; color into
+//                                        ACCENTS; two frames, the pennant's tail down and lifted)
 //         fx.butterfly.<color>   fx.bird       (two frames each: wings up, wings down)
 //         fx.bunting                    (the arrival square's, the size of its cell; two frames;
 //                                        params: accents, the repos' colours it flies)
@@ -31,7 +33,7 @@
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
-import { drawBadge, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawBadge, drawBanner, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 import { drawLandmark } from './landmarks.js'
 import { drawInterior } from './interiors.js'
@@ -49,7 +51,7 @@ export function generate(name, frame, p) {
     case 'villager':
       return drawVillager(p.look, a, b, frame)
     case 'building':
-      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
+      return drawBuilding({ kind: a, stage: Number(b), accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear, grade: p.grade })
     case 'tile':
       return drawTile(a, Number(b), p)
     case 'deco':
@@ -66,6 +68,7 @@ export function generate(name, frame, p) {
       return drawInterior(a, Number(b || 0))
     case 'fx':
       if (a === 'badge') return drawBadge(b)
+      if (a === 'banner') return drawBanner(b, frame)
       if (a === 'z') return drawZ()
       if (a === 'ring') return drawRing(b)
       if (a === 'butterfly') return drawButterfly(Number(b), frame)

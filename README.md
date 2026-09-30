@@ -87,6 +87,7 @@ the counts are kept in `data/repos.json`, refreshed every half hour.
 | A landmark at the head of the garden | How much work the repo has seen: a campfire, then a well, a market cross, a chapel, a town hall, a keep |
 | A lamp, a bench, planters, a rose arch in the fence | What each tier of landmark brings with it |
 | Smoke from a chimney, lit windows after dark | Someone is in: working, or waiting on you |
+| A little flag by a building's door | The session is in one of the repo's groups; a group's houses stand side by side |
 
 ![A villager holding up a ? is selected: its card says it's asking you a question and offers Open in VS Code and Transcript, and the sidebar lists everything else going on in its repo](docs/screenshots/needs-you.png)
 
@@ -262,6 +263,25 @@ However many villagers need you is also in the tab's title, `(2) AgentVille`, wh
 settings. In the desktop app it's on the Dock icon on macOS, and on the taskbar button as a small
 yellow badge on Windows; answering them clears it.
 
+### Groups
+
+A repo with a lot going on in it can keep its sessions in groups: the auth rework, the docs, the
+bugs from the last release. **Groups** in a repo's panel makes them, each with a name and a flag
+colour, and says which session is in which. **Group** on a villager's card (or `G`) puts that one
+in any of them, or in a new one named on the spot. The panel then lists the repo's sessions under
+their groups' headings, each heading with its own counts, folding away on a click, and with a `+`
+that starts a new session straight into the group: the new villager joins it as it walks in.
+
+In the village a group's houses stand side by side, and every one of them flies the group's flag by
+its door (on a building site, where a flag is finished work, it puts up a site board in the group's
+colour instead). Put a session in a group and it moves house to be next to the rest of it: into a free
+house if there is one, else swapping with a neighbour in no group. Nobody in another group is ever
+moved to make room, and a plot with no groups is laid out exactly as before. Groups are kept in
+`data/village.json`; nothing is written to the harness's own files, and an archived session keeps
+its group, so restoring it puts it back in it.
+
+![A repo's sessions in groups: its panel lists them under the Data and Upkeep headings, the selected villager's card says it is in Data, and the group's three houses along the top row each fly an orange flag by the door, beside the Upkeep pair's pink ones](docs/screenshots/groups.png)
+
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill a row at a time, left to
@@ -374,6 +394,7 @@ whenever both the PR gardens and the issue boards are off.
 | `C` | New session, with an optional first prompt |
 | `T` | Transcript of the selected thread |
 | `B` | Step inside the selected thread's building |
+| `G` | Put the selected thread in a group |
 | `H` | Hide the panels |
 | `,` | Settings |
 | `Esc` | Deselect |

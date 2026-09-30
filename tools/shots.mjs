@@ -46,6 +46,16 @@ const SCENES = [
       village.enter(t.id)
       setTimeout(() => window.__agentville.review('src/sim/frame.js'), 800)`,
   },
+  // A repo's sessions in groups: its panel lists them under their groups' headings, a card says
+  // which one its villager is in, and each group's houses stand side by side flying its flag.
+  {
+    name: 'groups',
+    script: `const { village, world, camera } = window.__agentville
+      village.select('demo:7')
+      const b = world.buildings.get('demo:7')
+      camera.scale = 3 * camera.dpr
+      camera.flyTo((b.x - 2) * 16, (b.y + 5) * 16)`,
+  },
   // A plot's landmark and its panel: what the work there has raised, and where the points came from.
   {
     name: 'landmark',

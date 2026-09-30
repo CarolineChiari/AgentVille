@@ -3,10 +3,10 @@
 import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
-import { STATUS_RANK } from '../sim/status.js'
+import { STATUS_RANK, gradeOf } from '../sim/status.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
-import { demoIssues, demoRepos, demoThreads } from './demo.js'
+import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
@@ -15,6 +15,7 @@ import { finishedName, isLook, landmarkWords, subthemeFor, themeOf } from '../si
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
 import { cleanName, withNames } from './names.js'
+import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, partition, sameName, withGroups } from './groups.js'
 
 const SAVE_DELAY = 500
 
@@ -84,8 +85,8 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, spots: {}, progress: {}, settings: null,
-  updatedAt: 0,
+  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
+  spots: {}, progress: {}, grades: {}, settings: null, updatedAt: 0,
 })
 
 export class Village {
@@ -134,11 +135,15 @@ export class Village {
     this._saveTimer = null
     this._saving = null
     this._nextIndex = -1
+    // Sessions started in a group that haven't walked in yet: { project, group, at, before }. See arrivals.
+    this._waiting = []
   }
 
   async load() {
     if (this.demo) {
       this.platform = 'demo'
+      // Groups the demo village is already in, so ?demo shows them. Nothing in demo mode is saved.
+      Object.assign(this.state, demoGroups())
       return
     }
     const [state, h] = await Promise.all([api.fetchState(), api.fetchHarnesses().catch(() => ({ harnesses: [], platform: '' }))])
@@ -161,6 +166,7 @@ export class Village {
         this.warnings = r.warnings || []
       }
       this._name()
+      this._join()
       this.scanned = true
       if (!this.demo) {
         await Promise.all([
@@ -260,6 +266,20 @@ export class Village {
     return { tiers: new Map(Object.entries(this.state.progress || {}).map(([name, p]) => [name, p.tier])), changed }
   }
 
+  /**
+   * A building's grade: what its transcript earns now, or what it has earned before if that is
+   * more. Saved, so a reload or a misread scan never takes a building's growth away.
+   */
+  _gradeOf(t) {
+    const grades = (this.state.grades ||= {})
+    const g = Math.max(gradeOf(t.sizeBytes), grades[t.id] || 0)
+    if (g > (grades[t.id] || 0)) {
+      grades[t.id] = g
+      this._gradesChanged = true
+    }
+    return g
+  }
+
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
@@ -267,8 +287,14 @@ export class Village {
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
-      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now),
+      id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now), grade: this._gradeOf(t),
+      // Its group, for where its house stands, and the colour of the flag it flies.
+      group: t.group?.id || '', banner: t.group ? t.group.color : null,
     }))
+    if (this._gradesChanged) {
+      this._gradesChanged = false
+      dirty = true
+    }
     for (const t of this.view.live) {
       if (!this.state.seen[t.id]) {
         this.state.seen[t.id] = now
@@ -546,6 +572,10 @@ export class Village {
       r.last = Math.max(0, ...r.threads.map((t) => t.lastActivityAt || 0), ...(this.gardens.get(r.name) || []).map((f) => f.finishedAt))
       r.accent = this.world.plots.get(r.name)?.accent ?? 0
       r.progress = this.landmark(r.name)
+      // Its groups, each with its own threads in the same order and their counts, then the rest.
+      const { groups, rest } = partition(r.threads, this.groupsOf(r.name))
+      r.groups = groups.map((g) => ({ ...g, counts: countStatuses(g.threads) }))
+      r.ungrouped = rest
     }
     const urgency = (r) => (r.counts.blocked || r.counts.waiting ? 0 : r.counts.working || r.openPrs ? 1 : 2)
     return list.sort((a, b) => urgency(a) - urgency(b) || b.last - a.last)
@@ -703,9 +733,9 @@ export class Village {
     this.toast(`Archived “${t.title}”`)
   }
 
-  /** Put the names people gave their threads over the harnesses' titles. */
+  /** Put the names people gave their threads over the harnesses' titles, and each in its group. */
   _name() {
-    this.threads = withNames(this.scannedThreads, this.state.names)
+    this.threads = withGroups(withNames(this.scannedThreads, this.state.names), this.state.groups, this.state.groupOf)
     this.byId = new Map(this.threads.map((t) => [t.id, t]))
   }
 
@@ -753,9 +783,9 @@ export class Village {
    * Start a session in a folder with one of the detected harnesses, optionally with a first prompt
    * (sent along where the harness's link or CLI can carry it, copied to the clipboard where it
    * can't). The new villager walks in from the gate once the session writes its transcript, so
-   * look again a few times soon after.
+   * look again a few times soon after. Started in one of the repo's groups, it joins it as it arrives.
    */
-  async startSession(folder, prompt = '', { harness = '', target = '', model = '', effort = '' } = {}) {
+  async startSession(folder, prompt = '', { harness = '', target = '', model = '', effort = '', group = '' } = {}) {
     if (!folder) return false
     if (this.demo) {
       this.toast('Demo mode: nothing to start.')
@@ -767,7 +797,10 @@ export class Village {
       // Wherever the prompt couldn't travel with the session, it goes to the clipboard instead.
       const copied = prompt && !r.promptPassed && (await navigator.clipboard.writeText(prompt).then(() => true, () => false))
       const how = [model, effort && `${effort} effort`].filter(Boolean).join(', ')
-      this.toast(`Starting a new session in ${where}${how ? ` with ${how}` : ''}${copied ? ' — your prompt is on the clipboard' : ''}`)
+      const project = this.knownFolders().find((f) => f.path === folder)?.name || ''
+      const joins = this.groupsOf(project).find((g) => g.id === group)
+      if (joins) this._expect(project, joins.id)
+      this.toast(`Starting a new session in ${where}${how ? ` with ${how}` : ''}${joins ? `, in “${joins.name}”` : ''}${copied ? ' — your prompt is on the clipboard' : ''}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
       return true
     } catch (err) {
@@ -803,11 +836,126 @@ export class Village {
       const copied = !r.promptPassed && (await navigator.clipboard.writeText(task.prompt).then(() => true, () => false))
       const where = r.where ? ` in ${r.where}` : ''
       const clip = copied ? ' — the task is on the clipboard' : ''
+      // A task that had to start a session of its own is still the group's work.
+      if (!r.continued && t.group) this._expect(t.project, t.group.id)
       this.toast(r.continued ? `“${task.label}” sent to “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
     } catch (err) {
       this.toast(err.message, 'error')
     }
+  }
+
+  // ---------- groups ----------
+
+  /** A repo's groups, in the order they were made. */
+  groupsOf(project) {
+    const groups = this.state.groups || {}
+    return (Object.hasOwn(groups, project) && groups[project]) || []
+  }
+
+  /**
+   * Make a group in a repo. Returns its id, or '' (and says why) when it can't be made: no name, a
+   * name the repo already has, or a repo with as many groups as it can keep.
+   */
+  addGroup(project, name) {
+    if (!project) return ''
+    const clean = cleanGroupName(name)
+    const list = this.groupsOf(project)
+    const taken = list.find((g) => sameName(g.name, clean))
+    const why = !clean ? 'A group needs a name.'
+      : taken ? `${project} already has a group called “${taken.name}”.`
+        : list.length >= GROUP_MAX ? `${project} already has ${GROUP_MAX} groups.` : ''
+    if (why) {
+      this.toast(why, 'error')
+      return ''
+    }
+    const id = groupId(clean, [...list.map((g) => g.id), ...Object.values(this.state.groupOf || {})])
+    this._setGroups(project, [...list, { id, name: clean, color: freeColor(list, this.world.plots.get(project)?.accent) }])
+    return id
+  }
+
+  /** Call a group something else. False (and says why) when the new name is empty or already taken. */
+  renameGroup(project, id, name) {
+    const list = this.groupsOf(project)
+    const g = list.find((x) => x.id === id)
+    if (!g) return false
+    const clean = cleanGroupName(name)
+    const taken = list.find((x) => x.id !== id && sameName(x.name, clean))
+    const why = !clean ? 'A group needs a name.' : taken ? `${project} already has a group called “${taken.name}”.` : ''
+    if (why) {
+      this.toast(why, 'error')
+      return false
+    }
+    if (clean !== g.name) this._setGroups(project, list.map((x) => (x.id === id ? { ...x, name: clean } : x)))
+    return true
+  }
+
+  /** Fly a group's flag in another of the accent colours. */
+  recolorGroup(project, id, color) {
+    if (!Number.isInteger(color) || color < 0 || color >= GROUP_COLORS) return
+    const list = this.groupsOf(project)
+    if (!list.some((x) => x.id === id && x.color !== color)) return
+    this._setGroups(project, list.map((x) => (x.id === id ? { ...x, color } : x)))
+  }
+
+  /** Take a group down. Its threads stay where they stand, in no group. */
+  removeGroup(project, id) {
+    const list = this.groupsOf(project)
+    if (!list.some((x) => x.id === id)) return
+    const groupOf = { ...this.state.groupOf }
+    for (const t of this.threads) if (t.project === project && groupOf[t.id] === id) delete groupOf[t.id]
+    this.state.groupOf = groupOf
+    this._waiting = this._waiting.filter((w) => !(w.project === project && w.group === id))
+    this._setGroups(project, list.filter((x) => x.id !== id))
+  }
+
+  _setGroups(project, list) {
+    const groups = { ...this.state.groups }
+    if (list.length) groups[project] = list
+    else delete groups[project]
+    this.state.groups = groups
+    this._regroup()
+  }
+
+  /** Put a thread in one of its repo's groups, or with '' in none. */
+  setGroup(threadId, id = '') {
+    const t = this.thread(threadId)
+    if (!t) return
+    const next = id && this.groupsOf(t.project).some((g) => g.id === id) ? id : ''
+    if ((this.state.groupOf?.[threadId] || '') === next) return
+    const groupOf = { ...this.state.groupOf }
+    if (next) groupOf[threadId] = next
+    else delete groupOf[threadId]
+    this.state.groupOf = groupOf
+    this._regroup()
+  }
+
+  /** Every thread wears its group again, and the village follows. */
+  _regroup() {
+    this._name()
+    this.apply()
+    this.queueSave()
+  }
+
+  /**
+   * Wait for a session just started on `project` to walk in, and put it in group `id` when it does:
+   * the first on that repo that wasn't there a moment ago. See arrivals.
+   */
+  _expect(project, id) {
+    if (!project || !id || !this.groupsOf(project).some((g) => g.id === id)) return
+    const before = this.scannedThreads.filter((t) => t.project === project).map((t) => t.id)
+    this._waiting.push({ project, group: id, at: Date.now(), before })
+  }
+
+  /** Sessions that have walked in since they were started in a group take it up. */
+  _join(now = Date.now()) {
+    if (!this._waiting.length) return
+    const { joins, waiting } = arrivals(this._waiting, this.threads, this.state.groupOf, now)
+    this._waiting = waiting
+    if (!Object.keys(joins).length) return
+    this.state.groupOf = { ...this.state.groupOf, ...joins }
+    this._name()
+    this.queueSave()
   }
 
   /** The village's theme: the one being previewed, else the one in the settings. */

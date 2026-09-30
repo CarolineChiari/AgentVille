@@ -42,6 +42,7 @@ const HELP = [
   ['C', 'New session (optionally with a first prompt)'],
   ['T', 'Transcript of the selected thread'],
   ['B', 'Step inside its building (Esc comes back out)'],
+  ['G', 'Put it in a group'],
   ['H', 'Hide the panels'],
   [',', 'Settings'],
   ['Esc', 'Deselect'],
@@ -51,7 +52,7 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onShowPanels = () => {}, canNotify = false }) {
+export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -66,6 +67,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   back.addEventListener('click', () => onShowPanels())
   root.append(side, sheet, hint, back)
   const open = { archived: false, hidden: true, folded: false }
+  // A repo's groups folded away in its panel, as `<repo>/<group id>`: a group id can't hold a slash.
+  const foldedGroups = new Set()
   let sheetMode = null
   let stale = false
 
@@ -156,14 +159,44 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="reveal">${folderWord()}</button>
         <button class="btn" data-act="copy">Copy path</button>
         <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
+        <button class="btn" data-act="groups" title="Put this repo's sessions in groups: each group's houses stand together and fly its flag">Groups${r.groups.length ? ` (${r.groups.length})` : ''}</button>
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
       ${spotPicker(r.name)}
       ${landmark(r)}
       ${r.flowers ? `<div class="garden-note">${esc(words.glyph)} ${r.flowers} finished — click a ${esc(words.one)} in the ${esc(words.place)} to look back</div>` : ''}
-      <div class="threads">${r.threads.map((t) => `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`).join('')}</div>
+      <div class="threads">${threadList(r)}</div>
     </div>`
+  }
+
+  function threadRow(t) {
+    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}"><span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
+  }
+
+  /**
+   * A repo's threads, under its groups' headings when it has any, each folding away on a click,
+   * and the threads in none after them. A heading says what its group is up to, as a repo's row does.
+   */
+  function threadList(r) {
+    if (!r.groups.length) return r.threads.map(threadRow).join('')
+    const heading = (g) => {
+      const shut = foldedGroups.has(`${r.name}/${g.id}`)
+      const c = g.counts
+      const b = []
+      if (c.blocked) b.push(`<span class="blocked">${c.blocked} !</span>`)
+      if (c.waiting) b.push(`<span class="waiting">${c.waiting} ?</span>`)
+      if (c.done) b.push(`<span class="done" title="Done, ready for review">${c.done} ✓</span>`)
+      if (c.working) b.push(`<span class="working">${c.working}</span>`)
+      return `<div class="group-head">
+        <button class="gh-fold" data-act="foldGroup" data-group="${esc(g.id)}" aria-expanded="${!shut}" title="${shut ? 'Show' : 'Fold away'} its sessions">
+          <span class="fold">${shut ? '▸' : '▾'}</span><span class="flag" style="background:${ACCENTS[g.color % ACCENTS.length]}"></span><span class="name">${esc(g.name)}</span>
+          <span class="badges">${b.join('')}<span title="Sessions in this group">${g.threads.length}</span></span></button>
+        <button class="btn gh-new" data-act="newInGroup" data-group="${esc(g.id)}" title="${esc(`New session in ${g.name}`)}" aria-label="${esc(`New session in ${g.name}`)}">+</button>
+      </div>${shut ? '' : g.threads.length ? g.threads.map(threadRow).join('') : '<p class="group-empty">No sessions yet. Pick this group on a villager’s card, or start one with +.</p>'}`
+    }
+    const rest = r.ungrouped.length ? `<div class="group-head rest"><span class="name">In no group</span><span class="badges"><span>${r.ungrouped.length}</span></span></div>${r.ungrouped.map(threadRow).join('')}` : ''
+    return r.groups.map(heading).join('') + rest
   }
 
   /**
@@ -266,6 +299,14 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'thread': village.select(id); onFly({ villager: id }); break
       case 'new': onNewSession(village.selectedPlot); break
       case 'newAny': onNewSession(village.selectedPlot); break
+      case 'newInGroup': onNewSession(village.selectedPlot, { group: b.dataset.group }); break
+      case 'groups': onEditGroups(village.selectedPlot); break
+      case 'foldGroup': {
+        const k = `${village.selectedPlot}/${b.dataset.group}`
+        if (!foldedGroups.delete(k)) foldedGroups.add(k)
+        render()
+        break
+      }
       case 'reveal': village.reveal(); break
       case 'copy': village.copyPath(); break
       case 'tasks': onEditTasks(village.selectedPlot); break
