@@ -20,7 +20,7 @@
 // polythene, never glass, for the same reason the other way round.
 import { PALETTE as P, shade } from '../../sprites/palette.js'
 import { PixelCanvas } from '../../sprites/pixel.js'
-import { BUILDING_W, DOORSTEP_CLEAR } from '../../sprites/buildings.js'
+import { BUILDING_W, DOORSTEP_CLEAR, drawGradeTrim } from '../../sprites/buildings.js'
 import { lookFor, weather } from '../../sprites/weathering.js'
 import { mulberry32, pick, rngFor } from '../../../sim/rng.js'
 import { THEMES } from '../../../sim/themes.js'
@@ -944,6 +944,7 @@ export function drawFarmBuilding(o) {
     for (let f = 0; f < frames; f++) if (f !== frameNo % frames) others.push(again(true, f))
     weather(pc, again(false, 0), look, variant, others)
   }
+  if (o.stage >= 3) drawGradeTrim(pc, o)
   return pc.outline(P.outline)
 }
 

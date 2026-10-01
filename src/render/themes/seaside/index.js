@@ -23,7 +23,7 @@ export const seaside = {
     const n = Number(b || 0)
     switch (group) {
       case 'building':
-        return drawSeaBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
+        return drawSeaBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear, grade: p.grade })
       case 'fence':
         return drawFence(Number(a), n)
       case 'flower':

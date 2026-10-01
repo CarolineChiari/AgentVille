@@ -20,7 +20,7 @@
 // own: a harvest village is built by the same carpenters. What is drawn here is the harvest on them.
 import { PALETTE as P, shade } from '../../sprites/palette.js'
 import { PixelCanvas } from '../../sprites/pixel.js'
-import { BUILDING_W, DOORSTEP_CLEAR } from '../../sprites/buildings.js'
+import { BUILDING_W, DOORSTEP_CLEAR, drawGradeTrim } from '../../sprites/buildings.js'
 import { lookFor, weather } from '../../sprites/weathering.js'
 import { mulberry32, pick, rngFor } from '../../../sim/rng.js'
 import { THEMES } from '../../../sim/themes.js'
@@ -540,5 +540,6 @@ export function drawHarvestBuilding(o) {
     }
     weather(pc, again(false), look, variant, [])
   }
+  if (o.stage >= 3) drawGradeTrim(pc, o)
   return pc.outline(P.outline)
 }

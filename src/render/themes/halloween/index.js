@@ -22,7 +22,7 @@ export const halloween = {
         // Its own markers for a spotlight. Every other effect means what it does in every theme.
         return a === 'spotlight' ? drawHallowSpotlight(b) : null
       case 'building':
-        return drawHallowBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear })
+        return drawHallowBuilding({ kind: a, stage: n, accent: p.accent, variant: p.variant, lit: p.lit, frame, wall: p.wall, roofs: p.roofs, low: p.low, wear: p.wear, grade: p.grade })
       case 'fence':
         return drawFence(Number(a), n)
       case 'flower':
