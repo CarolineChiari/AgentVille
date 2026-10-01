@@ -266,7 +266,7 @@ function plots(theme) {
   return row(THEMES[theme].subthemes.map((s) => plotPanel(theme, s.id)))
 }
 
-/** Every kind a thread builds, a row each: stages 0–2, finished in five looks, lit, its frames, every grade of wear, and down a courtyard's side. */
+/** Every kind a thread builds, a row each: stages 0–2, finished in five looks, lit, its frames, every grade of wear, grades 1 and 2, and down a courtyard's side. */
 function buildings(theme) {
   const { dims } = THEMES[theme]
   const B = packFor(theme).buildings
@@ -279,7 +279,7 @@ function buildings(theme) {
       const H = B.heightOf(drawn, variant, low)
       const pc = ground(theme, 0, 36, 66)
       const img = sprite(theme, `building.${drawn}.${stage}`, o.frame || 0, {
-        accent: ACCENTS[variant % ACCENTS.length], variant, lit: Boolean(o.lit), wall: variant % dims.wall.length, roofs: variant % dims.roofs, low, wear: o.wear ?? 1,
+        accent: ACCENTS[variant % ACCENTS.length], variant, lit: Boolean(o.lit), wall: variant % dims.wall.length, roofs: variant % dims.roofs, low, wear: o.wear ?? 1, grade: o.grade ?? 0,
       })
       blit(pc, img, 2, 66 - 2 - H)
       cells.push(pc)
@@ -290,6 +290,7 @@ function buildings(theme) {
     cell(own, 3, { lit: true })
     for (let f = 1; f < B.frames(own, 3); f++) cell(own, 3, { frame: f })
     for (let w = 0; w < WEAR.length; w++) cell(own, 3, { variant: 7, wear: w })
+    for (const grade of [1, 2]) cell(own, 3, { variant: 7, grade })
     const side = B.fitted(kind, 3, false)
     cell(side.kind, 3, { variant: 3, low: side.low })
     rows.push(row(cells, 2))
@@ -486,7 +487,7 @@ function landmarks(theme) {
 const BANDS = { plots, buildings, landmarks, fences, ground: groundBand, finished, villagers, rooms }
 const LEGEND = {
   plots: 'a plot in each sub-theme, in order: %s',
-  buildings: `a row per kind (${KINDS.join(', ')}): stages 0, 1, 2; finished ×5 (wall and paint vary); lit; any other animation frames; wear gleaming→derelict; down a courtyard's side`,
+  buildings: `a row per kind (${KINDS.join(', ')}): stages 0, 1, 2; finished ×5 (wall and paint vary); lit; any other animation frames; wear gleaming→derelict; grades 1 and 2; down a courtyard's side`,
   landmarks: 'a row per tier (%s): set out, framed, in scaffolding, finished; lit with somebody in, each frame; three more plots\' looks',
   fences: 'a row per fence (%s): its sixteen joins by mask, then a small ring of it',
   ground: 'a band per ground (%s): six tiles, five footpaths, six roads, sixteen fringes on a road, what lies about; then a stretch of it with its patches',

@@ -77,6 +77,20 @@ for (const id of THEME_IDS) {
               assert.equal(pc.h, H, `${name} v${variant}`)
               assert.ok(opaque(pc) > 100, `${name} v${variant} is nearly empty`)
               assert.ok(grounded(pc), `${name} v${variant} floats`)
+              // A session's own work shows: grade 0 is the building as it was, each grade above
+              // adds to it, and a site still going up shows none.
+              const g = [0, 1, 2].map((grade) => at(name, frame, look(variant, f, { grade })))
+              assert.ok(same(g[0], pc), `${name} v${variant}: grade 0 is not the plain building`)
+              if (stage === 3) {
+                for (const grade of [1, 2]) {
+                  assert.equal(g[grade].h, H, `${name} v${variant} grade ${grade}`)
+                  assert.equal(g[grade].w, BUILDING_W, `${name} grade ${grade}`)
+                  assert.ok(grounded(g[grade]), `${name} v${variant} grade ${grade} floats`)
+                  assert.ok(!same(g[grade], g[grade - 1]), `${name} v${variant}: grade ${grade} draws nothing more than grade ${grade - 1}`)
+                }
+              } else {
+                assert.ok(same(g[2], pc), `${name} v${variant}: a site going up shows a grade`)
+              }
             }
           }
         }
@@ -91,8 +105,10 @@ for (const id of THEME_IDS) {
         assert.equal(B.heightOf(f.kind, variant, f.low), 48, `a ${kind} (${f.kind}) down the side`)
         for (let stage = 0; stage <= 3; stage++) {
           for (const wear of [KEPT, WEAR.length - 1]) {
-            const pc = at(`building.${f.kind}.${stage}`, 0, look(variant, f, { wear }))
-            assert.ok(topRow(pc) >= DOORSTEP_CLEAR, `a ${f.kind} (v${variant}, stage ${stage}) reaches row ${topRow(pc)} of the walkway above`)
+            for (const grade of [0, 1, 2]) {
+              const pc = at(`building.${f.kind}.${stage}`, 0, look(variant, f, { wear, grade }))
+              assert.ok(topRow(pc) >= DOORSTEP_CLEAR, `a ${f.kind} (v${variant}, stage ${stage}, grade ${grade}) reaches row ${topRow(pc)} of the walkway above`)
+            }
           }
         }
       }

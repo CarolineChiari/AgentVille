@@ -1501,12 +1501,28 @@ function pallets(pc, o) {
 
 // ---------- drawing one ----------
 
+/**
+ * What a session's own work adds to its finished site (`grade`, 0 to 2), drawn last from its own
+ * stream so grade 0 is exactly the building it always was. Grade 1: a site board in the plot's
+ * accent on the ground at one side. Grade 2: a floodlight on the other. Both stand on the base
+ * line, so the sprite's size and everything above the doorstep stay as they were.
+ */
+function drawSiteGrade(pc, o) {
+  const grade = o.grade | 0
+  if (grade < 1) return
+  const left = rngFor('grade:' + o.variant)() < 0.5
+  const base = pc.h - 2
+  sign(pc, left ? 1 : 22, base - 5, o.accent)
+  pc.vline(left ? 5 : 26, base - 1, base, P.metalDark)
+  if (grade >= 2) worklight(pc, left ? 27 : 4, base, o.lit)
+}
+
 const KINDS = { frame, cabin, containers, shed, crane, mixer, loos, digger, core, glazing, pallets }
 /** Nothing to climb: these go up without scaffolding. */
 const NO_SCAFFOLD = new Set(['loos', 'digger', 'pallets'])
 
 /**
- * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean, wear?: number }} o
+ * @param {{ kind: string, stage: number, accent: string, variant: number, lit: boolean, frame?: number, wall?: number, roofs?: number, low?: boolean, wear?: number, grade?: number }} o
  */
 export function drawSiteBuilding(o) {
   const kind = KINDS[o.kind] ? o.kind : 'frame'
@@ -1543,6 +1559,7 @@ export function drawSiteBuilding(o) {
     for (let f = 0; f < frames; f++) if (f !== frameNo % frames) others.push(again(true, f))
     weather(pc, again(false, 0), look, variant, others)
   }
+  if (o.stage >= 3) drawSiteGrade(pc, o)
   return pc.outline(P.outline)
 }
 
