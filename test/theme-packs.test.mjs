@@ -77,6 +77,12 @@ for (const id of THEME_IDS) {
               assert.equal(pc.h, H, `${name} v${variant}`)
               assert.ok(opaque(pc) > 100, `${name} v${variant} is nearly empty`)
               assert.ok(grounded(pc), `${name} v${variant} floats`)
+              if (stage === 3) for (const grade of [1, 2]) {
+                const g = at(name, frame, look(variant, f, { grade }))
+                assert.equal(g.h, H, `${name} v${variant} grade ${grade}`)
+                assert.equal(g.w, BUILDING_W, `${name} grade ${grade}`)
+                assert.ok(grounded(g), `${name} v${variant} grade ${grade} floats`)
+              }
             }
           }
         }
@@ -91,8 +97,10 @@ for (const id of THEME_IDS) {
         assert.equal(B.heightOf(f.kind, variant, f.low), 48, `a ${kind} (${f.kind}) down the side`)
         for (let stage = 0; stage <= 3; stage++) {
           for (const wear of [KEPT, WEAR.length - 1]) {
-            const pc = at(`building.${f.kind}.${stage}`, 0, look(variant, f, { wear }))
-            assert.ok(topRow(pc) >= DOORSTEP_CLEAR, `a ${f.kind} (v${variant}, stage ${stage}) reaches row ${topRow(pc)} of the walkway above`)
+            for (const grade of [0, 1, 2]) {
+              const pc = at(`building.${f.kind}.${stage}`, 0, look(variant, f, { wear, grade }))
+              assert.ok(topRow(pc) >= DOORSTEP_CLEAR, `a ${f.kind} (v${variant}, stage ${stage}, grade ${grade}) reaches row ${topRow(pc)} of the walkway above`)
+            }
           }
         }
       }
