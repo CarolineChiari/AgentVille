@@ -231,19 +231,32 @@ export class Village {
 
   /**
    * The weather at the place typed in Settings, asked for once an hour. With no place (or no
-   * weather at all) nothing is asked and the village makes its weather up. The last good answer is
-   * kept when an ask fails, so a dropped connection never clears the sky.
+   * weather at all) nothing is asked and the village makes its weather up. The last good answer for
+   * the same place is kept when an ask fails, so a dropped connection never clears the sky; a
+   * different place never inherits it.
    */
   async pollWeather() {
     clearTimeout(this._weatherTimer)
     const place = this.settings.place
     if (this.demo || !this.settings.weather || !place) {
-      this.realWeather = null
+      this._weatherPlace = ''
+      if (this.realWeather) {
+        this.realWeather = null
+        this.onChange()
+      }
       return
+    }
+    if (place !== this._weatherPlace) {
+      this._weatherPlace = place
+      this.realWeather = null
     }
     try {
       const r = await api.fetchWeather(place)
-      if (place === this.settings.place) this.realWeather = r.ok || !this.realWeather?.ok ? r : this.realWeather
+      // The person may have typed another place while this one was out: that ask owns the answer now.
+      if (place !== this.settings.place) return
+      this.realWeather = r.ok || !this.realWeather?.ok ? r : this.realWeather
+      // An open Settings sheet is showing "Looking…" until it hears.
+      this.onChange()
     } catch {
       // The weather is decoration; a failure here must never stop the village.
     }

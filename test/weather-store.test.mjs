@@ -14,7 +14,7 @@ test('a place is trimmed, and anything that is not a name is refused', () => {
   assert.equal(cleanPlace('  Lyon,   France '), 'Lyon, France')
   assert.equal(cleanPlace("Saint-Jean-de-Luz"), 'Saint-Jean-de-Luz')
   assert.equal(cleanPlace('Zürich'), 'Zürich')
-  for (const bad of ['', '   ', 'a&b=c', 'http://x.y', '<b>', 'x'.repeat(81), 42, null]) assert.equal(cleanPlace(bad), '')
+  for (const bad of ['', '   ', 'a&b=c', 'http://x.y', '<b>', '...', ',,,', '()', ' - ', 'x'.repeat(81), 42, null]) assert.equal(cleanPlace(bad), '')
 })
 
 test('the store geocodes the place, asks for its weather, and answers from memory for an hour', async () => {

@@ -69,3 +69,57 @@ test('autumn leaves stay in the view with one of three colours', () => {
   assert.ok(leaves.length >= 3)
   for (const l of leaves) assert.ok(l.x >= -100 && l.x < 600 && l.y >= -100 && l.y < 400 && [0, 1, 2].includes(l.hue))
 })
+
+// ---------- the village's hourly poll ----------
+import { Village } from '../src/game/village.js'
+import { World } from '../src/sim/world.js'
+
+function weatherVillage(settings, answers) {
+  let changes = 0
+  const v = new Village({ world: new World(), settings: { weather: true, place: '', ...settings }, onChange: () => changes++ })
+  const real = globalThis.fetch
+  globalThis.fetch = async (url, init) => {
+    const place = JSON.parse(init.body).place
+    const a = answers[place]
+    if (a instanceof Error) throw a
+    return { ok: a.ok, status: a.ok ? 200 : 400, json: async () => a }
+  }
+  return { v, changes: () => changes, done: () => { clearTimeout(v._weatherTimer); globalThis.fetch = real } }
+}
+
+test('the poll tells the UI when the weather arrives, and holds the last good sky for the same place only', async () => {
+  const lyon = { ok: true, place: 'Lyon, France', code: 61 }
+  const { v, changes, done } = weatherVillage({ place: 'Lyon' }, { Lyon: lyon, Paris: new Error('offline') })
+  try {
+    await v.pollWeather()
+    assert.deepEqual(v.realWeather, lyon)
+    assert.equal(changes(), 1)
+    // Same place, the connection drops: the sky stays.
+    v.settings.place = 'Lyon'
+    globalThis.fetch = async () => { throw new Error('offline') }
+    await v.pollWeather()
+    assert.deepEqual(v.realWeather, lyon)
+    // Another place, the ask fails: Lyon's sky is not Paris's.
+    v.settings.place = 'Paris'
+    await v.pollWeather()
+    assert.equal(v.realWeather.ok, false)
+    // No place: nothing is asked and the village makes its own.
+    v.settings.place = ''
+    await v.pollWeather()
+    assert.equal(v.realWeather, null)
+  } finally {
+    done()
+  }
+})
+
+test('an answer for a place that has since been changed is dropped', async () => {
+  const { v, done } = weatherVillage({ place: 'Lyon' }, { Lyon: { ok: true, place: 'Lyon', code: 3 } })
+  try {
+    const asking = v.pollWeather()
+    v.settings.place = 'Nice'
+    await asking
+    assert.equal(v.realWeather, null)
+  } finally {
+    done()
+  }
+})

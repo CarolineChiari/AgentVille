@@ -13,12 +13,14 @@ const FORECAST = 'https://api.open-meteo.com/v1/forecast'
 export const PLACE_MAX = 80
 /** Letters in any script, digits, and the punctuation a place is written with. Never a URL or markup. */
 const PLACE_RE = /^[\p{L}\p{M}\p{N} .,'’()-]+$/u
+/** A place has a letter or a digit in it: "..." and "()" pass the whitelist and are still not names. */
+const NAMED_RE = /[\p{L}\p{N}]/u
 
 /** The place as typed, trimmed and single-spaced, or '' when it is not one. */
 export function cleanPlace(value) {
   if (typeof value !== 'string') return ''
   const s = value.trim().replace(/\s+/g, ' ')
-  return s && s.length <= PLACE_MAX && PLACE_RE.test(s) ? s : ''
+  return s && s.length <= PLACE_MAX && PLACE_RE.test(s) && NAMED_RE.test(s) ? s : ''
 }
 
 async function getJson(fetchFn, url) {
