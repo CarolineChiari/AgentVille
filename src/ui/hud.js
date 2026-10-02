@@ -6,6 +6,7 @@ import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
 import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
+import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
 
@@ -261,6 +262,23 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <select data-spot="${esc(name)}"><option value="" ${picked ? '' : 'selected'}>Auto: ${esc(spotLabel(landmarkSpotOf(settings.landmarkSpot)))}</option>${options}</select></label>`
   }
 
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const dateOf = (day) => `${MONTHS[ymd(day).month - 1]} ${ymd(day).day}`
+
+  /** The holidays to tick, and which theme is on now and which comes next. */
+  function calendarRows() {
+    const list = ticked(settings.holidays)
+    const on = new Set(list.map((h) => h.id))
+    const today = todayOf()
+    const next = nextHoliday(today, list)
+    // From the window itself, not by comparing themes: someone whose base theme is Halloween is
+    // still in Halloween's dates.
+    const now = activeHoliday(today, list)?.holiday.label
+    const line = [now && `${now} is on now.`, next && `${next.holiday.label} next, from ${dateOf(next.start)}.`].filter(Boolean).join(' ')
+    return `${line ? `<p style="color:var(--muted);font-size:12px;margin:0">${esc(line)}</p>` : ''}
+        ${HOLIDAYS.map((h) => `<label>${esc(h.label)} <input type="checkbox" data-holiday="${h.id}" ${on.has(h.id) ? 'checked' : ''}></label>`).join('')}`
+  }
+
   function renderSheet() {
     if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
@@ -273,7 +291,9 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       const place = finishedWords(theme).place
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Theme
-          <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
+          <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === village.baseTheme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
+        <label title="Dress the village for a holiday through its dates, then back to the theme above. Folders with a look of their own keep it.">Follow the calendar <input type="checkbox" data-set="calendar" ${s.calendar ? 'checked' : ''}></label>
+        ${s.calendar ? calendarRows() : ''}
         <label title="Every folder that hasn't picked a look of its own, from its panel">Every folder
           <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
         <label title="Where every plot stands the ${esc(landmarkWords(theme).one)} its work has raised, unless the folder picked somewhere of its own. At the head of the ${esc(place)} it hides none of the ${esc(finishedWords(theme).many)} growing there.">Landmarks stand
@@ -361,6 +381,13 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (e.target.closest('[data-act="closeSheet"]')) showSheet(sheetMode)
   })
   sheet.addEventListener('input', (e) => {
+    const holiday = e.target.dataset.holiday
+    if (holiday) {
+      settings.holidays = { ...settings.holidays, [holiday]: e.target.checked }
+      onSettings('holidays')
+      renderSheet()
+      return
+    }
     const k = e.target.dataset.set
     if (!k) return
     // The whole village's sub-theme is kept per theme, so switching themes back finds it again.
