@@ -501,6 +501,15 @@ async function boot() {
   }
   await poll()
   setInterval(poll, POLL_MS)
+  // The calendar rolls over at midnight, and a village left open overnight should change with it.
+  let worn = village.theme
+  setInterval(() => {
+    if (village.theme === worn) return
+    worn = village.theme
+    village.apply()
+    applyTheme()
+    hud.render()
+  }, 60_000)
   if (!settings.seenHelp) {
     settings.seenHelp = true
     saveSettings(settings)

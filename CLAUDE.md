@@ -54,6 +54,9 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   `fx.spotlight.<id>`, 11×12, from text art in its `spotlights.js`). A spotlight shows its plot's
   theme's first unless one of any theme's was picked; the pink at the villager's feet and the edge
   pointer mean "spotlit" in every theme.
+- Settings → Follow the calendar dresses the village in a holiday's theme through its dates (`src/sim/calendar.js`,
+  pure; a holiday is a window of lead-in and tail days around its day). It only changes the village's theme: a
+  folder's own look is kept. A new holiday theme joins `HOLIDAYS` there.
 - `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules, and
   `test/interiors.test.mjs` holds every room to the sim's. To make a new theme, follow the
   `new-theme` skill in `.claude/skills/new-theme/`.

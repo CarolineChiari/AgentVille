@@ -4,6 +4,7 @@ import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK, gradeOf } from '../sim/status.js'
+import { themeOnDay, todayOf } from '../sim/calendar.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
 import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
@@ -1119,9 +1120,19 @@ export class Village {
     this.queueSave()
   }
 
-  /** The village's theme: the one being previewed, else the one in the settings. */
-  get theme() {
+  /** The theme picked in the settings, or being previewed: the village's, before the calendar has its say. */
+  get baseTheme() {
     return themeOf(this.preview?.theme || this.settings.theme)
+  }
+
+  /**
+   * The village's theme: the one being previewed, else the holiday's if the calendar is on and one
+   * is under way, else the one in the settings. A preview is always what was asked to be looked at.
+   */
+  get theme() {
+    const base = this.baseTheme
+    if (this.preview?.theme || !this.settings.calendar) return base
+    return themeOf(themeOnDay(todayOf(), base, this.settings.holidays))
   }
 
   /** Each folder's own look, where it picked one: a sub-theme of any theme. */
