@@ -473,6 +473,17 @@ function hat(pc, c, look, dy, view) {
       if (view === 'front') pc.hline(5, 10, 5 + dy, c.hatS)
       else pc.hline(4, 11, 4 + dy, c.hatS)
     }
+  } else if (kind === 'partyhat') {
+    // A paper cone sat on the crown, a band of white round it and a pom on the point. It leans a
+    // pixel the way a hat does when the wearer is facing sideways.
+    const dx = side ? -1 : 0
+    pc.hline(7 + dx, 8 + dx, 0 + dy, P.white)
+    pc.hline(7 + dx, 8 + dx, 1 + dy, c.hat)
+    pc.hline(6 + dx, 9 + dx, 2 + dy, c.hat)
+    pc.hline(6 + dx, 9 + dx, 3 + dy, P.white)
+    pc.hline(5 + dx, 10 + dx, 4 + dy, c.hat)
+    pc.hline(4 + dx, 11 + dx, 5 + dy, c.hatS)
+    pc.px(5 + dx, 4 + dy, c.hatL)
   } else if (kind === 'bow') {
     // A bow in the hair, on the side you can see.
     const x = view === 'back' ? 5 : 10
