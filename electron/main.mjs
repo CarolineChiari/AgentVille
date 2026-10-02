@@ -1,9 +1,10 @@
 // The desktop app: the same server `npm start` runs, started inside Electron's main process, and
 // one window pointed at it. The page is the ordinary web build; it gets no Node and no preload.
-import { app, BrowserWindow, nativeImage, session, shell } from 'electron'
+import { app, BrowserWindow, nativeImage, screen, session, shell } from 'electron'
 import os from 'node:os'
+import fs from 'node:fs'
 import path from 'node:path'
-import { APP_PORT, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from './env.mjs'
+import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { HEADERS } from '../server/headers.mjs'
 import { createShellOpener } from '../server/opener.mjs'
@@ -62,10 +63,54 @@ function showCount(n) {
   win?.setOverlayIcon(img, n === 1 ? '1 villager needs you' : `${n} villagers need you`)
 }
 
+const boundsFile = () => path.join(dataDir(), 'window.json')
+
+/** Where the window was last, pulled onto a display that still exists; null the first time. */
+function savedBounds() {
+  try {
+    const saved = parseBounds(JSON.parse(fs.readFileSync(boundsFile(), 'utf8')))
+    if (!saved) return null
+    const areas = screen.getAllDisplays().map((d) => d.workArea)
+    const primary = screen.getPrimaryDisplay().workArea
+    const ordered = [primary, ...areas.filter((a) => a !== primary)]
+    return { ...clampBounds(saved, ordered), maximized: saved.maximized }
+  } catch {
+    return null // no file yet, or one we can't read: open in the default place
+  }
+}
+
+/** Remember the window's place. Debounced, since resizing fires a stream of events. */
+function rememberBounds(w) {
+  let timer = null
+  const save = () => {
+    timer = null
+    if (w.isDestroyed() || w.isMinimized() || w.isFullScreen()) return
+    // A maximized window's own bounds are the whole screen; keep the normal ones to restore to.
+    const maximized = w.isMaximized()
+    const b = maximized ? w.getNormalBounds() : w.getBounds()
+    try {
+      fs.mkdirSync(dataDir(), { recursive: true })
+      fs.writeFileSync(boundsFile(), JSON.stringify({ ...b, maximized }))
+    } catch {
+      // Losing the window's place is not worth a crash.
+    }
+  }
+  const later = () => {
+    clearTimeout(timer)
+    timer = setTimeout(save, 500)
+  }
+  for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) w.on(ev, later)
+  w.on('close', () => {
+    clearTimeout(timer)
+    save()
+  })
+}
+
 function createWindow() {
+  const saved = savedBounds()
   win = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    ...DEFAULT_BOUNDS,
+    ...(saved && { x: saved.x, y: saved.y, width: saved.width, height: saved.height }),
     minWidth: 720,
     minHeight: 480,
     title: 'AgentVille',
@@ -74,6 +119,8 @@ function createWindow() {
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
   })
   // Links the page opens go through the server's opener already; nothing gets a new window.
+  if (saved?.maximized) win.maximize()
+  rememberBounds(win)
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   win.webContents.on('will-navigate', (e, target) => {
     if (!isAppUrl(target, appUrl)) e.preventDefault()

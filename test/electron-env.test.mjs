@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, isAppUrl } from '../electron/env.mjs'
+import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds } from '../electron/env.mjs'
 import { APP_TITLE, pageTitle } from '../src/game/notify.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
@@ -109,4 +109,50 @@ test('the high-DPI overlay is the same picture, pixel-doubled', () => {
     for (let x = 0; x < two.width; x++) assert.equal(pixel(two, x, y), pixel(one, x >> 1, y >> 1))
   }
   assert.equal(badgeBitmap(4, 0), null)
+})
+
+test('saved bounds are read back only when they are numbers', () => {
+  assert.deepEqual(parseBounds({ x: 10, y: 20, width: 800, height: 600, maximized: true }), { x: 10, y: 20, width: 800, height: 600, maximized: true })
+  assert.equal(parseBounds({ x: 10, y: 20, width: 800, height: 600 }).maximized, false)
+  assert.equal(parseBounds(null), null)
+  assert.equal(parseBounds({ x: '1', y: 2, width: 3, height: 4 }), null)
+  assert.equal(parseBounds({ x: 0, y: 0, width: 0, height: 600 }), null)
+  assert.equal(parseBounds({ x: NaN, y: 0, width: 800, height: 600 }), null)
+})
+
+const primary = { x: 0, y: 0, width: 1920, height: 1080 }
+const second = { x: 1920, y: 0, width: 1280, height: 1024 }
+
+test('bounds on a display that still exists stay put', () => {
+  const b = { x: 100, y: 50, width: 1400, height: 900 }
+  assert.deepEqual(clampBounds(b, [primary, second]), b)
+  const onSecond = { x: 2000, y: 40, width: 1000, height: 700 }
+  assert.deepEqual(clampBounds(onSecond, [primary, second]), onSecond)
+})
+
+test('bounds off every display are pulled onto the primary and centred', () => {
+  const gone = { x: 5000, y: 300, width: 1000, height: 700 }
+  assert.deepEqual(clampBounds(gone, [primary]), { x: 460, y: 190, width: 1000, height: 700 })
+  assert.deepEqual(clampBounds(gone, [primary, second]), { x: 460, y: 190, width: 1000, height: 700 })
+})
+
+test('a window only barely on a display counts as off it', () => {
+  const edge = { x: 1900, y: 10, width: 1000, height: 700 }
+  assert.deepEqual(clampBounds(edge, [primary]), { x: 460, y: 190, width: 1000, height: 700 })
+})
+
+test('a window bigger than its display shrinks to it, but not below the minimum', () => {
+  const big = clampBounds({ x: 0, y: 0, width: 3000, height: 2000 }, [primary])
+  assert.deepEqual(big, { x: 0, y: 0, width: 1920, height: 1080 })
+  const tiny = clampBounds({ x: 0, y: 0, width: 100, height: 100 }, [primary])
+  assert.deepEqual([tiny.width, tiny.height], [720, 480])
+})
+
+test('a window hanging over an edge is slid back inside', () => {
+  const b = clampBounds({ x: 1000, y: 700, width: 1400, height: 900 }, [primary])
+  assert.deepEqual(b, { x: 520, y: 180, width: 1400, height: 900 })
+})
+
+test('with no displays there is nothing to clamp to', () => {
+  assert.deepEqual(clampBounds({ x: 1, y: 2, width: 800, height: 600 }, []), { width: 800, height: 600 })
 })

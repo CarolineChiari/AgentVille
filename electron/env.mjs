@@ -106,3 +106,47 @@ export function badgeBitmap(n, scale = 1) {
   }
   return { width: size, height: size, data }
 }
+
+/** What the window opens at when nothing was saved. */
+export const DEFAULT_BOUNDS = { width: 1400, height: 900 }
+
+const finite = (n) => typeof n === 'number' && Number.isFinite(n)
+
+/**
+ * Read saved window bounds back from whatever `window.json` held. It is a file on disk, so
+ * anything that isn't four finite numbers (and a positive size) is no bounds at all.
+ * @param {unknown} raw
+ * @returns {{ x: number, y: number, width: number, height: number, maximized: boolean } | null}
+ */
+export function parseBounds(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const { x, y, width, height, maximized } = /** @type {any} */ (raw)
+  if (![x, y, width, height].every(finite) || width <= 0 || height <= 0) return null
+  return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height), maximized: maximized === true }
+}
+
+/**
+ * Bring saved bounds back on screen. `displays` are the work areas that exist now. If the window
+ * overlaps one by a usable amount it stays where it was, shrunk to fit if that display got
+ * smaller; if it is off every display (an unplugged monitor), it is moved onto the first, the
+ * primary, and centred. Without any display there is nothing to clamp to, so size only.
+ * @param {{ x: number, y: number, width: number, height: number }} bounds
+ * @param {{ x: number, y: number, width: number, height: number }[]} displays primary first
+ * @param {{ minWidth?: number, minHeight?: number }} [min]
+ */
+export function clampBounds(bounds, displays, { minWidth = 720, minHeight = 480 } = {}) {
+  const list = displays.filter((d) => [d.x, d.y, d.width, d.height].every(finite) && d.width > 0 && d.height > 0)
+  if (!list.length) return { width: bounds.width, height: bounds.height }
+  // Enough of the window on a display that its title bar can be grabbed.
+  const VISIBLE = 100
+  const overlap = (d) => Math.min(bounds.x + bounds.width, d.x + d.width) - Math.max(bounds.x, d.x)
+  const overlapY = (d) => Math.min(bounds.y + bounds.height, d.y + d.height) - Math.max(bounds.y, d.y)
+  const home = list.find((d) => overlap(d) >= VISIBLE && overlapY(d) >= VISIBLE)
+  const d = home || list[0]
+  const width = Math.max(Math.min(minWidth, d.width), Math.min(bounds.width, d.width))
+  const height = Math.max(Math.min(minHeight, d.height), Math.min(bounds.height, d.height))
+  if (!home) return { x: Math.round(d.x + (d.width - width) / 2), y: Math.round(d.y + (d.height - height) / 2), width, height }
+  const x = Math.min(Math.max(bounds.x, d.x), d.x + d.width - width)
+  const y = Math.min(Math.max(bounds.y, d.y), d.y + d.height - height)
+  return { x, y, width, height }
+}
