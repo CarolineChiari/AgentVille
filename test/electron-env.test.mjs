@@ -156,3 +156,8 @@ test('a window hanging over an edge is slid back inside', () => {
 test('with no displays there is nothing to clamp to', () => {
   assert.deepEqual(clampBounds({ x: 1, y: 2, width: 800, height: 600 }, []), { width: 800, height: 600 })
 })
+
+test('a window mostly on the second display stays there, though a sliver touches the primary', () => {
+  const b = { x: 1800, y: 50, width: 1000, height: 700 }
+  assert.deepEqual(clampBounds(b, [primary, second]), { x: 1920, y: 50, width: 1000, height: 700 })
+})

@@ -141,7 +141,11 @@ export function clampBounds(bounds, displays, { minWidth = 720, minHeight = 480 
   const VISIBLE = 100
   const overlap = (d) => Math.min(bounds.x + bounds.width, d.x + d.width) - Math.max(bounds.x, d.x)
   const overlapY = (d) => Math.min(bounds.y + bounds.height, d.y + d.height) - Math.max(bounds.y, d.y)
-  const home = list.find((d) => overlap(d) >= VISIBLE && overlapY(d) >= VISIBLE)
+  // The display holding most of the window, not the first with enough: a window mostly on the
+  // second monitor must not be dragged to the primary because a sliver of it touches that too.
+  const home = list
+    .filter((d) => overlap(d) >= VISIBLE && overlapY(d) >= VISIBLE)
+    .reduce((best, d) => (!best || overlap(d) * overlapY(d) > overlap(best) * overlapY(best) ? d : best), null)
   const d = home || list[0]
   const width = Math.max(Math.min(minWidth, d.width), Math.min(bounds.width, d.width))
   const height = Math.max(Math.min(minHeight, d.height), Math.min(bounds.height, d.height))

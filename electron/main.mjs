@@ -84,10 +84,11 @@ function rememberBounds(w) {
   let timer = null
   const save = () => {
     timer = null
-    if (w.isDestroyed() || w.isMinimized() || w.isFullScreen()) return
-    // A maximized window's own bounds are the whole screen; keep the normal ones to restore to.
+    if (w.isDestroyed()) return
+    // Maximized, minimized and full-screen windows report the screen's bounds (or nothing useful);
+    // the normal ones are what to restore to, and getNormalBounds is the same as getBounds otherwise.
     const maximized = w.isMaximized()
-    const b = maximized ? w.getNormalBounds() : w.getBounds()
+    const b = w.getNormalBounds()
     try {
       fs.mkdirSync(dataDir(), { recursive: true })
       fs.writeFileSync(boundsFile(), JSON.stringify({ ...b, maximized }))
