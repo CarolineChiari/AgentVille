@@ -100,6 +100,9 @@ const emptyState = () => ({
   spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
 })
 
+/** The real weather is asked for this often; it changes slowly, and the server caches it for the same hour. */
+export const WEATHER_POLL_MS = 60 * 60 * 1000
+
 export class Village {
   /**
    * `notify` hears about every thread that has just started needing you, whatever the settings
@@ -135,6 +138,8 @@ export class Village {
     this.githubRepos = new Map() // folder path → its GitHub 'owner/repo', '' for none, null while asking
     // Whether a newer AgentVille has been released than the one running. `newer` false until told.
     this.release = { current: '', latest: '', url: '', newer: false }
+    /** The weather where the person lives, once heard: { ok, place, code } or { ok: false, error }. */
+    this.realWeather = null
     this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
     this.selected = null
     this.selectedPlot = null
@@ -222,6 +227,27 @@ export class Village {
     } catch {
       // Hearing about a release is a courtesy; a failure here must never stop the village.
     }
+  }
+
+  /**
+   * The weather at the place typed in Settings, asked for once an hour. With no place (or no
+   * weather at all) nothing is asked and the village makes its weather up. The last good answer is
+   * kept when an ask fails, so a dropped connection never clears the sky.
+   */
+  async pollWeather() {
+    clearTimeout(this._weatherTimer)
+    const place = this.settings.place
+    if (this.demo || !this.settings.weather || !place) {
+      this.realWeather = null
+      return
+    }
+    try {
+      const r = await api.fetchWeather(place)
+      if (place === this.settings.place) this.realWeather = r.ok || !this.realWeather?.ok ? r : this.realWeather
+    } catch {
+      // The weather is decoration; a failure here must never stop the village.
+    }
+    this._weatherTimer = setTimeout(() => this.pollWeather(), WEATHER_POLL_MS)
   }
 
   /** The release notes for the version on offer, in the browser. */

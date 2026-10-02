@@ -163,6 +163,11 @@ export const PALETTE = {
   smoke: '#f2eff5',
   smokeShade: '#aaa5b4', // the underside of a puff, so smoke shows against pale paths too
   cloudShadow: '#6f86a8', // multiplied over the ground, so a blue-grey shade rather than grey
+  rain: '#8fb4e8', // a streak of rain, drawn straight onto the canvas
+  snow: '#f4f8ff', // a flake, and the white edge snow leaves
+  leafGold: '#e0a23a', // the leaves that drift down in autumn
+  leafRust: '#c4622d',
+  leafRed: '#a8322a',
   dusk: '#ff9a5a', // the warm light at sunrise and sunset, multiplied over everything
 
   // Drawn straight onto the canvas by the renderer rather than into a sprite.

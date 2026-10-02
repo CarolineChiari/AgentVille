@@ -8,6 +8,7 @@ import { HARNESSES, harnessById } from './harnesses/index.mjs'
 import { defaultHarness, harnessStatus, scanAll } from './scan.mjs'
 import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf } from './github.mjs'
 import { createRepoStore } from './repo.mjs'
+import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
@@ -111,6 +112,7 @@ export function createApiMiddleware(opts = {}) {
   const prStore = opts.prStore ?? createPrStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const issueStore = opts.issueStore ?? createIssueStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const repoStore = opts.repoStore ?? createRepoStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
+  const weatherStore = opts.weatherStore ?? createWeatherStore()
   const releaseStore = opts.releaseStore ?? createReleaseStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   // Repo name → folder, from the latest scan: the PR and issue lookups read each folder's git remote.
   let projects = new Map()
@@ -280,6 +282,13 @@ export function createApiMiddleware(opts = {}) {
     // What is running against what has been published: `{ current, latest, url, newer }`. The page
     // asks for it only while the PR gardens or the issue boards are on, which is the switch that
     // says anything may leave this machine at all.
+    // The weather where the person said they live, for the village's sky. POST because the place is
+    // theirs and POST makes the page's Origin mandatory. Only ever asked once a place is typed.
+    'POST /api/weather': async (body) => {
+      const r = await weatherStore.get(body?.place)
+      return [r.ok ? 200 : 400, r]
+    },
+
     'GET /api/version': async () => [200, await releaseStore.get()],
 
     /** Only GitHub pages, over https: this endpoint exists to open a PR or an issue, not arbitrary links. */
