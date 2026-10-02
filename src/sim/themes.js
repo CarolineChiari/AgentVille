@@ -300,6 +300,40 @@ export const THEMES = {
       },
     },
   },
+  'new-years-eve': {
+    label: "New Year's Eve",
+    spotlights: [{ id: 'firework', label: 'Firework' }, { id: 'party-hat', label: 'Party hat' }, { id: 'champagne', label: 'Champagne flute' }, { id: 'clock', label: 'Midnight clock' }, { id: 'disco', label: 'Disco ball' }],
+    dims: {
+      // Bunting, string lights, velvet rope on gilt stanchions, and balloons tied to posts.
+      fence: ['bunting', 'lights', 'velvetrope', 'balloons'],
+      yard: ['confetti', 'nightlawn', 'dancefloor', 'snow'],
+      wall: ['midnight', 'stucco', 'nightbrick', 'marble', 'logs'],
+      // Paint for the roofs, doors and awnings: magenta, gold, teal and violet, in four families
+      // of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'rooftop-party', label: 'Rooftop party', blurb: 'Party lights and a dance floor on every roof, balloons tied to the rails', fence: ['lights', 'balloons'], yard: ['dancefloor', 'confetti'], wall: ['nightbrick', 'midnight'], roofs: [0] },
+      { id: 'midnight-square', label: 'Midnight square', blurb: 'A clock tower counting down, bunting across the street and confetti underfoot', fence: ['bunting', 'velvetrope'], yard: ['confetti'], wall: ['stucco', 'nightbrick'], roofs: [1] },
+      { id: 'cosy-cabin', label: 'Cosy cabin', blurb: 'A quiet night in the snow: logs, a string of lights and sparklers by the door', fence: ['lights', 'bunting'], yard: ['snow', 'nightlawn'], wall: ['logs', 'midnight'], roofs: [2] },
+      { id: 'ballroom', label: 'Ballroom', blurb: 'A grand hall of marble and gilt, chandeliers in every window and a band on the stage', fence: ['velvetrope'], yard: ['dancefloor'], wall: ['marble', 'stucco'], roofs: [3] },
+    ],
+    auto: ['rooftop-party', 'midnight-square', 'cosy-cabin', 'ballroom'],
+    // Everybody wears a party hat, in their own colour.
+    outfit: { hat: 'partyhat' },
+    // Finished work is a sparkler or a party popper going off, each kind of work its own. An open
+    // PR's is not lit yet. The glyph is a six-pointed black star, a spark, which none of the
+    // village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the harbour's ❂, the farm's ♣,
+    // Thanksgiving's ❧ or the open issues' ⚑ is.
+    finished: {
+      one: 'sparkler', many: 'sparklers', place: 'celebration', glyph: '\u2736', grow: 'Light sparklers for pull requests',
+      names: {
+        fix: 'Sparkler', feature: 'Roman candle', refactor: 'Party popper', docs: 'Party horn', test: 'Sparkler bunch',
+        ui: 'Pinwheel', infra: 'Confetti cannon', data: 'Noisemaker', perf: 'Rocket', review: 'Firework fountain',
+        research: 'Wishing lantern', misc: 'Party hat',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

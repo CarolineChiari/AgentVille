@@ -689,6 +689,68 @@ export const PALETTE = {
   patchSoilLight: '#775540',
   patchSoilDeep: '#3b271c',
 
+  // ---------- the New Year's Eve theme (src/render/themes/new-years-eve/) ----------
+  // Paint and cloth for the party: magenta, gold, teal, violet, champagne, coral, midnight blue and
+  // silver. A plot's buildings share a family of three (PAINT_FAMILIES in new-years-eve/buildings.js).
+  nyePaint: ['#c2287f', '#e6b030', '#1f9a9a', '#6a3fa0', '#f1e3b8', '#e0554a', '#2a3a78', '#c9d2dc'],
+  // The bulbs of every string of party lights, and the wire they hang on. Bright, since they are
+  // the one thing in the village that is meant to glow at night.
+  nyeBulb: ['#ff4fa3', '#ffd447', '#3fe0d0', '#ff7a4d', '#8f6bff'],
+  nyeWire: '#222a40',
+  // Walls: midnight-blue plaster, champagne stucco and white marble. (Brick is the village's soot
+  // brick and logs the farm's timber.)
+  nyePlaster: '#2e3a63',
+  nyePlasterDark: '#232c4d',
+  nyePlasterLight: '#3e4d7e',
+  nyeStucco: '#e8dcc0',
+  nyeStuccoDark: '#c7b998',
+  nyeStuccoLight: '#f5ecd6',
+  nyeMarble: '#e9e9ef',
+  nyeMarbleDark: '#b9bccb',
+  nyeMarbleLight: '#fafafd',
+  nyeMarbleVein: '#9aa0b8',
+  // Snow on a cabin's roof and its yard, and the sparks of a sparkler, a firework and a popper.
+  nyeSnow: '#eef4fb',
+  nyeSnowShade: '#b9c9de',
+  nyeSpark: ['#fffbe8', '#ffd54a', '#ff9a3c'],
+  nyeWand: '#8b8f99', // a sparkler's steel wire, and the cone of a popper's rim
+  nyeWandDark: '#5a5e6b',
+  nyeFuse: '#d9c9a0',
+  nyeClockFace: '#f6f0dc', // a clock face by lamplight
+  nyeSky: '#141a38', // the night behind a window, and the dark between the lights
+  // Ground by yard tone: confetti-strewn pavement, a night lawn, a dance floor and snow. Each is
+  // base, shade, light and deepest; then the same in a dry patch and in a lush one, one for one
+  // (see src/render/ground.js). Only the ground is drawn in these.
+  nyeGround: [
+    ['#34406e', '#2b3560', '#44527f', '#222a4c'],
+    ['#2f6b5c', '#275a4d', '#3c7f6e', '#1e4a3f'],
+    ['#472a6b', '#38215a', '#5d3a85', '#2c1a48'],
+    ['#dfe9f4', '#c3d3e6', '#f4f9ff', '#a4b8d0'],
+  ],
+  nyeGroundSunny: [
+    ['#3a4776', '#303c68', '#4b5a88', '#27305a'],
+    ['#37735a', '#2d6249', '#458a6b', '#245240'],
+    ['#4f2d72', '#3f2463', '#664091', '#321d52'],
+    ['#e6eef7', '#cbdaea', '#f9fcff', '#aebfd4'],
+  ],
+  nyeGroundLush: [
+    ['#2e3a66', '#26315a', '#3d4a78', '#1d2644'],
+    ['#2a6458', '#225349', '#36766a', '#1a4339'],
+    ['#412765', '#33204f', '#563680', '#291944'],
+    ['#d6e2f0', '#bacbe0', '#eaf3fc', '#9bb0ca'],
+  ],
+  // The lane round a plot: slate-violet asphalt with silver grit, lighter than the ground so the
+  // plots read at night.
+  nyeLane: '#6b6fa0',
+  nyeLaneDark: '#585c8a',
+  nyeLaneLight: '#8286b8',
+  nyeLaneEdge: '#40436a',
+  // The field finished work stands in: dark violet soil, rowed.
+  nyeBed: '#2a1f44',
+  nyeBedDark: '#1f1633',
+  nyeBedLight: '#3a2d5c',
+  nyeBedDeep: '#150e26',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
