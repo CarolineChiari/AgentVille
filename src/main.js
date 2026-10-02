@@ -20,6 +20,7 @@ import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
+import { todayOf } from './sim/calendar.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
@@ -503,12 +504,22 @@ async function boot() {
   setInterval(poll, POLL_MS)
   // The calendar rolls over at midnight, and a village left open overnight should change with it.
   let worn = village.theme
+  let wornDay = todayOf()
   setInterval(() => {
-    if (village.theme === worn) return
-    worn = village.theme
-    village.apply()
-    applyTheme()
-    hud.render()
+    const day = todayOf()
+    const theme = village.theme
+    // The sheet's "next holiday" moves on with the day even when the theme stays the same (a
+    // village already wearing Halloween); only a different theme is worth re-dressing the village.
+    const restyled = theme !== worn
+    if (restyled) {
+      worn = theme
+      village.apply()
+      applyTheme()
+    }
+    if (restyled || day !== wornDay) {
+      wornDay = day
+      hud.render()
+    }
   }, 60_000)
   if (!settings.seenHelp) {
     settings.seenHelp = true

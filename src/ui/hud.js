@@ -6,7 +6,7 @@ import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
 import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
-import { HOLIDAYS, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
+import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
 
@@ -267,11 +267,14 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
 
   /** The holidays to tick, and which theme is on now and which comes next. */
   function calendarRows() {
-    const on = new Set(ticked(settings.holidays).map((h) => h.id))
+    const list = ticked(settings.holidays)
+    const on = new Set(list.map((h) => h.id))
     const today = todayOf()
-    const next = nextHoliday(today, ticked(settings.holidays))
-    const now = village.theme !== village.baseTheme ? THEMES[village.theme].label : ''
-    const line = [now && `Dressed for ${now} now.`, next && `${next.holiday.label} next, from ${dateOf(next.start)}.`].filter(Boolean).join(' ')
+    const next = nextHoliday(today, list)
+    // From the window itself, not by comparing themes: someone whose base theme is Halloween is
+    // still in Halloween's dates.
+    const now = activeHoliday(today, list)?.holiday.label
+    const line = [now && `${now} is on now.`, next && `${next.holiday.label} next, from ${dateOf(next.start)}.`].filter(Boolean).join(' ')
     return `${line ? `<p style="color:var(--muted);font-size:12px;margin:0">${esc(line)}</p>` : ''}
         ${HOLIDAYS.map((h) => `<label>${esc(h.label)} <input type="checkbox" data-holiday="${h.id}" ${on.has(h.id) ? 'checked' : ''}></label>`).join('')}`
   }
