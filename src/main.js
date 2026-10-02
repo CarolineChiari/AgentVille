@@ -16,6 +16,7 @@ import { createTranscript } from './ui/transcript.js'
 import { createRoomPanel } from './ui/room.js'
 import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
+import { createTell } from './ui/tell.js'
 import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
@@ -81,12 +82,14 @@ let roomLog = null // what the focused session changed: its shelves, and the boa
 let board = { view: 'files', scroll: 0, open: '', review: '', file: null }
 const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSettings(settings) })
 const taskEditor = createTaskEditor(hudRoot, village)
+const tell = createTell(hudRoot, village)
 const groupEditor = createGroupEditor(hudRoot, village)
 const tip = createTip(hudRoot, village)
 const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
   onEditGroups: (project) => groupEditor.open(project),
   onRecruit: (project, prompt) => newSession.open(project, { prompt }),
+  onTell: (id) => tell.open(id),
   onTranscript: (id) => {
     transcript.toggle(id)
     // Bring the villager (or flower) into the part of the map the panel leaves visible.

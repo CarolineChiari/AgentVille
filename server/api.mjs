@@ -213,6 +213,7 @@ export function createApiMiddleware(opts = {}) {
     /**
      * A task for an existing thread: into the thread itself where its harness can resume it with a
      * prompt, else as a new session in the thread's folder. `continued` says which happened.
+     * `continueOnly` is for a message meant for that one conversation: no new session, just why not.
      */
     'POST /api/task': async (body) => {
       const h = harnessById(body?.harness, harnesses)
@@ -226,7 +227,9 @@ export function createApiMiddleware(opts = {}) {
           if (!launched.ok) return [500, { ok: false, error: launched.error }]
           return [200, { ok: true, continued: true, where: result.where || '', promptPassed: result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed) }]
         }
+        if (body?.continueOnly === true) return [400, { ok: false, error: result?.error || 'This thread can’t take a message.' }]
       }
+      if (body?.continueOnly === true) return [400, { ok: false, error: 'This agent can’t be sent a message.' }]
       const dir = await resolveFolder(body?.folder)
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const [status, out] = await startIn(h, dir, { target: body?.target, prompt })

@@ -438,6 +438,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .newsession .browse li button { display: flex; width: 100%; gap: 6px; justify-content: space-between; background: none; border: 0; color: var(--text); font: 13px var(--font); text-align: left; padding: 3px 9px; cursor: pointer; }
 .newsession .browse li button:hover { background: rgba(255, 255, 255, 0.08); }
 .newsession .browse .has { color: var(--muted); font-size: 11px; }
+/* Tell another agent: the checkbox sits at the end of its row, not stretched like the fields. */
+.tell label.check input { display: inline-block; width: auto; margin: 0; }
 .newsession .browse .empty { font-size: 12px; color: var(--muted); padding: 4px 9px; }
 
 /* ---------- task editor ---------- */

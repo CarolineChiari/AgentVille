@@ -314,6 +314,19 @@ test('a task falls back to a new session in the folder when the thread cannot ta
   assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: 'x' })).status, 200)
 })
 
+test('a message for one thread never falls back to a new session', async () => {
+  let started = false
+  fakeHarness.continueThread = async () => ({ ok: false, error: 'This thread has no CLI session to resume.' })
+  fakeHarness.newSession = () => ((started = true), { ok: true, url: 'fake://new' })
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'hi', continueOnly: true })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 400)
+  assert.equal((await r.json()).error, 'This thread has no CLI session to resume.')
+  // Nor does a harness that can't resume at all.
+  assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: 'hi', continueOnly: true })).status, 400)
+  assert.equal(started, false)
+})
+
 test('a task needs a known harness, a prompt, and a real folder to fall back to', async () => {
   assert.equal((await post('/api/task', { harness: 'nope', folder: os.tmpdir(), prompt: 'x' })).status, 400)
   assert.equal((await post('/api/task', { harness: 'fake', folder: os.tmpdir(), prompt: '   ' })).status, 400)

@@ -26,7 +26,7 @@ const NEW_GROUP = ':new'
 /** The spotlight picker's choice while one is lit: leaves it as it is. No span id has a colon. */
 const KEEP_SPOTLIGHT = ':keep'
 
-export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {}, onTell = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -186,7 +186,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     } else if (act === 'editTasks') {
       const t = village.thread(village.selected)
       if (t) onEditTasks(t.project)
-    } else if (act === 'task') {
+    } else if (act === 'tell') onTell(village.selected)
+    else if (act === 'task') {
       tasksOpen = false
       village.runTask(village.selected, b.dataset.task)
       shownKey = '' // redraw without the list on the next update
@@ -225,6 +226,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="inside" title="Step inside and see everything it has changed">Go inside<kbd>B</kbd></button>
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
+        ${village.canTell(t.id) ? '<button class="btn" data-act="tell" title="Send another Claude Code session a message about this one">Tell…</button>' : ''}
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
       </div>
       ${prList(t)}

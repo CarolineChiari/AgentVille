@@ -10,6 +10,7 @@ import { wearOf } from '../sim/wear.js'
 import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
+import { canTell, lastReply, tellPrompt, tellTargets } from './tell.js'
 import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
@@ -1022,18 +1023,28 @@ export class Village {
     return this.sendPrompt(id, task.label, task.prompt)
   }
 
-  /** Send a thread a prompt, as a task called `label`: into its conversation if it can be resumed, else a new session. */
-  async sendPrompt(id, label, prompt) {
+  /**
+   * Send a thread a prompt, as a task called `label`: into its conversation if it can be resumed,
+   * else a new session — unless `continueOnly`, for a message that means nothing to anyone else.
+   * Resolves true once it has gone.
+   */
+  async sendPrompt(id, label, prompt, { continueOnly = false } = {}) {
     const t = this.thread(id)
-    if (!t) return
+    if (!t) return false
     const task = { label, prompt }
-    if (this.demo) return this.toast('Demo mode: nothing to send.')
+    if (this.demo) {
+      this.toast('Demo mode: nothing to send.')
+      return false
+    }
     // Two processes answering one conversation would talk over each other.
-    if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
+    if (t.running || t.needsInput) {
+      this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
+      return false
+    }
     const s = this.settings
     const target = s.newTargets?.[t.harness] || (t.harness === 'claude-code' ? s.openIn : '')
     try {
-      const r = await api.sendTask(t.harness, t.ref, t.cwd || t.projectPath, task.prompt, target)
+      const r = await api.sendTask(t.harness, t.ref, t.cwd || t.projectPath, task.prompt, target, continueOnly)
       const copied = !r.promptPassed && (await navigator.clipboard.writeText(task.prompt).then(() => true, () => false))
       const where = r.where ? ` in ${r.where}` : ''
       const clip = copied ? ' — the task is on the clipboard' : ''
@@ -1041,9 +1052,44 @@ export class Village {
       if (!r.continued && t.group) this._expect(t.project, t.group.id)
       this.toast(r.continued ? `“${task.label}” sent to “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
+      return true
     } catch (err) {
       this.toast(err.message, 'error')
+      return false
     }
+  }
+
+  // ---------- telling another agent ----------
+
+  /** Whether a thread's card offers Tell another agent. */
+  canTell(id) {
+    return canTell(this.thread(id))
+  }
+
+  /** Who a thread can tell something: see tellTargets. */
+  tellTargets(id) {
+    return tellTargets(this.view.live, this.thread(id))
+  }
+
+  /**
+   * Send `to` a message about `from`, written by the person. With `withReply`, `from`'s last reply
+   * goes along, read from its transcript now so it is the latest. Resolves true once it has gone.
+   */
+  async tell(fromId, toId, message, { withReply = false } = {}) {
+    const from = this.thread(fromId)
+    const to = this.thread(toId)
+    if (!from || !to) return false
+    let reply = ''
+    if (withReply && !this.demo) {
+      const r = await api.fetchTranscript(from.harness, from.ref, 40).catch(() => null)
+      reply = lastReply(r?.messages)
+    }
+    const prompt = tellPrompt(from, message, reply)
+    if (!prompt) {
+      this.toast('Write a message first.', 'error')
+      return false
+    }
+    return this.sendPrompt(to.id, `Message about “${from.title}”`, prompt, { continueOnly: true })
   }
 
   // ---------- groups ----------

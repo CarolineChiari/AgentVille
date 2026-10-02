@@ -258,6 +258,14 @@ Claude app link has a way to pass them; picking either switches the form to Term
 from a one-shot script in `data/launch/` that deletes itself as it runs; the prompt is read from
 a separate file, so nothing you type is ever run as a command.
 
+**Tell…** on a Claude Code villager's card sends another Claude Code session a message about it:
+pick who from the list (sessions on the same repo come first), write what it should know, and
+leave **Include its last reply** ticked to quote what the first one last said. The message goes
+into that conversation as your next prompt, the way a task does, and says which session it's about,
+its repo, branch and folder, so the other agent can look for itself. It only goes to a session the
+terminal can resume and that isn't busy, and it never starts a new session in its place: a note
+meant for one agent is no use to a stranger.
+
 A villager whose session has stopped on you, with a question, a plan to approve or a permission
 prompt, shows `?` and says what it needs, even while its last transcript entry looks like work.
 AgentVille reads this from the status each running Claude Code process keeps for itself.
