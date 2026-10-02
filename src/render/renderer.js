@@ -12,6 +12,7 @@ import { RoomRenderer } from './room.js'
 import { landmarkShapes, packFor } from './themes/index.js'
 import { DEFAULT_THEME } from '../sim/themes.js'
 import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, fireworksIn, flockFor, smokePuffs } from './ambient.js'
+import { fallingIn, leavesIn } from '../sim/weather.js'
 import { sweepAt, sweepRow, twinklesAt } from './shine.js'
 import { GLEAMING, KEPT } from '../sim/wear.js'
 import {
@@ -841,8 +842,9 @@ export class Canvas2dRenderer {
   }
 
   /** Soft shadows of clouds drifting over, fading out as night comes. */
-  _drawClouds(frame, view, night) {
-    const a = CLOUD_SHADE * (1 - night)
+  _drawClouds(frame, view, night, sky) {
+    // Grey skies when it falls: the shade deepens with the weather's intensity.
+    const a = CLOUD_SHADE * (1 - night) * (1 + (sky && sky.kind !== 'clear' ? sky.intensity * 0.8 : 0))
     if (a < 0.01) return
     const { ctx, camera: cam } = this
     const s = cam.scale
@@ -905,6 +907,42 @@ export class Canvas2dRenderer {
     }
     ctx.globalAlpha = 1
     ctx.globalCompositeOperation = 'source-over'
+  }
+
+  // ---------- weather ----------
+
+  /**
+   * Rain streaks, snow flakes, and in autumn a few leaves drifting down, over the village but under
+   * nothing: it is above the night tint so it stays bright in the dark, as snow does. Villagers keep
+   * working; a theme's pack has no say in it.
+   * @param {{ season: string, kind: string, intensity: number, off?: boolean } | undefined} sky
+   */
+  _drawWeather(frame, view, night, sky) {
+    if (!sky || sky.off) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    const dim = 1 - 0.45 * night // flakes and rain go dimmer at night, but never vanish
+    if (sky.kind !== 'clear') {
+      const rain = sky.kind === 'rain'
+      ctx.fillStyle = rgba(rain ? P.rain : P.snow, (rain ? 0.55 : 0.85) * dim)
+      for (const f of fallingIn(view, sky, frame.time)) {
+        const x = Math.round(cam.offX + f.x * s)
+        const y = Math.round(cam.offY + f.y * s)
+        if (rain) {
+          // A streak leaning with the wind, a pixel wide, as long as the drop falls in a frame.
+          for (let i = 0; i < f.len; i++) ctx.fillRect(x + Math.round(i * 0.25 * s), y + Math.round(i * s), Math.max(1, Math.round(s * 0.6)), Math.max(1, Math.round(s)))
+        } else {
+          ctx.fillRect(x, y, Math.max(1, Math.round(s)), Math.max(1, Math.round(s)))
+        }
+      }
+    }
+    if (sky.season === 'autumn') {
+      const colours = [P.leafGold, P.leafRust, P.leafRed]
+      for (const l of leavesIn(view, frame.time)) {
+        ctx.fillStyle = rgba(colours[l.hue], dim)
+        ctx.fillRect(Math.round(cam.offX + l.x * s), Math.round(cam.offY + l.y * s), Math.max(1, Math.round(s * 2)), Math.max(1, Math.round(s)))
+      }
+    }
   }
 
   // ---------- light ----------
@@ -1125,12 +1163,13 @@ export class Canvas2dRenderer {
     this._drawPetals(frame, view)
     this._drawBunting(frame, view)
     this._drawSmoke(frame, view)
-    this._drawClouds(frame, view, night)
+    this._drawClouds(frame, view, night, ui.sky)
     this._drawButterflies(frame, flowers, night)
     this._drawBirds(frame, view, night)
     this._drawEffects(frame)
     this._drawDusk(ui.dusk || 0)
     this._drawNight(frame, night)
+    this._drawWeather(frame, view, night, ui.sky)
     this._drawFireworks(frame, view, night)
     this._drawFairyLights(frame, view, night)
     this._drawMotes(frame, view, night)

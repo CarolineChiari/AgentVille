@@ -20,6 +20,11 @@ export const DEFAULTS = {
   subthemes: {}, // theme id → the sub-theme every folder wears unless it picked its own; none: each its own
   timeMode: 'live', // 'live' follows this machine's clock; 'manual' uses `hour`
   hour: 12,
+  weather: true, // rain, snow and drifting leaves, from the date; see src/sim/weather.js
+  season: 'auto', // with the clock set by hand: 'auto' or a season to look at
+  sky: 'auto', // with the clock set by hand: 'auto' | 'clear' | 'rain' | 'snow'
+  place: '', // where you live, to follow its real weather hourly (sends the place to Open-Meteo); empty: made up
+  south: false, // the southern hemisphere's seasons
   // Every plot is named. A new key rather than flipping the old `allNames`, which browsers have
   // already saved as false.
   quietNames: false, // true: only name plots where something is happening

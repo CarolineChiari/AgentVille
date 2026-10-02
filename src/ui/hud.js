@@ -279,6 +279,13 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         ${HOLIDAYS.map((h) => `<label>${esc(h.label)} <input type="checkbox" data-holiday="${h.id}" ${on.has(h.id) ? 'checked' : ''}></label>`).join('')}`
   }
 
+  /** What the sky is following: the place's own weather once heard, else a hint of what went wrong. */
+  function weatherNote() {
+    const w = village.realWeather
+    if (!settings.place) return ''
+    return `<p class="note">${esc(w?.ok ? `Following ${w.place}.` : w?.error || 'Looking…')}</p>`
+  }
+
   function renderSheet() {
     if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
@@ -309,6 +316,12 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Time of day
           <select data-set="timeMode"><option value="live" ${s.timeMode === 'live' ? 'selected' : ''}>Follow my clock</option><option value="manual" ${s.timeMode === 'manual' ? 'selected' : ''}>Set by hand</option></select></label>
         ${s.timeMode === 'manual' ? `<label>${formatHour(s.hour)} <input type="range" min="0" max="23.75" step="0.25" value="${s.hour}" data-set="hour"></label>` : ''}
+        <label title="Rain, snow and drifting leaves, by the season of the date">Weather <input type="checkbox" data-set="weather" ${s.weather ? 'checked' : ''}></label>
+        ${s.weather ? `<label title="Follow the real weather where you live, checked hourly. Only the place you type is sent, to Open-Meteo. Leave empty and the village makes its weather up.">Your place <input type="text" maxlength="80" placeholder="Made up" value="${esc(s.place)}" data-set="place"></label>
+        ${weatherNote()}` : ''}
+        ${s.weather ? `<label>Seasons of the <select data-set="south"><option value="" ${s.south ? '' : 'selected'}>north</option><option value="1" ${s.south ? 'selected' : ''}>south</option></select></label>` : ''}
+        ${s.weather && s.timeMode === 'manual' ? `<label>Season <select data-set="season">${['auto', 'spring', 'summer', 'autumn', 'winter'].map((x) => `<option value="${x}" ${s.season === x ? 'selected' : ''}>${x === 'auto' ? 'From the date' : x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>
+        <label>Sky <select data-set="sky">${['auto', 'clear', 'rain', 'snow'].map((x) => `<option value="${x}" ${s.sky === x ? 'selected' : ''}>${x === 'auto' ? 'As it comes' : x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>` : ''}
         <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
     }
   }
@@ -389,14 +402,22 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       return
     }
     const k = e.target.dataset.set
-    if (!k) return
+    if (!k || k === 'place') return
     // The whole village's sub-theme is kept per theme, so switching themes back finds it again.
     if (k === 'everywhere') settings.subthemes = { ...settings.subthemes, [village.theme]: e.target.value }
+    else if (k === 'south') settings.south = e.target.value === '1'
     else settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
     onSettings(k)
     renderSheet()
   })
 
+  // The place is committed when the box is left, not on every key, which would re-draw the sheet under the cursor.
+  sheet.addEventListener('change', (e) => {
+    if (e.target.dataset.set !== 'place') return
+    settings.place = e.target.value.trim().slice(0, 80)
+    onSettings('place')
+    renderSheet()
+  })
   side.addEventListener('change', (e) => {
     const { look: lookName, spot: spotName } = e.target.dataset || {}
     if (lookName === undefined && spotName === undefined) return

@@ -21,6 +21,7 @@ import { createTip } from './ui/tip.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
 import { todayOf } from './sim/calendar.js'
+import { fromCode, skyFor } from './sim/weather.js'
 
 // Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
 const POLL_MS = 8_000
@@ -39,6 +40,8 @@ const canvas = document.getElementById('world')
 const hudRoot = document.getElementById('hud')
 const query = new URLSearchParams(location.search)
 const demo = query.has('demo')
+// `?demo&sky=snow&season=winter` forces a sky, so every look can be seen (and shot) on demand.
+const demoSky = demo && (query.has('sky') || query.has('season')) ? { sky: query.get('sky') || 'auto', season: query.get('season') || 'auto' } : null
 /** ?theme=<id>&sub=<id>: look at a theme, and one sub-theme on every folder, without saving either. */
 const preview = query.get('theme') ? { theme: query.get('theme'), sub: query.get('sub') } : null
 
@@ -104,6 +107,7 @@ const hud = createHud(hudRoot, {
     if (settings.prGardens) village.pollPrs()
     if (settings.issueBoards) village.pollIssues()
     if (settings.repoLines) village.pollRepos()
+    if (key === 'place' || key === 'weather') village.pollWeather()
   },
   onFly: fly,
   onNewSession: (repo, opts) => newSession.open(repo, opts),
@@ -442,10 +446,12 @@ function loop(now) {
   camera.update(dt)
   lastFrame = world.snapshot({ selected: village.selected, hovered, selectedPlot: village.selectedPlot, spotlit: village.spotlit() })
   const hour = settings.timeMode === 'manual' ? settings.hour : hourNow()
+  const skySettings = demoSky ? { ...settings, timeMode: 'manual', ...demoSky } : settings
   const night = 1 - dayFactor(hour)
   renderer.render(lastFrame, {
     night,
     dusk: duskFactor(hour),
+    sky: skyFor(skySettings, new Date(), hour, village.realWeather?.ok ? fromCode(village.realWeather.code) : null),
     hoverPlot,
     selectedPlot: village.selectedPlot,
     allNames: !settings.quietNames,
@@ -501,6 +507,7 @@ async function boot() {
     toast(`Couldn't reach the AgentVille server: ${err.message}`, 'error')
   }
   await poll()
+  village.pollWeather()
   setInterval(poll, POLL_MS)
   // The calendar rolls over at midnight, and a village left open overnight should change with it.
   let worn = village.theme
