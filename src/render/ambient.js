@@ -113,3 +113,47 @@ export function birdsAt(flock, elapsed) {
     frame: Math.floor(elapsed * 6 + i * 0.7) % 2,
   }))
 }
+
+/** Fireworks go up over each square of sky this wide, in world px: one slot a square, so they never pile up. */
+export const FIREWORK_SLOT = 150
+/** A slot's burst repeats this often, in seconds; each slot is a different part of the cycle. */
+const FIREWORK_EVERY = 7
+/** How long one burst hangs in the sky, in seconds. */
+const FIREWORK_LIFE = 2.2
+/** Sparks to a burst, and how far they fly, in world px. */
+const FIREWORK_SPARKS = 14
+const FIREWORK_REACH = 26
+
+/**
+ * The sparks of every firework alight in `view` at `time`: a burst a slot, going off at a place and
+ * moment its slot's seed fixes, its sparks flying out and falling under gravity as they fade.
+ * Each spark is { x, y, alpha, hue }, hue an index into the pack's colours.
+ */
+export function fireworksIn(view, time) {
+  const out = []
+  const gx0 = Math.floor(view.x0 / FIREWORK_SLOT)
+  const gx1 = Math.floor(view.x1 / FIREWORK_SLOT)
+  const gy0 = Math.floor(view.y0 / FIREWORK_SLOT)
+  const gy1 = Math.floor(view.y1 / FIREWORK_SLOT)
+  for (let gy = gy0; gy <= gy1; gy++) {
+    for (let gx = gx0; gx <= gx1; gx++) {
+      const r = mulberry32(gx * 73856093 + gy * 19349663 + 5)
+      const phase = r() * FIREWORK_EVERY
+      const age = (time + phase) % FIREWORK_EVERY
+      if (age > FIREWORK_LIFE) continue
+      const round = Math.floor((time + phase) / FIREWORK_EVERY)
+      // Each round it goes off somewhere new in its slot, in a new colour.
+      const q = mulberry32(gx * 73856093 + gy * 19349663 + round * 83492791)
+      const cx = (gx + 0.2 + q() * 0.6) * FIREWORK_SLOT
+      const cy = (gy + 0.2 + q() * 0.6) * FIREWORK_SLOT
+      const hue = Math.floor(q() * 5)
+      const t = age / FIREWORK_LIFE
+      for (let i = 0; i < FIREWORK_SPARKS; i++) {
+        const a = (i / FIREWORK_SPARKS) * Math.PI * 2
+        const reach = FIREWORK_REACH * (1 - (1 - t) * (1 - t))
+        out.push({ x: cx + Math.cos(a) * reach, y: cy + Math.sin(a) * reach + t * t * 14, alpha: Math.max(0, 1 - t * t), hue })
+      }
+    }
+  }
+  return out
+}

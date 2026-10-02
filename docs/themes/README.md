@@ -232,7 +232,7 @@ party hat on every villager and a sparkler going off at each finished job. Best 
 
 | Sub-theme | `id` | |
 | --- | --- | --- |
-| Rooftop party | `rooftop-party` | Party lights and a dance floor on every roof, balloons tied to the rails |
+| Rooftop party | `rooftop-party` | Party lights and a rooftop dance floor, balloons tied to the rails |
 | Midnight square | `midnight-square` | A clock tower counting down, bunting across the street and confetti underfoot |
 | Cosy cabin | `cosy-cabin` | A quiet night in the snow: logs, a string of lights and sparklers by the door |
 | Ballroom | `ballroom` | A grand hall of marble and gilt, chandeliers in every window and a band on the stage |

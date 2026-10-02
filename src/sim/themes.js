@@ -313,7 +313,7 @@ export const THEMES = {
       roofs: 4,
     },
     subthemes: [
-      { id: 'rooftop-party', label: 'Rooftop party', blurb: 'Party lights and a dance floor on every roof, balloons tied to the rails', fence: ['lights', 'balloons'], yard: ['dancefloor', 'confetti'], wall: ['nightbrick', 'midnight'], roofs: [0] },
+      { id: 'rooftop-party', label: 'Rooftop party', blurb: 'Party lights and a rooftop dance floor, balloons tied to the rails', fence: ['lights', 'balloons'], yard: ['dancefloor', 'confetti'], wall: ['nightbrick', 'midnight'], roofs: [0] },
       { id: 'midnight-square', label: 'Midnight square', blurb: 'A clock tower counting down, bunting across the street and confetti underfoot', fence: ['bunting', 'velvetrope'], yard: ['confetti'], wall: ['stucco', 'nightbrick'], roofs: [1] },
       { id: 'cosy-cabin', label: 'Cosy cabin', blurb: 'A quiet night in the snow: logs, a string of lights and sparklers by the door', fence: ['lights', 'bunting'], yard: ['snow', 'nightlawn'], wall: ['logs', 'midnight'], roofs: [2] },
       { id: 'ballroom', label: 'Ballroom', blurb: 'A grand hall of marble and gilt, chandeliers in every window and a band on the stage', fence: ['velvetrope'], yard: ['dancefloor'], wall: ['marble', 'stucco'], roofs: [3] },

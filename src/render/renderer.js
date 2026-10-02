@@ -11,7 +11,7 @@ import { BUILDING_W } from './sprites/buildings.js'
 import { RoomRenderer } from './room.js'
 import { landmarkShapes, packFor } from './themes/index.js'
 import { DEFAULT_THEME } from '../sim/themes.js'
-import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from './ambient.js'
+import { FLOCK_EVERY, MAX_BUTTERFLIES, birdsAt, butterflyAt, cloudsIn, fireworksIn, flockFor, smokePuffs } from './ambient.js'
 import { sweepAt, sweepRow, twinklesAt } from './shine.js'
 import { GLEAMING, KEPT } from '../sim/wear.js'
 import {
@@ -892,6 +892,21 @@ export class Canvas2dRenderer {
     }
   }
 
+  /** After dark in New Year's Eve's village, fireworks burst over it. Nothing else about the night changes. */
+  _drawFireworks(frame, view, night) {
+    if (this.theme !== 'new-years-eve' || night < 0.4) return
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    ctx.globalCompositeOperation = 'lighter'
+    for (const f of fireworksIn(view, frame.time)) {
+      ctx.globalAlpha = f.alpha * Math.min(1, night)
+      ctx.fillStyle = P.nyeBulb[f.hue]
+      ctx.fillRect(cam.offX + Math.round(f.x) * s, cam.offY + Math.round(f.y) * s, s, s)
+    }
+    ctx.globalAlpha = 1
+    ctx.globalCompositeOperation = 'source-over'
+  }
+
   // ---------- light ----------
 
   /**
@@ -1116,6 +1131,7 @@ export class Canvas2dRenderer {
     this._drawEffects(frame)
     this._drawDusk(ui.dusk || 0)
     this._drawNight(frame, night)
+    this._drawFireworks(frame, view, night)
     this._drawFairyLights(frame, view, night)
     this._drawMotes(frame, view, night)
     this._drawArrival(frame, view)
