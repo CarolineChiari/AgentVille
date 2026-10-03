@@ -96,7 +96,7 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
+  version: 1, archived: [], archivedAt: {}, kept: [], plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
   spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
 })
 
@@ -119,13 +119,14 @@ export class Village {
     this.toast = toast
     this.notify = notify
     this.state = emptyState()
+    this._autoSaid = new Set() // threads whose archiving by the clock has been toasted
     this.base = emptyState()
     /** The thread whose room is open, or null out in the village. */
     this.focused = null
     this.scannedThreads = [] // as the last scan had them, before anyone's names for them
     this.threads = []
     this.byId = new Map()
-    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
+    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [], auto: [] }
     this.gardens = new Map() // repo → flowers, oldest first
     this.prs = { repos: {}, available: true, warnings: [] }
     this._prIndex = -1
@@ -334,7 +335,7 @@ export class Village {
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
-    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant })
+    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant, archiveAfterDays: Number(this.settings.archiveAfterDays) || 0 })
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
@@ -370,6 +371,12 @@ export class Village {
     this.loaded = true
     // Not before the first scan: a settings change can apply the empty list, and the baseline
     // taken from that would make every question already waiting look new.
+    if (this.scanned) {
+      // Said once for each thread that archives itself, so a person who didn't expect it can see why.
+      const fresh = this.view.auto.filter((id) => !this._autoSaid.has(id))
+      for (const id of fresh) this._autoSaid.add(id)
+      if (fresh.length) this.toast(`Archived ${fresh.length} thread${fresh.length === 1 ? '' : 's'} asleep for more than ${this.settings.archiveAfterDays} days`)
+    }
     if (this.scanned) {
       const { fresh, asking } = newlyAsking(this.view.live, this._asking)
       this._asking = asking
@@ -958,6 +965,8 @@ export class Village {
 
   unarchive(id) {
     this.state.archived = this.state.archived.filter((x) => x !== id)
+    // One that archived itself would do so again on the next poll.
+    if (this.view.auto.includes(id) && !(this.state.kept ||= []).includes(id)) this.state.kept.push(id)
     delete this.state.archivedAt[id]
     // Walking back in from the gate reads better than popping into place.
     delete this.state.seen[id]

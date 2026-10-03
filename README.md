@@ -322,7 +322,8 @@ performance, lilies for code review, dandelions for research, and so on. The col
 but fixed per thread. Click a flower to look back at the thread, open it again, or restore it.
 
 Villagers who need you wave and hop every few seconds, so they're easy to spot. A repo whose
-threads are all asleep rests: its villagers fold away, but its garden stays on the map. The bed
+threads are all asleep rests: its villagers fold away, but its garden stays on the map. Settings → *Archive threads asleep for* (never, 30 or 90 days)
+archives a thread that has slept that long; restore it from its flower and it stays. The bed
 is walkable, so villagers stroll among the flowers rather than queueing in front of their doors.
 
 ### Landmarks
