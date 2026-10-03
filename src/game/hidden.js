@@ -6,12 +6,14 @@ export const isArchived = (t, state) => Boolean(t.archived || t.archivedHere || 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
- * Has this thread slept so long that it archives itself? Never one with no known last activity (an
- * empty date would read as 1970), and never one the person restored by hand: `kept` remembers
- * those, or the next poll would archive them again.
+ * Has this thread slept so long that it archives itself? Only a sleeping one: an old date alone
+ * would take a villager that is still running, or stopped on a question, off the map. Never one
+ * with no known last activity (an empty date would read as 1970), and never one the person
+ * restored by hand: `kept` remembers those, or the next poll would archive them again.
  */
 export const isStale = (t, state, days, now = Date.now()) =>
-  days > 0 && Boolean(t.lastActivityAt) && now - t.lastActivityAt > days * DAY_MS && !(state.kept || []).includes(t.id)
+  days > 0 && Boolean(t.lastActivityAt) && now - t.lastActivityAt > days * DAY_MS && !(state.kept || []).includes(t.id) &&
+  statusFor(applyViewed(t, state.viewedAt), now) === 'sleeping'
 
 export function hideProject(state, name) {
   return state.hiddenProjects.includes(name) ? state : { ...state, hiddenProjects: [...state.hiddenProjects, name] }

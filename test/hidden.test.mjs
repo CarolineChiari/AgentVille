@@ -71,3 +71,10 @@ test('a thread archived by hand is not counted as archiving itself', () => {
   const r = classify([T('1', 'a', asleep(200))], S({ archived: ['1'] }), { now: NOW, archiveAfterDays: 30 })
   assert.deepEqual(r.auto, [])
 })
+
+test('an old thread that is still running or stopped on a question is not archived', () => {
+  const threads = [T('1', 'a', { ...asleep(200), running: true }), T('2', 'a', { ...asleep(200), needsInput: true }), T('3', 'a', { ...asleep(200), hasError: true })]
+  const r = classify(threads, S(), { now: NOW, archiveAfterDays: 30, hideDormant: false })
+  assert.deepEqual(r.auto, [])
+  assert.equal(r.live.length, 3)
+})

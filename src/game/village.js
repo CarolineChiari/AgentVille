@@ -119,7 +119,6 @@ export class Village {
     this.toast = toast
     this.notify = notify
     this.state = emptyState()
-    this._autoSaid = new Set() // threads whose archiving by the clock has been toasted
     this.base = emptyState()
     /** The thread whose room is open, or null out in the village. */
     this.focused = null
@@ -371,11 +370,17 @@ export class Village {
     this.loaded = true
     // Not before the first scan: a settings change can apply the empty list, and the baseline
     // taken from that would make every question already waiting look new.
-    if (this.scanned) {
-      // Said once for each thread that archives itself, so a person who didn't expect it can see why.
-      const fresh = this.view.auto.filter((id) => !this._autoSaid.has(id))
-      for (const id of fresh) this._autoSaid.add(id)
-      if (fresh.length) this.toast(`Archived ${fresh.length} thread${fresh.length === 1 ? '' : 's'} asleep for more than ${this.settings.archiveAfterDays} days`)
+    if (this.scanned && this.view.auto.length) {
+      // Archived for good, in village.json, like an archive by hand: turning the setting off later
+      // doesn't bring them back, Restore does. Said once, because next time they are already archived.
+      for (const id of this.view.auto) {
+        const t = this.view.archived.find((x) => x.id === id)
+        this.state.archived.push(id)
+        this.state.archivedAt[id] = t?.lastActivityAt || now
+      }
+      dirty = true
+      const n = this.view.auto.length
+      this.toast(`Archived ${n} thread${n === 1 ? '' : 's'} asleep for more than ${this.settings.archiveAfterDays} days`)
     }
     if (this.scanned) {
       const { fresh, asking } = newlyAsking(this.view.live, this._asking)
@@ -965,8 +970,8 @@ export class Village {
 
   unarchive(id) {
     this.state.archived = this.state.archived.filter((x) => x !== id)
-    // One that archived itself would do so again on the next poll.
-    if (this.view.auto.includes(id) && !(this.state.kept ||= []).includes(id)) this.state.kept.push(id)
+    // Whoever archived it, a thread restored by hand must not archive itself again for being old.
+    if (!(this.state.kept ||= []).includes(id)) this.state.kept.push(id)
     delete this.state.archivedAt[id]
     // Walking back in from the gate reads better than popping into place.
     delete this.state.seen[id]
