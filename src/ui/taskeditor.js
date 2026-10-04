@@ -1,7 +1,7 @@
 // A repo's own tasks: add, edit and delete the ready-made jobs its villagers can be sent, on top
 // of the built-in ones every repo has.
 import { esc, submitKey } from './dom.js'
-import { LABEL_MAX, PROMPT_MAX, TASKS } from '../game/tasks.js'
+import { EVERY_REPO, LABEL_MAX, PROMPT_MAX, TASKS } from '../game/tasks.js'
 
 export function createTaskEditor(root, village) {
   const box = document.createElement('div')
@@ -12,13 +12,16 @@ export function createTaskEditor(root, village) {
   let editing = '' // id of the task in the form, or '' for a new one
 
   function render() {
-    const mine = village.customTasks(project)
+    const own = village.customTasks(project)
+    const everywhere = village.customTasks(EVERY_REPO)
+    const mine = [...own, ...everywhere]
     const t = mine.find((x) => x.id === editing)
+    const global = Boolean(t) && everywhere.includes(t)
     box.innerHTML = `<h2>Tasks for ${esc(project)}</h2>
-      <p class="note">Every repo has ${TASKS.map((x) => esc(x.label)).join(', ')}. Add jobs of your own for this one.</p>
+      <p class="note">Every repo has ${TASKS.map((x) => esc(x.label)).join(', ')}. Add jobs of your own for this one, or for every repo. A prompt may use {repo}, {branch} and {path}: they are filled in from the villager it is sent to.</p>
       <ul class="tasklist">
         ${mine.length ? mine.map((x) => `<li class="${x.id === editing ? 'editing' : ''}">
-          <span title="${esc(x.prompt)}">${esc(x.label)}</span>
+          <span title="${esc(x.prompt)}">${esc(x.label)}${everywhere.includes(x) ? ' <small>(every repo)</small>' : ''}</span>
           <button class="btn" data-act="edit" data-id="${esc(x.id)}">Edit</button>
           <button class="btn danger" data-act="delete" data-id="${esc(x.id)}" title="Delete">✕</button></li>`).join('') : '<li class="empty">None yet.</li>'}
       </ul>
@@ -26,6 +29,7 @@ export function createTaskEditor(root, village) {
         <input type="text" data-f="label" maxlength="${LABEL_MAX}" placeholder="Button name, e.g. Deploy to staging" value="${esc(t?.label || '')}" spellcheck="false"></label>
       <label class="stack">Prompt
         <textarea data-f="prompt" rows="5" maxlength="${PROMPT_MAX}" placeholder="What the agent should do, and when to stop and ask you.">${esc(t?.prompt || '')}</textarea></label>
+      <label class="check"><input type="checkbox" data-f="global"${global ? ' checked' : ''}> For every repo</label>
       <div class="actions">
         <button class="btn primary" data-act="save">${t ? 'Save' : 'Add task'}<kbd>${submitKey()}</kbd></button>
         ${t ? '<button class="btn" data-act="new">Cancel edit</button>' : ''}
@@ -36,7 +40,13 @@ export function createTaskEditor(root, village) {
   function save() {
     const label = box.querySelector('[data-f="label"]').value
     const prompt = box.querySelector('[data-f="prompt"]').value
-    if (!village.saveTask(project, { id: editing, label, prompt })) return
+    const every = box.querySelector('[data-f="global"]').checked
+    const from = village.customTasks(EVERY_REPO).some((x) => x.id === editing) ? EVERY_REPO : project
+    const to = every ? EVERY_REPO : project
+    // Moving a task between lists saves a copy there and drops the old one, so a failed save loses nothing.
+    const moving = editing && from !== to
+    if (!village.saveTask(to, { id: moving ? '' : editing, label, prompt })) return
+    if (moving) village.removeTask(from, editing)
     editing = ''
     render()
     box.querySelector('[data-f="label"]').focus()
@@ -57,7 +67,7 @@ export function createTaskEditor(root, village) {
       box.querySelector('[data-f="prompt"]').focus()
     } else if (act === 'delete') {
       if (editing === b.dataset.id) editing = ''
-      village.removeTask(project, b.dataset.id)
+      village.removeTask(village.customTasks(EVERY_REPO).some((x) => x.id === b.dataset.id) ? EVERY_REPO : project, b.dataset.id)
       render()
     }
   })
