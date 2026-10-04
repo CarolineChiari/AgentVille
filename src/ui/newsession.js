@@ -207,8 +207,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
       const id = e.target.closest('[data-task]').dataset.task
       const task = village.tasksFor(project()).find((x) => x.id === id)
       // No thread yet, so no branch: that placeholder stays for the agent to see.
-      const dir = box.querySelector('[data-f="folder"]')?.value
-      p.value = task ? fillPlaceholders(task.prompt, { repo: project(), path: dir }) : p.value
+      p.value = task ? fillPlaceholders(task.prompt, { repo: project(), path: folder() }) : p.value
       p.focus()
     } else if (act === 'into') browse(e.target.closest('[data-path]').dataset.path)
     else if (act === 'up' && shown.parent) browse(shown.parent)

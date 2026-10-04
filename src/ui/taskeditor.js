@@ -10,20 +10,21 @@ export function createTaskEditor(root, village) {
   root.appendChild(box)
   let project = ''
   let editing = '' // id of the task in the form, or '' for a new one
+  let editingGlobal = false // which list it is in: a repo's own and a global task may share an id
 
   function render() {
     const own = village.customTasks(project)
     const everywhere = village.customTasks(EVERY_REPO)
-    const mine = [...own, ...everywhere]
-    const t = mine.find((x) => x.id === editing)
-    const global = Boolean(t) && everywhere.includes(t)
+    const rows = [...own.map((task) => ({ task, global: false })), ...everywhere.map((task) => ({ task, global: true }))]
+    const t = rows.find((r) => r.task.id === editing && r.global === editingGlobal)?.task
+    const global = Boolean(t) && editingGlobal
     box.innerHTML = `<h2>Tasks for ${esc(project)}</h2>
       <p class="note">Every repo has ${TASKS.map((x) => esc(x.label)).join(', ')}. Add jobs of your own for this one, or for every repo. A prompt may use {repo}, {branch} and {path}: they are filled in from the villager it is sent to.</p>
       <ul class="tasklist">
-        ${mine.length ? mine.map((x) => `<li class="${x.id === editing ? 'editing' : ''}">
-          <span title="${esc(x.prompt)}">${esc(x.label)}${everywhere.includes(x) ? ' <small>(every repo)</small>' : ''}</span>
-          <button class="btn" data-act="edit" data-id="${esc(x.id)}">Edit</button>
-          <button class="btn danger" data-act="delete" data-id="${esc(x.id)}" title="Delete">✕</button></li>`).join('') : '<li class="empty">None yet.</li>'}
+        ${rows.length ? rows.map(({ task: x, global: g }) => `<li class="${x.id === editing && g === editingGlobal ? 'editing' : ''}">
+          <span title="${esc(x.prompt)}">${esc(x.label)}${g ? ' <small>(every repo)</small>' : ''}</span>
+          <button class="btn" data-act="edit" data-id="${esc(x.id)}" data-global="${g}">Edit</button>
+          <button class="btn danger" data-act="delete" data-id="${esc(x.id)}" data-global="${g}" title="Delete">✕</button></li>`).join('') : '<li class="empty">None yet.</li>'}
       </ul>
       <label class="stack">${t ? 'Edit task' : 'New task'}
         <input type="text" data-f="label" maxlength="${LABEL_MAX}" placeholder="Button name, e.g. Deploy to staging" value="${esc(t?.label || '')}" spellcheck="false"></label>
@@ -41,13 +42,14 @@ export function createTaskEditor(root, village) {
     const label = box.querySelector('[data-f="label"]').value
     const prompt = box.querySelector('[data-f="prompt"]').value
     const every = box.querySelector('[data-f="global"]').checked
-    const from = village.customTasks(EVERY_REPO).some((x) => x.id === editing) ? EVERY_REPO : project
+    const from = editingGlobal ? EVERY_REPO : project
     const to = every ? EVERY_REPO : project
     // Moving a task between lists saves a copy there and drops the old one, so a failed save loses nothing.
     const moving = editing && from !== to
     if (!village.saveTask(to, { id: moving ? '' : editing, label, prompt })) return
     if (moving) village.removeTask(from, editing)
     editing = ''
+    editingGlobal = false
     render()
     box.querySelector('[data-f="label"]').focus()
   }
@@ -63,11 +65,13 @@ export function createTaskEditor(root, village) {
       render()
     } else if (act === 'edit') {
       editing = b.dataset.id
+      editingGlobal = b.dataset.global === 'true'
       render()
       box.querySelector('[data-f="prompt"]').focus()
     } else if (act === 'delete') {
-      if (editing === b.dataset.id) editing = ''
-      village.removeTask(village.customTasks(EVERY_REPO).some((x) => x.id === b.dataset.id) ? EVERY_REPO : project, b.dataset.id)
+      const g = b.dataset.global === 'true'
+      if (editing === b.dataset.id && editingGlobal === g) editing = ''
+      village.removeTask(g ? EVERY_REPO : project, b.dataset.id)
       render()
     }
   })
