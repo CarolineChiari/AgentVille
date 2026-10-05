@@ -54,6 +54,14 @@ const HELP = [
   ['0', 'Back to the square'],
 ]
 
+// Shown once on first run, and again from Keys. Plain words: the badges mean the same in every theme.
+const TOUR = [
+  { title: 'Welcome to the village', body: '<p>Every Claude Code (or other harness) session is a villager, and every repo is a plot. New sessions walk in through the square in the middle. Click a villager to see its card.</p>' },
+  { title: 'What the badges mean', body: '<p>A <b>?</b> over a villager’s head means it is waiting on you. A lit window means it is working right now. Finished work blooms as flowers, and a PR waits in the garden. N jumps to the next villager who needs you.</p>' },
+  { title: 'Getting around', body: '<p>Drag, or use WASD or the arrow keys, to move; scroll to zoom; 0 returns to the square. Press ? any time for every key.</p>' },
+]
+let tourStep = 0
+
 export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
@@ -108,7 +116,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <div class="counts">${COUNT_KEYS.map(([k, l]) => `<button class="${k}" data-act="status" data-status="${k}" title="${esc(STATUS_LABEL[k] || COUNT_TITLE[k] || l)}"><span class="n">${counts[k] || 0}</span><span class="l">${l}</span></button>`).join('')}</div>
       ${selRepo ? detail(selRepo) : ''}
       <div class="list">
-        ${repos.length ? '' : `<p style="color:var(--muted)">${village.loaded ? 'No sessions found yet. Start one and it will walk in.' : 'Reading your sessions…'}</p>`}
+        ${repos.length ? '' : emptyState()}
         ${repos.map((r) => repoRow(r, r.name === sel)).join('')}
         ${section('folded', `Resting (${foldedNames.length})`, foldedNames.map((n) => `<button class="repo" data-act="wake" data-name="${esc(n)}" title="Every thread here has been quiet for three days"><span class="dot" style="background:var(--muted)"></span><span class="name">${esc(n)}</span></button>`).join(''), foldedNames.length)}
         ${section('hidden', `Hidden (${hiddenNames.length})`, hiddenNames.map((n) => `<button class="repo" data-act="unhide" data-name="${esc(n)}"><span class="dot" style="background:var(--muted)"></span><span class="name">${esc(n)}</span><span class="badges"><span>Show</span></span></button>`).join(''), hiddenNames.length)}
@@ -286,10 +294,34 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     return `<p class="note">${esc(w?.ok ? `Following ${w.place}.` : w?.error || 'Looking…')}</p>`
   }
 
+  // What a machine with no sessions sees: where each harness was looked for, and the demo.
+  function emptyState() {
+    if (!village.loaded) return '<p class="note">Reading your sessions…</p>'
+    if (village.demo) return '<p class="note">No sessions in the demo.</p>'
+    const rows = village.harnesses.map((h) => {
+      const where = h.looked?.length ? ` Looked in ${h.looked.map((p) => `<code>${esc(p)}</code>`).join(', ')}.` : ''
+      const state = h.detected ? 'Found, with no sessions yet.' : `Not found.${where}`
+      const get = !h.detected && h.url ? ` <a href="${esc(h.url)}" data-act="getHarness" data-url="${esc(h.url)}">Get it</a>` : ''
+      return `<li><b>${esc(h.name)}</b> ${state}${get}</li>`
+    })
+    return `<div class="empty-state">
+      <p>No sessions found yet. Start one in a harness AgentVille reads and the villager will walk in.</p>
+      ${rows.length ? `<ul>${rows.join('')}</ul>` : ''}
+      <p><a class="btn" href="?demo=1">Try the demo</a> <button class="btn" data-act="tour">Take the tour</button></p>
+    </div>`
+  }
+
   function renderSheet() {
-    if (sheetMode === 'help') {
+    if (sheetMode === 'tour') {
+      const step = TOUR[tourStep]
+      const last = tourStep === TOUR.length - 1
+      sheet.innerHTML = `<h2>${esc(step.title)}</h2><p class="note">${tourStep + 1} of ${TOUR.length}</p>${step.body}
+        <div class="actions">${tourStep ? '<button class="btn" data-act="tourBack">Back</button>' : ''}
+          <button class="btn primary" data-act="${last ? 'closeSheet' : 'tourNext'}">${last ? 'Done' : 'Next'}</button>
+          ${last ? '' : '<button class="btn" data-act="closeSheet">Skip</button>'}</div>`
+    } else if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
-        <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
+        <div class="actions"><button class="btn" data-act="tour">Take the tour</button><button class="btn" data-act="closeSheet">Close</button></div>`
     } else {
       const s = settings
       const theme = village.theme
@@ -327,6 +359,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   }
 
   function showSheet(mode) {
+    if (mode === 'tour') tourStep = 0
     sheetMode = sheetMode === mode ? null : mode
     sheet.hidden = !sheetMode
     if (sheetMode) renderSheet()
@@ -362,6 +395,10 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'update': village.openRelease(); break
       case 'help': showSheet('help'); break
+      case 'tour': sheetMode = null; showSheet('tour'); break
+      case 'tourNext': tourStep = Math.min(tourStep + 1, TOUR.length - 1); renderSheet(); break
+      case 'tourBack': tourStep = Math.max(tourStep - 1, 0); renderSheet(); break
+      case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
       case 'status': {
         if (status === 'done') {
           const id = village.nextDone()

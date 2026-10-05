@@ -411,6 +411,8 @@ whenever both the PR gardens and the issue boards are off.
 
 ## Keys
 
+On first run a three-step tour shows the square, the badges and the keys; it comes back from **Keys → Take the tour**. With no sessions on the machine, the sidebar says where each harness was looked for and offers the demo.
+
 | Key | Does |
 | --- | --- |
 | `N` | Fly to the next villager who needs you |

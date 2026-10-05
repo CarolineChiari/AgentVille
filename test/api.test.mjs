@@ -66,7 +66,7 @@ test('threads endpoint returns the documented shape', async () => {
 
 test('harnesses endpoint reports detection and platform', async () => {
   const body = await (await fetch(`${base}/api/harnesses`)).json()
-  assert.deepEqual(body.harnesses.map(({ targets, ...h }) => ({ ...h, targets: targets.map((t) => t.id) })), [{ id: 'fake', name: 'Fake', detected: true, targets: ['vscode', 'terminal'] }])
+  assert.deepEqual(body.harnesses.map(({ targets, ...h }) => ({ ...h, targets: targets.map((t) => t.id) })), [{ id: 'fake', name: 'Fake', detected: true, looked: [], url: '', targets: ['vscode', 'terminal'] }])
   assert.equal(body.platform, 'test')
 })
 
@@ -204,6 +204,8 @@ test('open-url only opens https github.com links', async () => {
   assert.equal((await post('/api/open-url', { url: 'https://evil.example/github.com' })).status, 400)
   assert.equal((await post('/api/open-url', { url: 'file:///etc/passwd' })).status, 400)
   assert.equal((await post('/api/open-url', { url: 'not a url' })).status, 400)
+  // Only a harness's own install page besides: the fake one has none.
+  assert.equal((await post('/api/open-url', { url: 'https://cursor.com' })).status, 400)
 })
 
 test('transcript endpoint needs the page origin and a harness that can read one', async () => {

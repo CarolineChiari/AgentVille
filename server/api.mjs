@@ -105,6 +105,8 @@ function refStrings(ref) {
  */
 export function createApiMiddleware(opts = {}) {
   const harnesses = opts.harnesses ?? HARNESSES
+  // GitHub, and the page each harness is installed from (the empty state links to them).
+  const linkHosts = new Set(['github.com', ...harnesses.map((h) => { try { return new URL(h.url).hostname } catch { return '' } }).filter(Boolean)])
   const store = opts.stateStore ?? createStateStore(opts.dataDir ?? DEFAULT_DATA_DIR)
   const opener = opts.opener ?? createOpener()
   const terminal = opts.terminal ?? ((spec) => openInTerminal(spec, { dataDir: opts.dataDir ?? DEFAULT_DATA_DIR }))
@@ -299,7 +301,7 @@ export function createApiMiddleware(opts = {}) {
       } catch {
         return [400, { ok: false, error: 'Not a URL.' }]
       }
-      if (u.protocol !== 'https:' || u.hostname !== 'github.com') return [400, { ok: false, error: 'Only GitHub links can be opened.' }]
+      if (u.protocol !== 'https:' || !linkHosts.has(u.hostname)) return [400, { ok: false, error: 'Only GitHub and install links can be opened.' }]
       const launched = await opener.launch(u.href)
       return launched.ok ? [200, { ok: true }] : [500, launched]
     },

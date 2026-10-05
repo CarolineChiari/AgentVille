@@ -264,6 +264,14 @@ export class Village {
   }
 
   /** The release notes for the version on offer, in the browser. */
+  async openLink(url) {
+    try {
+      await api.openUrl(url)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
   async openRelease() {
     if (!this.release.url) return
     try {
