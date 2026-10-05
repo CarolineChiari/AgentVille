@@ -300,7 +300,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (village.demo) return '<p class="note">No sessions in the demo.</p>'
     const rows = village.harnesses.map((h) => {
       const where = h.looked?.length ? ` Looked in ${h.looked.map((p) => `<code>${esc(p)}</code>`).join(', ')}.` : ''
-      const state = h.detected ? 'Found, with no sessions yet.' : `Not found.${where}`
+      const state = h.detected ? `Found, with no sessions yet.${where}` : `Not found.${where}`
       const get = !h.detected && h.url ? ` <a href="${esc(h.url)}" data-act="getHarness" data-url="${esc(h.url)}">Get it</a>` : ''
       return `<li><b>${esc(h.name)}</b> ${state}${get}</li>`
     })
@@ -395,9 +395,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'update': village.openRelease(); break
       case 'help': showSheet('help'); break
-      case 'tour': sheetMode = null; showSheet('tour'); break
-      case 'tourNext': tourStep = Math.min(tourStep + 1, TOUR.length - 1); renderSheet(); break
-      case 'tourBack': tourStep = Math.max(tourStep - 1, 0); renderSheet(); break
+      case 'tour': showSheet('tour'); break
       case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
       case 'status': {
         if (status === 'done') {
@@ -427,8 +425,20 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     }
   })
 
+  // The tour's buttons live in the sheet, not the sidebar, so they are answered here.
   sheet.addEventListener('click', (e) => {
-    if (e.target.closest('[data-act="closeSheet"]')) showSheet(sheetMode)
+    const act = e.target.closest('[data-act]')?.dataset.act
+    if (act === 'closeSheet') showSheet(sheetMode)
+    else if (act === 'tour') {
+      sheetMode = null // from Keys: swap that sheet for the tour rather than toggling it
+      showSheet('tour')
+    } else if (act === 'tourNext') {
+      tourStep = Math.min(tourStep + 1, TOUR.length - 1)
+      renderSheet()
+    } else if (act === 'tourBack') {
+      tourStep = Math.max(tourStep - 1, 0)
+      renderSheet()
+    }
   })
   sheet.addEventListener('input', (e) => {
     const holiday = e.target.dataset.holiday

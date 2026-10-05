@@ -263,7 +263,7 @@ export class Village {
     this._weatherTimer = setTimeout(() => this.pollWeather(), WEATHER_POLL_MS)
   }
 
-  /** The release notes for the version on offer, in the browser. */
+  /** Open a link in the browser; the server refuses any it does not allow-list. */
   async openLink(url) {
     try {
       await api.openUrl(url)
@@ -272,6 +272,7 @@ export class Village {
     }
   }
 
+  /** The release notes for the version on offer, in the browser. */
   async openRelease() {
     if (!this.release.url) return
     try {

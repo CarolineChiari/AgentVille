@@ -293,7 +293,7 @@ export function createApiMiddleware(opts = {}) {
 
     'GET /api/version': async () => [200, await releaseStore.get()],
 
-    /** Only GitHub pages, over https: this endpoint exists to open a PR or an issue, not arbitrary links. */
+    /** Only https links to GitHub (a PR, an issue, release notes) or to a harness's own install page (`url` on its adapter): not arbitrary links. */
     'POST /api/open-url': async (body) => {
       let u
       try {
