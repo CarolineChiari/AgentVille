@@ -1,5 +1,6 @@
 // The new-session form: pick a repo (or type any folder), optionally write the first prompt, go.
 import { agentName, esc, submitKey } from './dom.js'
+import { fillPlaceholders } from '../game/tasks.js'
 
 const OTHER = '__other__'
 
@@ -204,7 +205,9 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     if (act === 'task') {
       const p = box.querySelector('[data-f="prompt"]')
       const id = e.target.closest('[data-task]').dataset.task
-      p.value = village.tasksFor(project()).find((x) => x.id === id)?.prompt || p.value
+      const task = village.tasksFor(project()).find((x) => x.id === id)
+      // No thread yet, so no branch: that placeholder stays for the agent to see.
+      p.value = task ? fillPlaceholders(task.prompt, { repo: project(), path: folder() }) : p.value
       p.focus()
     } else if (act === 'into') browse(e.target.closest('[data-path]').dataset.path)
     else if (act === 'up' && shown.parent) browse(shown.parent)

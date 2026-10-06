@@ -344,6 +344,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label title="Reads the files in each repo to count its lines of code, for its landmark. Nothing is run and nothing leaves this machine.">Count the lines of code in each repo <input type="checkbox" data-set="repoLines" ${s.repoLines ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
+        <label title="Turns a thread that has been asleep this long into a flower. It stays in the sidebar under Archived, and you can restore it.">Archive threads asleep for
+          <select data-set="archiveAfterDays">${[[0, 'Never'], [30, '30 days'], [90, '90 days']].map(([n, label]) => `<option value="${n}" ${Number(s.archiveAfterDays) === n ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day
           <select data-set="timeMode"><option value="live" ${s.timeMode === 'live' ? 'selected' : ''}>Follow my clock</option><option value="manual" ${s.timeMode === 'manual' ? 'selected' : ''}>Set by hand</option></select></label>
@@ -453,6 +455,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     // The whole village's sub-theme is kept per theme, so switching themes back finds it again.
     if (k === 'everywhere') settings.subthemes = { ...settings.subthemes, [village.theme]: e.target.value }
     else if (k === 'south') settings.south = e.target.value === '1'
+    else if (k === 'archiveAfterDays') settings[k] = Number(e.target.value) || 0
     else settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
     onSettings(k)
     renderSheet()

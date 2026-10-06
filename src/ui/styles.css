@@ -554,3 +554,4 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .tip b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tip span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tip span[hidden] { display: none; }
+.taskeditor .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
