@@ -79,10 +79,28 @@ export function customId(label, taken = []) {
   return id
 }
 
-/** Every task a folder offers: the built-in ones, then its own. */
-export const tasksFor = (custom = []) => [...TASKS, ...cleanTasks(custom)]
+/** The bucket in `tasks` (village.json) whose jobs every repo offers. No folder can be called this. */
+export const EVERY_REPO = '*'
 
-export const taskById = (id, custom = []) => tasksFor(custom).find((t) => t.id === id) || null
+/**
+ * Every task a folder offers: the built-in ones, then the ones every repo offers, then its own.
+ * Ids come from labels, so a repo's own task may share one with a global task; the repo's wins.
+ */
+export function tasksFor(custom = [], global = []) {
+  const own = cleanTasks(custom)
+  const ids = new Set(own.map((t) => t.id))
+  return [...TASKS, ...cleanTasks(global).filter((t) => !ids.has(t.id)), ...own]
+}
+
+export const taskById = (id, custom = [], global = []) => tasksFor(custom, global).find((t) => t.id === id) || null
+
+/**
+ * A prompt with `{repo}`, `{branch}` and `{path}` filled in from the thread it is sent to. A
+ * placeholder with nothing to fill it (an unknown name, or a thread with no branch) is left as it
+ * is, so the agent sees what was meant rather than a silent gap.
+ */
+export const fillPlaceholders = (prompt, values = {}) =>
+  String(prompt).replace(/\{(repo|branch|path)\}/g, (all, k) => (typeof values[k] === 'string' && values[k] ? values[k] : all))
 
 /**
  * The job an open GitHub issue turns into, for a villager already on the repo or a new recruit.

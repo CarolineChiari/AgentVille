@@ -57,6 +57,11 @@ test('a repo\'s own tasks are kept, cleaned, and an emptied list is dropped', ()
   assert.deepEqual(normalizeState({ tasks: [1, 2] }).tasks, {})
 })
 
+test('tasks every repo offers are kept under the * bucket', () => {
+  const s = normalizeState({ tasks: { '*': [{ id: 'c-lint', label: 'Lint', prompt: 'Lint it.' }, { id: 'x', label: 'x', prompt: 'y' }] } })
+  assert.deepEqual(s.tasks, { '*': [{ id: 'c-lint', label: 'Lint', prompt: 'Lint it.' }] })
+})
+
 test('a folder\'s own look is kept, anything that isn\'t a pair of ids is dropped', () => {
   const s = normalizeState({
     looks: {

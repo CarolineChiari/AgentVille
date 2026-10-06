@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CUSTOM_MAX, LABEL_MAX, PROMPT_MAX, TASKS, cleanTask, cleanTasks, customId, issueTask, taskById, tasksFor } from '../src/game/tasks.js'
+import { CUSTOM_MAX, LABEL_MAX, PROMPT_MAX, TASKS, EVERY_REPO, cleanTask, cleanTasks, customId, fillPlaceholders, issueTask, taskById, tasksFor } from '../src/game/tasks.js'
 
 test('every task has a unique id, a label and a prompt', () => {
   assert.ok(TASKS.length >= 3)
@@ -57,4 +57,21 @@ test('an issue becomes a task that names it, links it and says where to stop', (
   assert.ok(!issueTask({ number: 3, title: 'x', url: '' }).prompt.includes('()'), 'no empty link without a url')
   assert.ok(issueTask({ number: 3, title: 'x'.repeat(300), url: 'https://github.com/a/b/issues/3' }).prompt.length <= PROMPT_MAX)
   assert.equal(issueTask({ number: 3, title: 'y'.repeat(300) }).prompt.includes('y'.repeat(201)), false, 'long titles are clipped')
+})
+
+test('tasks every repo offers come after the built-in ones and before the repo\'s own', () => {
+  const every = [{ id: 'c-lint', label: 'Lint', prompt: 'Lint.' }, { id: 'c-deploy', label: 'Deploy', prompt: 'Everywhere.' }]
+  const mine = [{ id: 'c-deploy', label: 'Deploy', prompt: 'Here.' }]
+  assert.deepEqual(tasksFor(mine, every).map((t) => t.id), [...TASKS.map((t) => t.id), 'c-lint', 'c-deploy'])
+  assert.equal(taskById('c-deploy', mine, every).prompt, 'Here.', 'the repo\'s own wins a shared id')
+  assert.equal(taskById('c-lint', [], every).label, 'Lint')
+  assert.equal(EVERY_REPO, '*')
+})
+
+test('placeholders are filled from the thread and anything else is left as written', () => {
+  const v = { repo: 'app', branch: 'feat/x', path: '/Users/me/app' }
+  assert.equal(fillPlaceholders('Rebase {repo}@{branch} in {path}; {branch} again', v), 'Rebase app@feat/x in /Users/me/app; feat/x again')
+  assert.equal(fillPlaceholders('Use {unknown} and {branch}', { branch: '' }), 'Use {unknown} and {branch}')
+  assert.equal(fillPlaceholders('{repo}', {}), '{repo}')
+  assert.equal(fillPlaceholders('{repo} $& $1', { repo: '$&' }), '$& $& $1', 'no replacement patterns')
 })

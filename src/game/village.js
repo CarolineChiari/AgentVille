@@ -10,7 +10,7 @@ import { wearOf } from '../sim/wear.js'
 import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
-import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
+import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
@@ -1031,7 +1031,7 @@ export class Village {
    */
   async runTask(id, taskId) {
     const t = this.thread(id)
-    const task = t && taskById(taskId, this.customTasks(t.project))
+    const task = t && taskById(taskId, this.customTasks(t.project), this.customTasks(EVERY_REPO))
     if (!t || !task) return
     return this.sendPrompt(id, task.label, task.prompt)
   }
@@ -1040,7 +1040,7 @@ export class Village {
   async sendPrompt(id, label, prompt) {
     const t = this.thread(id)
     if (!t) return
-    const task = { label, prompt }
+    const task = { label, prompt: fillPlaceholders(prompt, { repo: t.project, branch: t.gitBranch, path: t.cwd || t.projectPath }) }
     if (this.demo) return this.toast('Demo mode: nothing to send.')
     // Two processes answering one conversation would talk over each other.
     if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
@@ -1262,9 +1262,9 @@ export class Village {
     return this.state.tasks?.[project] || []
   }
 
-  /** Every task a repo offers: the built-in ones, then its own. */
+  /** Every task a repo offers: the built-in ones, those every repo offers, then its own. */
   tasksFor(project) {
-    return tasksFor(this.customTasks(project))
+    return tasksFor(this.customTasks(project), this.customTasks(EVERY_REPO))
   }
 
   /**
@@ -1275,7 +1275,8 @@ export class Village {
     if (!project) return false
     const list = this.customTasks(project)
     const i = list.findIndex((x) => x.id === id)
-    const task = cleanTask({ id: i >= 0 ? id : customId(label, list.map((x) => x.id)), label, prompt })
+    const taken = [...list, ...this.customTasks(EVERY_REPO)].map((x) => x.id)
+    const task = cleanTask({ id: i >= 0 ? id : customId(label, taken), label, prompt })
     if (!task) {
       this.toast('A task needs a name and a prompt.', 'error')
       return false
