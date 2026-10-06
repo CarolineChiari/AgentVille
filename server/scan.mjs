@@ -114,7 +114,8 @@ export async function harnessStatus({ harnesses = HARNESSES } = {}) {
     harnesses.map(async (h) => {
       const detected = await h.detect().catch(() => false)
       const targets = detected && h.targets ? await h.targets().catch(() => []) : []
-      return { id: h.id, name: h.name, detected, targets }
+      // Where it looked, so a machine with nothing can say so, and where to get it.
+      return { id: h.id, name: h.name, detected, targets, looked: h.looked?.() ?? [], url: h.url ?? '' }
     }),
   )
 }

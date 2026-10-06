@@ -13,6 +13,7 @@ import { editorUserDir, editorWorkspaces, folderUrl } from '../vscode-family.mjs
 import { basename, makeThread } from '../thread.mjs'
 import { STATE, chatMessages, foldChatLog, headMeta, lastTurn } from './chatlog.mjs'
 import { eventMessages, eventsHeadMeta, eventsTail, yamlScalars } from './events.mjs'
+import { tilde } from '../../lib/tilde.mjs'
 
 export const HARNESS_ID = 'copilot'
 const NAME = 'GitHub Copilot'
@@ -316,7 +317,7 @@ export function createCopilotAdapter(opts = {}) {
     return { ok: true, where: ed.label, url: folderUrl(ed.scheme, dir) }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(stateDir, home), ...editors.map((e) => tilde(e.userDir, home))], url: 'https://github.com/features/copilot' }
 }
 
 export default createCopilotAdapter()

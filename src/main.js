@@ -531,7 +531,7 @@ async function boot() {
   if (!settings.seenHelp) {
     settings.seenHelp = true
     saveSettings(settings)
-    toast('Press ? for keys. Villagers with a ? over their heads are waiting on you.')
+    hud.showSheet('tour')
   }
 }
 // A handle for poking at the running village from devtools, and for the README's screenshots:

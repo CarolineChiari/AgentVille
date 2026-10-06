@@ -383,6 +383,9 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .sheet select { min-width: 0; max-width: 60%; }
 .sheet input[type='range'] { width: 140px; }
 .sheet table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.empty-state { font-size: 12px; color: var(--muted); }
+.empty-state ul { padding-left: 16px; }
+.empty-state code { font-family: var(--mono); }
 .sheet td { padding: 3px 0; color: var(--muted); }
 .sheet td:first-child { color: var(--text); font-family: var(--mono); width: 90px; }
 
