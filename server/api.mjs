@@ -220,7 +220,7 @@ export function createApiMiddleware(opts = {}) {
       const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : ''
       if (!prompt) return [400, { ok: false, error: 'Nothing to send.' }]
       if (h.continueThread) {
-        const result = await h.continueThread(body?.ref, { prompt })
+        const result = await h.continueThread(body?.ref, { prompt, target: typeof body?.target === 'string' ? body.target : undefined })
         if (result?.ok) {
           const launched = await launch(result)
           if (!launched.ok) return [500, { ok: false, error: launched.error }]

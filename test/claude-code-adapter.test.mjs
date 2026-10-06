@@ -282,6 +282,26 @@ test('continueThread resumes the CLI session in its own folder with the prompt',
   assert.equal((await a.continueThread(null, { prompt: 'x' })).ok, false)
 })
 
+test('continueThread follows the target: VS Code and the app open the thread, a terminal resumes it', async () => {
+  const a = createClaudeCodeAdapter({ home: '/nowhere', env: {}, platform: 'darwin', claudePath: '/bin/claude' })
+  const id = uuid(1)
+  const ref = { cliSessionId: id, cwd: '/work/app' }
+  const code = await a.continueThread(ref, { prompt: 'ship it', target: 'vscode' })
+  assert.equal(code.ok, true)
+  assert.equal(code.terminal, undefined, 'no terminal opens')
+  assert.equal(code.where, 'VS Code')
+  assert.equal(code.promptPassed, false, 'the prompt is for the clipboard')
+  assert.match(code.urls[1], new RegExp(`session=${id}`))
+  const app = await a.continueThread(ref, { prompt: 'ship it', target: 'app' })
+  assert.equal(app.where, 'the Claude app')
+  assert.equal(app.terminal, undefined)
+  assert.equal(app.promptPassed, false)
+  assert.equal((await a.continueThread({ cwd: '/work/app' }, { prompt: 'x', target: 'vscode' })).ok, false, 'VS Code cannot open a desktop-only thread')
+  assert.equal((await a.continueThread(ref, { prompt: ' ', target: 'vscode' })).ok, false, 'no prompt')
+  assert.ok((await a.continueThread(ref, { prompt: 'x', target: 'terminal' })).terminal)
+  assert.ok((await a.continueThread(ref, { prompt: 'x', target: 'nonsense' })).terminal, 'an unknown target is the terminal, as before')
+})
+
 test('continueThread refuses when the CLI is not installed', async () => {
   // Windows looks only under home and PATH, so no machine's /usr/local/bin can make this pass by accident.
   const a = createClaudeCodeAdapter({ home: '/nowhere', env: {}, platform: 'win32' })
