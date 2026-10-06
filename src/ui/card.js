@@ -314,9 +314,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   /** The ready-made tasks, or why there are none right now. */
   function taskList(t) {
     if (t.running || t.needsInput) return '<p class="tasks note">Busy right now. Tasks can go once it stops.</p>'
-    // Only Claude Code's CLI resumes a thread with a prompt; the server falls back to a new session.
+    // Only Claude Code resumes a thread with a prompt; the server falls back to a new session.
     const how = t.harness === 'claude-code'
-      ? 'Continues this conversation in a terminal, or starts a new session here if it can’t.'
+      ? 'Continues this conversation where you open threads (the task goes on the clipboard in VS Code and the Claude app), or starts a new session here if it can’t.'
       : `Starts a new ${esc(t.harnessName || 'agent')} session in this folder.`
     return `<div class="tasks">
       ${village.tasksFor(t.project).map((x) => `<button class="btn${x.id.startsWith('c-') ? ' custom' : ''}" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}

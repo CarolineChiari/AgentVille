@@ -298,11 +298,11 @@ test('a task goes into the thread when the harness can continue it', async () =>
   let seen
   fakeHarness.continueThread = async (ref, opts) => ((seen = { ref, opts }), { ok: true, where: 'a terminal', terminal: { exe: '/bin/x', args: ['--resume', '1'], cwd: '/w', prompt: opts.prompt } })
   const before = terminals.length
-  const r = await post('/api/task', { harness: 'fake', ref: { sid: '1' }, folder: os.tmpdir(), prompt: '  commit it  ' })
+  const r = await post('/api/task', { harness: 'fake', ref: { sid: '1' }, folder: os.tmpdir(), prompt: '  commit it  ', target: 'vscode' })
   delete fakeHarness.continueThread
   assert.equal(r.status, 200)
   assert.deepEqual(await r.json(), { ok: true, continued: true, where: 'a terminal', promptPassed: true })
-  assert.deepEqual(seen, { ref: { sid: '1' }, opts: { prompt: 'commit it' } })
+  assert.deepEqual(seen, { ref: { sid: '1' }, opts: { prompt: 'commit it', target: 'vscode' } })
   assert.equal(terminals.length, before + 1)
 })
 

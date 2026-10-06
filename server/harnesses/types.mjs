@@ -50,7 +50,7 @@
  *           Optional: what the session changed on disk, read from its own records — never by
  *           running anything in the repo. `detail` adds the entry-by-entry log and the commits;
  *           `path` asks instead for that one file's edits, with the text on either side of each.
- * @property {(ref: object, opts: { prompt: string }) => Promise<OpenResult>} [continueThread]
+ * @property {(ref: object, opts: { prompt: string, target?: string }) => Promise<OpenResult>} [continueThread]
  *           Optional: send one more prompt into an existing thread. A harness without it, or one
  *           that refuses, gets the prompt as a fresh session in the thread's folder instead.
  *

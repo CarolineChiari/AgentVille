@@ -1054,7 +1054,8 @@ export class Village {
     // Two processes answering one conversation would talk over each other.
     if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
     const s = this.settings
-    const target = s.newTargets?.[t.harness] || (t.harness === 'claude-code' ? s.openIn : '')
+    // A Claude Code task goes where threads open, whatever the last new session chose: that is the setting this follows.
+    const target = t.harness === 'claude-code' ? s.openIn : s.newTargets?.[t.harness] || ''
     try {
       const r = await api.sendTask(t.harness, t.ref, t.cwd || t.projectPath, task.prompt, target)
       const copied = !r.promptPassed && (await navigator.clipboard.writeText(task.prompt).then(() => true, () => false))

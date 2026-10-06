@@ -397,15 +397,21 @@ export function createClaudeCodeAdapter(opts = {}) {
   }
 
   /**
-   * Hand an existing thread one more prompt: the CLI resumes it by id, in its own folder, in a
-   * terminal. Only the CLI takes a prompt with a session id; the app and VS Code links take one or
-   * the other. So a thread the CLI can't resume (desktop-only, or no CLI installed) is refused,
-   * and the caller starts a fresh session with the prompt instead.
+   * Hand an existing thread one more prompt. Where the person opens threads decides where it
+   * lands: VS Code or the Claude app open the thread exactly as Open does, and the prompt goes on
+   * the clipboard (`promptPassed` stays false), since those links take a session or a prompt but
+   * not both. Otherwise the CLI resumes it by id, in its own folder, in a terminal. A thread the
+   * chosen place can't open (desktop-only in VS Code, no CLI for a terminal) is refused, and the
+   * caller starts a fresh session with the prompt instead.
    * @param {object} ref
-   * @param {{ prompt?: string }} [opts]
+   * @param {{ prompt?: string, target?: 'app'|'vscode'|'terminal' }} [opts]
    */
-  async function continueThread(ref, { prompt = '' } = {}) {
+  async function continueThread(ref, { prompt = '', target = 'terminal' } = {}) {
     const r = ref && typeof ref === 'object' ? ref : {}
+    if (target === 'vscode' || target === 'app') {
+      if (typeof prompt !== 'string' || !prompt.trim()) return { ok: false, error: 'Nothing to send.' }
+      return { ...openThread(r, { target }), promptPassed: false }
+    }
     if (!isCliId(r.cliSessionId)) return { ok: false, error: 'This thread has no CLI session to resume.' }
     // The CLI files a session under the folder it ran in, and resumes only from there.
     if (typeof r.cwd !== 'string' || !path.isAbsolute(r.cwd)) return { ok: false, error: 'This thread has no folder to resume in.' }
