@@ -14,6 +14,7 @@ export function emptyState() {
     version: STATE_VERSION,
     archived: [],
     archivedAt: {},
+    kept: [],
     plots: {},
     seen: {},
     hiddenProjects: [],
@@ -142,6 +143,8 @@ export function normalizeState(raw) {
     version: STATE_VERSION,
     archived: strings(s.archived),
     archivedAt: numberMap(s.archivedAt),
+    // Threads restored by hand after archiving themselves, so they are not archived again.
+    kept: strings(s.kept),
     plots: plotMap(s.plots),
     seen: numberMap(s.seen),
     hiddenProjects: strings(s.hiddenProjects),

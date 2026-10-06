@@ -383,6 +383,9 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .sheet select { min-width: 0; max-width: 60%; }
 .sheet input[type='range'] { width: 140px; }
 .sheet table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.empty-state { font-size: 12px; color: var(--muted); }
+.empty-state ul { padding-left: 16px; }
+.empty-state code { font-family: var(--mono); }
 .sheet td { padding: 3px 0; color: var(--muted); }
 .sheet td:first-child { color: var(--text); font-family: var(--mono); width: 90px; }
 
@@ -551,3 +554,4 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .tip b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tip span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tip span[hidden] { display: none; }
+.taskeditor .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }

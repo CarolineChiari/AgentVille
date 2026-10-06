@@ -10,7 +10,7 @@ import { wearOf } from '../sim/wear.js'
 import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
-import { CUSTOM_MAX, cleanTask, customId, issueTask, taskById, tasksFor } from './tasks.js'
+import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
@@ -96,7 +96,7 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
+  version: 1, archived: [], archivedAt: {}, kept: [], plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
   spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
 })
 
@@ -125,7 +125,7 @@ export class Village {
     this.scannedThreads = [] // as the last scan had them, before anyone's names for them
     this.threads = []
     this.byId = new Map()
-    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
+    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [], auto: [] }
     this.gardens = new Map() // repo → flowers, oldest first
     this.prs = { repos: {}, available: true, warnings: [] }
     this._prIndex = -1
@@ -263,6 +263,15 @@ export class Village {
     this._weatherTimer = setTimeout(() => this.pollWeather(), WEATHER_POLL_MS)
   }
 
+  /** Open a link in the browser; the server refuses any it does not allow-list. */
+  async openLink(url) {
+    try {
+      await api.openUrl(url)
+    } catch (err) {
+      this.toast(err.message, 'error')
+    }
+  }
+
   /** The release notes for the version on offer, in the browser. */
   async openRelease() {
     if (!this.release.url) return
@@ -334,7 +343,7 @@ export class Village {
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
-    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant })
+    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant, archiveAfterDays: Number(this.settings.archiveAfterDays) || 0 })
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
@@ -370,6 +379,18 @@ export class Village {
     this.loaded = true
     // Not before the first scan: a settings change can apply the empty list, and the baseline
     // taken from that would make every question already waiting look new.
+    if (this.scanned && this.view.auto.length) {
+      // Archived for good, in village.json, like an archive by hand: turning the setting off later
+      // doesn't bring them back, Restore does. Said once, because next time they are already archived.
+      for (const id of this.view.auto) {
+        const t = this.view.archived.find((x) => x.id === id)
+        this.state.archived.push(id)
+        this.state.archivedAt[id] = t?.lastActivityAt || now
+      }
+      dirty = true
+      const n = this.view.auto.length
+      this.toast(`Archived ${n} thread${n === 1 ? '' : 's'} asleep for more than ${this.settings.archiveAfterDays} days`)
+    }
     if (this.scanned) {
       const { fresh, asking } = newlyAsking(this.view.live, this._asking)
       this._asking = asking
@@ -958,6 +979,8 @@ export class Village {
 
   unarchive(id) {
     this.state.archived = this.state.archived.filter((x) => x !== id)
+    // Whoever archived it, a thread restored by hand must not archive itself again for being old.
+    if (!(this.state.kept ||= []).includes(id)) this.state.kept.push(id)
     delete this.state.archivedAt[id]
     // Walking back in from the gate reads better than popping into place.
     delete this.state.seen[id]
@@ -1017,7 +1040,7 @@ export class Village {
    */
   async runTask(id, taskId) {
     const t = this.thread(id)
-    const task = t && taskById(taskId, this.customTasks(t.project))
+    const task = t && taskById(taskId, this.customTasks(t.project), this.customTasks(EVERY_REPO))
     if (!t || !task) return
     return this.sendPrompt(id, task.label, task.prompt)
   }
@@ -1026,7 +1049,7 @@ export class Village {
   async sendPrompt(id, label, prompt) {
     const t = this.thread(id)
     if (!t) return
-    const task = { label, prompt }
+    const task = { label, prompt: fillPlaceholders(prompt, { repo: t.project, branch: t.gitBranch, path: t.cwd || t.projectPath }) }
     if (this.demo) return this.toast('Demo mode: nothing to send.')
     // Two processes answering one conversation would talk over each other.
     if (t.running || t.needsInput) return this.toast('This villager is busy. Send it a task once it has stopped.', 'error')
@@ -1249,9 +1272,9 @@ export class Village {
     return this.state.tasks?.[project] || []
   }
 
-  /** Every task a repo offers: the built-in ones, then its own. */
+  /** Every task a repo offers: the built-in ones, those every repo offers, then its own. */
   tasksFor(project) {
-    return tasksFor(this.customTasks(project))
+    return tasksFor(this.customTasks(project), this.customTasks(EVERY_REPO))
   }
 
   /**
@@ -1262,7 +1285,8 @@ export class Village {
     if (!project) return false
     const list = this.customTasks(project)
     const i = list.findIndex((x) => x.id === id)
-    const task = cleanTask({ id: i >= 0 ? id : customId(label, list.map((x) => x.id)), label, prompt })
+    const taken = [...list, ...this.customTasks(EVERY_REPO)].map((x) => x.id)
+    const task = cleanTask({ id: i >= 0 ? id : customId(label, taken), label, prompt })
     if (!task) {
       this.toast('A task needs a name and a prompt.', 'error')
       return false

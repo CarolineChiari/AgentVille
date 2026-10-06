@@ -13,6 +13,7 @@ import { addPr, awaitingReply, pendingQuestion, prLinkOf, readTranscriptMeta, tr
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
 import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
+import { tilde } from '../../lib/tilde.mjs'
 
 const NAME = 'Claude Code'
 // Enough of the head to reach the first real prompt past a long run of tool-list attachments.
@@ -448,7 +449,7 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli } }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli }, looked: () => [tilde(cli.projects, home), desktopDir ? tilde(path.join(desktopDir, SESSIONS_SUBDIR), home) : ''].filter(Boolean), url: 'https://claude.com/product/claude-code' }
 }
 
 /** `vscode://file/<path>/?windowId=_blank`: focuses the VS Code window on the folder, or opens a new one. */

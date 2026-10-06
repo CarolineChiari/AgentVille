@@ -17,6 +17,7 @@ import { queryAll } from '../../lib/sqlite.mjs'
 import { findExe } from '../../lib/which.mjs'
 import { editorUserDir, fileUriToPath, folderUrl } from '../vscode-family.mjs'
 import { makeThread } from '../thread.mjs'
+import { tilde } from '../../lib/tilde.mjs'
 
 export const HARNESS_ID = 'antigravity'
 const NAME = 'Antigravity'
@@ -193,7 +194,7 @@ export function createAntigravityAdapter(opts = {}) {
     return { ok: false, error: 'Unknown place to start a session.' }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(gemini, home), tilde(ideUserDir, home)].filter(Boolean), url: 'https://antigravity.google' }
 }
 
 // Steps that are bookkeeping rather than conversation.

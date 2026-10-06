@@ -17,6 +17,7 @@ import { queryAll, readItem } from '../../lib/sqlite.mjs'
 import { findExe } from '../../lib/which.mjs'
 import { editorUserDir, editorWorkspaces, fileUriToPath, folderUrl } from '../vscode-family.mjs'
 import { makeThread } from '../thread.mjs'
+import { tilde } from '../../lib/tilde.mjs'
 
 export const HARNESS_ID = 'cursor'
 const NAME = 'Cursor'
@@ -247,7 +248,7 @@ export function createCursorAdapter(opts = {}) {
     return { ok: true, where: 'Cursor', promptPassed: true, url: ask, urls: [folder, ask] }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(globalDb, home)].filter(Boolean), url: 'https://cursor.com' }
 }
 
 /** `workspaceIdentifier` → folder. Cursor records `uri.fsPath`, and sometimes only `uri.external`. */
