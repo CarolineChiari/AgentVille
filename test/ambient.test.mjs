@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CLOUD_R, FLOCK_EVERY, birdsAt, butterflyAt, cloudsIn, flockFor, smokePuffs } from '../src/render/ambient.js'
+import { CLOUD_R, FLOCK_EVERY, birdsAt, butterflyAt, cloudsIn, fireworksIn, flockFor, smokePuffs } from '../src/render/ambient.js'
 
 const VIEW = { x0: -300, y0: -200, x1: 400, y1: 250 }
 
@@ -69,4 +69,15 @@ test('a flock crosses the view from one side to the other and then is gone', () 
   }
   const wide = flockFor(3, { x0: 0, y0: 0, x1: 6000, y1: 3000 })
   assert.ok(wide.flight < FLOCK_EVERY, 'across a wide view a flock is still flying when the next sets off')
+})
+
+test('fireworks burst over the view and fade as they fall', () => {
+  let seen = 0
+  for (let t = 0; t < 30; t += 0.25) {
+    const sparks = fireworksIn(VIEW, t)
+    assert.deepEqual(sparks, fireworksIn(VIEW, t), 'the same moment always shows the same sky')
+    for (const s of sparks) assert.ok(s.alpha >= 0 && s.alpha <= 1 && s.hue >= 0 && s.hue < 5)
+    seen += sparks.length
+  }
+  assert.ok(seen > 0, 'nothing ever went off')
 })

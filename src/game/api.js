@@ -54,6 +54,7 @@ export const openFile = (folder, path, editor) => post('/api/open-file', { folde
 export const fetchPrs = async () => (await json(await fetch('/api/prs'))).body
 export const fetchIssues = async () => (await json(await fetch('/api/issues'))).body
 export const fetchRepos = async () => (await json(await fetch('/api/repos'))).body
+export const fetchWeather = (place) => post('/api/weather', { place }).then((r) => r.body, (err) => err.body || { ok: false, error: err.message })
 export const fetchVersion = async () => (await json(await fetch('/api/version'))).body
 export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.body)
 export const githubRepo = (folder) => post('/api/github-repo', { folder }).then((r) => r.body)

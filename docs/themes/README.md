@@ -225,6 +225,31 @@ on the vine.
 **Landmark**: the village's own.
 **Rooms**: a family kitchen, a harvest barn, a pie pantry and a woodland cabin.
 
+## New Year's Eve · `new-years-eve`
+
+A village counting down to midnight: bunting across the street, party lights on every roof, a
+party hat on every villager and a sparkler going off at each finished job. Best seen at night.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Rooftop party | `rooftop-party` | Party lights and a rooftop dance floor, balloons tied to the rails |
+| Midnight square | `midnight-square` | A clock tower counting down, bunting across the street and confetti underfoot |
+| Cosy cabin | `cosy-cabin` | A quiet night in the snow: logs, a string of lights and sparklers by the door |
+| Ballroom | `ballroom` | A grand hall of marble and gilt, chandeliers in every window and a band on the stage |
+
+**Built from** — fences: bunting, string lights, velvet rope on gilt stanchions, balloons ·
+ground: confetti pavement, night lawn, dance floor, snow · walls: midnight plaster, stucco, soot
+brick, marble, logs · four families of paint.
+**Buildings**: a party house, a snowy cabin, a clock tower, a ballroom and a bandstand.
+**Villagers**: everyone wears a party hat in their own colour.
+**Finished work**: a **sparkler** in the **celebration** (✶) — a sparkler for a bug fix, a Roman
+candle for a feature, a party popper for a refactor, a party horn for docs, a bunch of sparklers
+for tests, a pinwheel for design, a confetti cannon for infrastructure, a noisemaker for data, a
+rocket for performance, a fountain for a review, a wishing lantern for research, a party hat for
+odds and ends. An open pull request's is not lit yet.
+**Landmark**: the village's own.
+**Rooms**: a rooftop lounge, a clock room, a ballroom and a cabin nook.
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).

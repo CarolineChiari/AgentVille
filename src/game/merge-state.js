@@ -2,7 +2,7 @@
 // write with 409 and hands back what is on disk; the tab merges its own changes onto that and
 // tries again. The server never merges: it cannot know which of two layouts a person meant.
 
-const SETS = ['archived', 'hiddenProjects']
+const SETS = ['archived', 'kept', 'hiddenProjects']
 const MAPS = ['archivedAt', 'plots', 'seen', 'viewedAt', 'tasks', 'looks', 'names', 'groups', 'groupOf', 'spots', 'progress', 'grades', 'spotlights']
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)

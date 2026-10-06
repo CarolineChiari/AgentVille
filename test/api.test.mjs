@@ -37,8 +37,9 @@ before(async () => {
   const terminal = async (spec) => (terminals.push(spec), { ok: true, promptPassed: true })
   const issueStore = { get: async (list) => ({ repos: {}, updating: false, available: true, warnings: [], asked: list.length }) }
   const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
+  const weatherStore = { get: async (place) => (place === 'Lyon' ? { ok: true, place: 'Lyon, France', code: 3 } : { ok: false, error: 'nope' }) }
   const releaseStore = { get: async () => ({ current: '0.39.0', latest: '0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0', newer: true }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, terminal })
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, weatherStore, terminal })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -351,4 +352,10 @@ test('folders lists what is inside a folder, and only for this page', async () =
   assert.equal((await post('/api/folders', { folder: 'relative' })).status, 400)
   assert.equal((await post('/api/folders', { folder: home }, { 'Content-Type': 'application/json' })).status, 403)
   assert.equal((await fetch(`${base}/api/folders`)).status, 404)
+})
+
+test('weather answers for a place, and needs the page\'s Origin', async () => {
+  assert.deepEqual(await (await post('/api/weather', { place: 'Lyon' })).json(), { ok: true, place: 'Lyon, France', code: 3 })
+  assert.equal((await post('/api/weather', { place: 'x' })).status, 400)
+  assert.equal((await post('/api/weather', { place: 'Lyon' }, { 'Content-Type': 'application/json' })).status, 403)
 })

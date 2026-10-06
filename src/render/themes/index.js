@@ -15,6 +15,7 @@ import { halloween } from './halloween/index.js'
 import { seaside } from './seaside/index.js'
 import { farm } from './farm/index.js'
 import { thanksgiving } from './thanksgiving/index.js'
+import { newYearsEve } from './new-years-eve/index.js'
 
 /**
  * @typedef {object} ThemePack
@@ -69,7 +70,7 @@ export const village = {
 }
 
 /** @type {Record<string, ThemePack>} */
-export const PACKS = { village, construction, elvish, halloween, seaside, farm, thanksgiving }
+export const PACKS = { village, construction, elvish, halloween, seaside, farm, thanksgiving, 'new-years-eve': newYearsEve }
 
 /** A theme's pack; the village's for a theme with none. */
 export const packFor = (id) => PACKS[id] || village

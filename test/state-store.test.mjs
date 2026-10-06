@@ -125,3 +125,8 @@ test('earned building grades are kept, and anything but 1 or 2 is dropped', () =
   assert.deepEqual(normalizeState({ grades: [1] }).grades, {})
   assert.deepEqual(normalizeState({}).grades, {})
 })
+
+test('threads restored by hand are kept as ids, anything else is dropped', () => {
+  assert.deepEqual(normalizeState({ kept: ['a', 'a', 3, null, 'b'] }).kept, ['a', 'b'])
+  assert.deepEqual(normalizeState({}).kept, [])
+})

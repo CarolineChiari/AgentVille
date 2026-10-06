@@ -140,13 +140,21 @@ set outside, and finished work is a pumpkin, a squash or an ear of corn brought 
 plot's harvest patch instead of a flower: a pumpkin for a bug fix, a corn cob for data work, a
 bottle gourd for a review.
 
+Or New Year's Eve, where the fences are bunting, string lights, velvet rope and balloons, the
+ground is confetti-strewn pavement, a night lawn, a dance floor or fresh snow, the threads build
+party houses with a dance floor under lights on the roof, snowy cabins, a clock tower at a
+minute to midnight, a ballroom and a bandstand, every villager wears a party hat, and finished
+work is a sparkler or a party popper going off instead of a flower: a sparkler for a bug fix, a
+party popper for a refactor, a rocket for performance.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
 greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
 pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
 Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
 cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a market garden on the
-farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving. A
+farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving; a rooftop
+party, a midnight square, a cosy cabin or a ballroom on New Year's Eve. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -314,7 +322,8 @@ performance, lilies for code review, dandelions for research, and so on. The col
 but fixed per thread. Click a flower to look back at the thread, open it again, or restore it.
 
 Villagers who need you wave and hop every few seconds, so they're easy to spot. A repo whose
-threads are all asleep rests: its villagers fold away, but its garden stays on the map. The bed
+threads are all asleep rests: its villagers fold away, but its garden stays on the map. Settings → *Archive threads asleep for* (never, 30 or 90 days)
+archives a thread that has slept that long; restore it from its flower and it stays. The bed
 is walkable, so villagers stroll among the flowers rather than queueing in front of their doors.
 
 ### Landmarks

@@ -54,6 +54,9 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
   `fx.spotlight.<id>`, 11×12, from text art in its `spotlights.js`). A spotlight shows its plot's
   theme's first unless one of any theme's was picked; the pink at the villager's feet and the edge
   pointer mean "spotlit" in every theme.
+- Settings → Follow the calendar dresses the village in a holiday's theme through its dates (`src/sim/calendar.js`,
+  pure; a holiday is a window of lead-in and tail days around its day). It only changes the village's theme: a
+  folder's own look is kept. A new holiday theme joins `HOLIDAYS` there.
 - `test/theme-packs.test.mjs` holds every registered theme to the renderer's rules, and
   `test/interiors.test.mjs` holds every room to the sim's. To make a new theme, follow the
   `new-theme` skill in `.claude/skills/new-theme/`.
@@ -63,8 +66,10 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
 - No runtime dependencies without discussion. Dev dependencies are Vite, Electron and electron-builder.
 - Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. A repo is
-  only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The only network access is
-  `server/github.mjs`, and only through the user's own `gh` CLI; keep it that way. Never execute anything from
+  only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The network is reached from two
+  places only. `server/github.mjs`, only through the user's own `gh` CLI. `server/weather.mjs`, only once the user
+  has typed a place in Settings, and sending nothing but that place name to Open-Meteo; with no place set, the village's
+  weather is made up (`src/sim/weather.js`) and nothing leaves the machine. Keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
 - Every colour comes from `src/render/sprites/palette.js`. No hex strings elsewhere.
 - Paths via `path.join` / `fileURLToPath(import.meta.url)`, never `process.cwd()`. Split paths

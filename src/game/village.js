@@ -4,6 +4,7 @@ import * as api from './api.js'
 import { classify, hideProject, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK, gradeOf } from '../sim/status.js'
+import { themeOnDay, todayOf } from '../sim/calendar.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
 import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
@@ -95,9 +96,12 @@ function demoChanges(t, path = '') {
 }
 
 const emptyState = () => ({
-  version: 1, archived: [], archivedAt: {}, plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
+  version: 1, archived: [], archivedAt: {}, kept: [], plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
   spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
 })
+
+/** The real weather is asked for this often; it changes slowly, and the server caches it for the same hour. */
+export const WEATHER_POLL_MS = 60 * 60 * 1000
 
 export class Village {
   /**
@@ -121,7 +125,7 @@ export class Village {
     this.scannedThreads = [] // as the last scan had them, before anyone's names for them
     this.threads = []
     this.byId = new Map()
-    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [] }
+    this.view = { live: [], folded: [], hidden: [], archived: [], dormant: [], auto: [] }
     this.gardens = new Map() // repo → flowers, oldest first
     this.prs = { repos: {}, available: true, warnings: [] }
     this._prIndex = -1
@@ -134,6 +138,8 @@ export class Village {
     this.githubRepos = new Map() // folder path → its GitHub 'owner/repo', '' for none, null while asking
     // Whether a newer AgentVille has been released than the one running. `newer` false until told.
     this.release = { current: '', latest: '', url: '', newer: false }
+    /** The weather where the person lives, once heard: { ok, place, code } or { ok: false, error }. */
+    this.realWeather = null
     this.growth = new Map() // repo → its work, as progressOf wants it (see growth.js)
     this.selected = null
     this.selectedPlot = null
@@ -223,6 +229,40 @@ export class Village {
     }
   }
 
+  /**
+   * The weather at the place typed in Settings, asked for once an hour. With no place (or no
+   * weather at all) nothing is asked and the village makes its weather up. The last good answer for
+   * the same place is kept when an ask fails, so a dropped connection never clears the sky; a
+   * different place never inherits it.
+   */
+  async pollWeather() {
+    clearTimeout(this._weatherTimer)
+    const place = this.settings.place
+    if (this.demo || !this.settings.weather || !place) {
+      this._weatherPlace = ''
+      if (this.realWeather) {
+        this.realWeather = null
+        this.onChange()
+      }
+      return
+    }
+    if (place !== this._weatherPlace) {
+      this._weatherPlace = place
+      this.realWeather = null
+    }
+    try {
+      const r = await api.fetchWeather(place)
+      // The person may have typed another place while this one was out: that ask owns the answer now.
+      if (place !== this.settings.place) return
+      this.realWeather = r.ok || !this.realWeather?.ok ? r : this.realWeather
+      // An open Settings sheet is showing "Looking…" until it hears.
+      this.onChange()
+    } catch {
+      // The weather is decoration; a failure here must never stop the village.
+    }
+    this._weatherTimer = setTimeout(() => this.pollWeather(), WEATHER_POLL_MS)
+  }
+
   /** The release notes for the version on offer, in the browser. */
   async openRelease() {
     if (!this.release.url) return
@@ -294,7 +334,7 @@ export class Village {
   /** Re-derive everything from the last scan and the saved state, and hand the roster to the world. */
   apply() {
     const first = !this.loaded
-    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant })
+    this.view = classify(this.threads, this.state, { hideDormant: this.settings.hideDormant, archiveAfterDays: Number(this.settings.archiveAfterDays) || 0 })
     let dirty = false
     const now = Date.now()
     const roster = this.view.live.map((t) => ({
@@ -330,6 +370,18 @@ export class Village {
     this.loaded = true
     // Not before the first scan: a settings change can apply the empty list, and the baseline
     // taken from that would make every question already waiting look new.
+    if (this.scanned && this.view.auto.length) {
+      // Archived for good, in village.json, like an archive by hand: turning the setting off later
+      // doesn't bring them back, Restore does. Said once, because next time they are already archived.
+      for (const id of this.view.auto) {
+        const t = this.view.archived.find((x) => x.id === id)
+        this.state.archived.push(id)
+        this.state.archivedAt[id] = t?.lastActivityAt || now
+      }
+      dirty = true
+      const n = this.view.auto.length
+      this.toast(`Archived ${n} thread${n === 1 ? '' : 's'} asleep for more than ${this.settings.archiveAfterDays} days`)
+    }
     if (this.scanned) {
       const { fresh, asking } = newlyAsking(this.view.live, this._asking)
       this._asking = asking
@@ -918,6 +970,8 @@ export class Village {
 
   unarchive(id) {
     this.state.archived = this.state.archived.filter((x) => x !== id)
+    // Whoever archived it, a thread restored by hand must not archive itself again for being old.
+    if (!(this.state.kept ||= []).includes(id)) this.state.kept.push(id)
     delete this.state.archivedAt[id]
     // Walking back in from the gate reads better than popping into place.
     delete this.state.seen[id]
@@ -1119,9 +1173,19 @@ export class Village {
     this.queueSave()
   }
 
-  /** The village's theme: the one being previewed, else the one in the settings. */
-  get theme() {
+  /** The theme picked in the settings, or being previewed: the village's, before the calendar has its say. */
+  get baseTheme() {
     return themeOf(this.preview?.theme || this.settings.theme)
+  }
+
+  /**
+   * The village's theme: the one being previewed, else the holiday's if the calendar is on and one
+   * is under way, else the one in the settings. A preview is always what was asked to be looked at.
+   */
+  get theme() {
+    const base = this.baseTheme
+    if (this.preview?.theme || !this.settings.calendar) return base
+    return themeOf(themeOnDay(todayOf(), base, this.settings.holidays))
   }
 
   /** Each folder's own look, where it picked one: a sub-theme of any theme. */

@@ -6,6 +6,7 @@ import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
 import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
+import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
 
@@ -261,6 +262,30 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <select data-spot="${esc(name)}"><option value="" ${picked ? '' : 'selected'}>Auto: ${esc(spotLabel(landmarkSpotOf(settings.landmarkSpot)))}</option>${options}</select></label>`
   }
 
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const dateOf = (day) => `${MONTHS[ymd(day).month - 1]} ${ymd(day).day}`
+
+  /** The holidays to tick, and which theme is on now and which comes next. */
+  function calendarRows() {
+    const list = ticked(settings.holidays)
+    const on = new Set(list.map((h) => h.id))
+    const today = todayOf()
+    const next = nextHoliday(today, list)
+    // From the window itself, not by comparing themes: someone whose base theme is Halloween is
+    // still in Halloween's dates.
+    const now = activeHoliday(today, list)?.holiday.label
+    const line = [now && `${now} is on now.`, next && `${next.holiday.label} next, from ${dateOf(next.start)}.`].filter(Boolean).join(' ')
+    return `${line ? `<p style="color:var(--muted);font-size:12px;margin:0">${esc(line)}</p>` : ''}
+        ${HOLIDAYS.map((h) => `<label>${esc(h.label)} <input type="checkbox" data-holiday="${h.id}" ${on.has(h.id) ? 'checked' : ''}></label>`).join('')}`
+  }
+
+  /** What the sky is following: the place's own weather once heard, else a hint of what went wrong. */
+  function weatherNote() {
+    const w = village.realWeather
+    if (!settings.place) return ''
+    return `<p class="note">${esc(w?.ok ? `Following ${w.place}.` : w?.error || 'Looking…')}</p>`
+  }
+
   function renderSheet() {
     if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
@@ -273,7 +298,9 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       const place = finishedWords(theme).place
       sheet.innerHTML = `<h2>Settings</h2>
         <label>Theme
-          <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === theme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
+          <select data-set="theme">${THEME_IDS.map((id) => `<option value="${id}" ${id === village.baseTheme ? 'selected' : ''}>${esc(THEMES[id].label)}</option>`).join('')}</select></label>
+        <label title="Dress the village for a holiday through its dates, then back to the theme above. Folders with a look of their own keep it.">Follow the calendar <input type="checkbox" data-set="calendar" ${s.calendar ? 'checked' : ''}></label>
+        ${s.calendar ? calendarRows() : ''}
         <label title="Every folder that hasn't picked a look of its own, from its panel">Every folder
           <select data-set="everywhere"><option value="" ${every ? '' : 'selected'}>Its own look</option>${THEMES[theme].subthemes.map((x) => subOption(x, x.id === every)).join('')}</select></label>
         <label title="Where every plot stands the ${esc(landmarkWords(theme).one)} its work has raised, unless the folder picked somewhere of its own. At the head of the ${esc(place)} it hides none of the ${esc(finishedWords(theme).many)} growing there.">Landmarks stand
@@ -285,10 +312,18 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label title="Reads the files in each repo to count its lines of code, for its landmark. Nothing is run and nothing leaves this machine.">Count the lines of code in each repo <input type="checkbox" data-set="repoLines" ${s.repoLines ? 'checked' : ''}></label>
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
+        <label title="Turns a thread that has been asleep this long into a flower. It stays in the sidebar under Archived, and you can restore it.">Archive threads asleep for
+          <select data-set="archiveAfterDays">${[[0, 'Never'], [30, '30 days'], [90, '90 days']].map(([n, label]) => `<option value="${n}" ${Number(s.archiveAfterDays) === n ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day
           <select data-set="timeMode"><option value="live" ${s.timeMode === 'live' ? 'selected' : ''}>Follow my clock</option><option value="manual" ${s.timeMode === 'manual' ? 'selected' : ''}>Set by hand</option></select></label>
         ${s.timeMode === 'manual' ? `<label>${formatHour(s.hour)} <input type="range" min="0" max="23.75" step="0.25" value="${s.hour}" data-set="hour"></label>` : ''}
+        <label title="Rain, snow and drifting leaves, by the season of the date">Weather <input type="checkbox" data-set="weather" ${s.weather ? 'checked' : ''}></label>
+        ${s.weather ? `<label title="Follow the real weather where you live, checked hourly. Only the place you type is sent, to Open-Meteo. Leave empty and the village makes its weather up.">Your place <input type="text" maxlength="80" placeholder="Made up" value="${esc(s.place)}" data-set="place"></label>
+        ${weatherNote()}` : ''}
+        ${s.weather ? `<label>Seasons of the <select data-set="south"><option value="" ${s.south ? '' : 'selected'}>north</option><option value="1" ${s.south ? 'selected' : ''}>south</option></select></label>` : ''}
+        ${s.weather && s.timeMode === 'manual' ? `<label>Season <select data-set="season">${['auto', 'spring', 'summer', 'autumn', 'winter'].map((x) => `<option value="${x}" ${s.season === x ? 'selected' : ''}>${x === 'auto' ? 'From the date' : x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>
+        <label>Sky <select data-set="sky">${['auto', 'clear', 'rain', 'snow'].map((x) => `<option value="${x}" ${s.sky === x ? 'selected' : ''}>${x === 'auto' ? 'As it comes' : x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></label>` : ''}
         <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
     }
   }
@@ -361,15 +396,31 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (e.target.closest('[data-act="closeSheet"]')) showSheet(sheetMode)
   })
   sheet.addEventListener('input', (e) => {
+    const holiday = e.target.dataset.holiday
+    if (holiday) {
+      settings.holidays = { ...settings.holidays, [holiday]: e.target.checked }
+      onSettings('holidays')
+      renderSheet()
+      return
+    }
     const k = e.target.dataset.set
-    if (!k) return
+    if (!k || k === 'place') return
     // The whole village's sub-theme is kept per theme, so switching themes back finds it again.
     if (k === 'everywhere') settings.subthemes = { ...settings.subthemes, [village.theme]: e.target.value }
+    else if (k === 'south') settings.south = e.target.value === '1'
+    else if (k === 'archiveAfterDays') settings[k] = Number(e.target.value) || 0
     else settings[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.type === 'range' ? Number(e.target.value) : e.target.value
     onSettings(k)
     renderSheet()
   })
 
+  // The place is committed when the box is left, not on every key, which would re-draw the sheet under the cursor.
+  sheet.addEventListener('change', (e) => {
+    if (e.target.dataset.set !== 'place') return
+    settings.place = e.target.value.trim().slice(0, 80)
+    onSettings('place')
+    renderSheet()
+  })
   side.addEventListener('change', (e) => {
     const { look: lookName, spot: spotName } = e.target.dataset || {}
     if (lookName === undefined && spotName === undefined) return
