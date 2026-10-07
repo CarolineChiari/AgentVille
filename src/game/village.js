@@ -1064,7 +1064,7 @@ export class Village {
       const clip = copied ? ' — the task is on the clipboard' : ''
       // A task that had to start a session of its own is still the group's work.
       if (!r.continued && t.group) this._expect(t.project, t.group.id)
-      this.toast(r.continued ? `“${task.label}” sent to “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
+      this.toast(r.continued ? `“${task.label}” sent to ${t.villager}, “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
     } catch (err) {
       this.toast(err.message, 'error')

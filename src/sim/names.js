@@ -3,8 +3,7 @@
 // this is the villager's own name and is never saved.
 import { hashString } from './rng.js'
 
-// Only ever append: a villager's name is its id's hash into this list, so inserting or reordering
-// would rename everyone. Short, easy to say, and no two the same.
+// Short, easy to say, and no two the same. Never reorder or drop one; see NAME_POOL for adding.
 export const VILLAGER_NAMES = [
   'Wren', 'Otto', 'Mabel', 'Finn', 'Hazel', 'Rufus', 'Ivy', 'Bram', 'Clover', 'Dot',
   'Egon', 'Fern', 'Gus', 'Hattie', 'Ike', 'Juniper', 'Kit', 'Lark', 'Milo', 'Nell',
@@ -27,7 +26,14 @@ export const VILLAGER_NAMES = [
   'Ames', 'Bix', 'Cyd', 'Dov', 'Esme', 'Fay', 'Gray', 'Hal', 'Ivo', 'Jules',
 ]
 
+/**
+ * How many of the names above get picked. Not VILLAGER_NAMES.length: the pick is a modulo by it,
+ * and letting the list grow would have renamed nearly every villager. A longer pool is a new
+ * constant on purpose, and renames everyone once.
+ */
+export const NAME_POOL = 190
+
 /** The name this thread's villager goes by. */
 export function nameFor(threadId) {
-  return VILLAGER_NAMES[hashString(`name:${threadId}`) % VILLAGER_NAMES.length]
+  return VILLAGER_NAMES[hashString(`name:${threadId}`) % NAME_POOL]
 }

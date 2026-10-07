@@ -47,7 +47,7 @@ const PATHS = new Set([TILE.TRAIL, TILE.ROAD, TILE.PLAZA])
 const MOUTH = [4, 11]
 const MEADOW = [P.grass, P.grassSunny, P.grassLush]
 /** Notes a board has room for; the card lists the rest. */
-// Zoomed out below this a name is wider than the villager's neighbours are far; 4 is where a 16 px villager is 64 px tall.
+// CSS zoom (not device pixels, or a retina screen would show names at half the zoom) below which a name is wider than the room between villagers.
 const NAME_SCALE = 4
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
@@ -1072,7 +1072,7 @@ export class Canvas2dRenderer {
    */
   _drawVillagerNames(frame) {
     const { ctx, camera: cam } = this
-    if (cam.scale < NAME_SCALE) return
+    if (cam.scale / cam.dpr < NAME_SCALE) return
     const dpr = cam.dpr
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'

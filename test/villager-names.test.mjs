@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nameFor, VILLAGER_NAMES } from '../src/sim/names.js'
+import { nameFor, NAME_POOL, VILLAGER_NAMES } from '../src/sim/names.js'
 
 test('the same id always gets the same name', () => {
   assert.equal(nameFor('abc-123'), nameFor('abc-123'))
@@ -21,4 +21,11 @@ test('a few hundred ids spread across the list', () => {
   }
   assert.ok(seen.size > VILLAGER_NAMES.length * 0.8, `only ${seen.size} names used`)
   assert.ok(Math.max(...seen.values()) <= 12)
+})
+
+test('names do not move when the list grows', () => {
+  assert.equal(NAME_POOL, 190)
+  assert.ok(VILLAGER_NAMES.length >= NAME_POOL)
+  // Pinned: these threads keep these names for good.
+  assert.deepEqual(['a', 'b', 'c', 'thread-1'].map(nameFor), ['Aster', 'Abe', 'Juniper', 'Ursa'])
 })
