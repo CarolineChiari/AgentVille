@@ -602,7 +602,7 @@ export class World {
       villagers: [...this.villagers.values()]
         .filter((v) => v.loco !== 'queued' && v.loco !== 'gone')
         .map((v) => ({
-          id: v.id, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: this._look(v), status: v.status,
+          id: v.id, name: v.name, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: this._look(v), status: v.status,
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
           spotlight: spotlit?.has(v.id) ? markerFor(spotlit.get(v.id), this.plots.get(v.building?.plot)?.style?.theme ?? this.theme) : null,
         })),

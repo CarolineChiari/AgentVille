@@ -29,6 +29,7 @@ export const DEFAULTS = {
   // Every plot is named. A new key rather than flipping the old `allNames`, which browsers have
   // already saved as false.
   quietNames: false, // true: only name plots where something is happening
+  villagerNames: true, // a small name under each villager when zoomed in
   uiVisible: true,
   seenHelp: false,
 }

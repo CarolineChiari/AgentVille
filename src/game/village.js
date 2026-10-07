@@ -16,6 +16,7 @@ import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } 
 import { isSpot } from '../sim/shape.js'
 import { interiorFor } from '../sim/interiors.js'
 import { cleanName, withNames } from './names.js'
+import { nameFor } from '../sim/names.js'
 import { cleanSpotlights, litIds, spanById, withMarker, withSpotlight } from './spotlight.js'
 import { GROUP_COLORS, GROUP_MAX, arrivals, cleanGroupName, freeColor, groupId, partition, sameName, withGroups } from './groups.js'
 
@@ -846,7 +847,7 @@ export class Village {
     if (!t.canOpen) return this.toast(`This thread has nothing ${t.harnessName || 'Claude'} can open.`, 'error')
     try {
       const r = await api.openThread(t.harness, t.ref, this.settings.openIn)
-      const said = r.note || `Opening “${t.title}”${r.where ? ` in ${r.where}` : ''}`
+      const said = r.note || `Opening ${t.villager}, “${t.title}”${r.where ? ` in ${r.where}` : ''}`
       // Two links went out: the folder, then the chat. If the window came up after the chat link
       // had already gone by — a cold editor on a slow machine — this sends the chat link again.
       this.toast(said, 'info', r.chatAgain ? { label: 'Open the chat again', run: () => this.openChatAgain(id) } : null)
@@ -884,7 +885,7 @@ export class Village {
     if (this.focused === id) this.focused = null
     this.apply()
     this.queueSave()
-    this.toast(`Archived “${t.title}”`)
+    this.toast(`Archived ${t.villager}: “${t.title}”`)
   }
 
   // ---------- spotlights ----------
@@ -935,7 +936,7 @@ export class Village {
     this.state.spotlights = withSpotlight(this.state.spotlights, id, span ? span.ms : 0)
     this.queueSave()
     this.onChange()
-    this.toast(span ? `Spotlighting “${t.title}” for ${span.label}. F flies to it.` : `Spotlight off for “${t.title}”`)
+    this.toast(span ? `Spotlighting ${t.villager}, “${t.title}”, for ${span.label}. F flies to it.` : `Spotlight off for ${t.villager}, “${t.title}”`)
   }
 
   /** The next spotlit villager standing in the village, soonest to go out first. */
@@ -957,7 +958,7 @@ export class Village {
 
   /** Put the names people gave their threads over the harnesses' titles, and each in its group. */
   _name() {
-    this.threads = withGroups(withNames(this.scannedThreads, this.state.names), this.state.groups, this.state.groupOf)
+    this.threads = withGroups(withNames(this.scannedThreads, this.state.names), this.state.groups, this.state.groupOf).map((t) => ({ ...t, villager: nameFor(t.id) }))
     this.byId = new Map(this.threads.map((t) => [t.id, t]))
   }
 

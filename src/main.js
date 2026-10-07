@@ -455,6 +455,7 @@ function loop(now) {
     hoverPlot,
     selectedPlot: village.selectedPlot,
     allNames: !settings.quietNames,
+    villagerNames: settings.villagerNames,
   })
   // Inside: the village is still drawn underneath, and the room fades up over it on the way in
   // and back down on the way out, so a door is something you walk through rather than a cut.

@@ -3,6 +3,7 @@
 import { ARRIVE, STROLL_SPEED, WALK_SPEED } from './constants.js'
 import { BADGE_FOR } from './status.js'
 import { hashString, mulberry32, range, rngFor } from './rng.js'
+import { nameFor } from './names.js'
 
 /** How often a villager waiting on you waves and hops, in seconds. */
 export const ATTENTION_EVERY = 6
@@ -76,6 +77,7 @@ export class Villager {
   constructor(id, { x, y, status, loco = 'site' }) {
     this.id = id
     this.look = lookFor(id)
+    this.name = nameFor(id)
     this.rand = mulberry32(hashString(`walk:${id}`))
     this.x = x
     this.y = y
