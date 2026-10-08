@@ -68,6 +68,10 @@ test('one villager: its title, what it wants and its repo', () => {
   assert.equal(noticeFor([T('a', 'waiting', { project: '' })]).body, 'Needs you')
 })
 
+test('a villager is named before its title', () => {
+  assert.equal(noticeFor([T('a', 'blocked', { villager: 'Wren' })]).title, 'Wren: Thread a')
+})
+
 test('several villagers ring once, counted, and a click lands on the first', () => {
   const two = noticeFor([T('b', 'waiting'), T('a', 'blocked')])
   assert.equal(two.id, 'b')

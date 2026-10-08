@@ -47,6 +47,8 @@ const PATHS = new Set([TILE.TRAIL, TILE.ROAD, TILE.PLAZA])
 const MOUTH = [4, 11]
 const MEADOW = [P.grass, P.grassSunny, P.grassLush]
 /** Notes a board has room for; the card lists the rest. */
+// CSS zoom (not device pixels, or a retina screen would show names at half the zoom) below which a name is wider than the room between villagers.
+const NAME_SCALE = 4
 const BOARD_NOTES = 6
 /** Width of the shadow each kind of static casts on the ground; the rest cast none. */
 const STATIC_SHADOW = { tree: 16, bush: 14, rock: 14, stump: 12, log: 20, sapling: 8, planter: 14, cart: 20, bench: 12, yardplanter: 14, yardbench: 12 }
@@ -1064,6 +1066,30 @@ export class Canvas2dRenderer {
     ctx.restore()
   }
 
+  /**
+   * Each villager's name under its feet, once the map is big enough to read one; far out they would
+   * only be a smear. The picked and the hovered one's is brighter.
+   */
+  _drawVillagerNames(frame) {
+    const { ctx, camera: cam } = this
+    if (cam.scale / cam.dpr < NAME_SCALE) return
+    const dpr = cam.dpr
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.font = `600 ${Math.round(10 * dpr)}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 3 * dpr
+    for (const v of frame.villagers) {
+      if (!v.name || v.alpha < 0.5) continue
+      const x = cam.offX + v.x * T * cam.scale
+      const y = cam.offY + v.y * T * cam.scale + 2 * dpr
+      ctx.strokeStyle = rgba(P.labelInk, 0.8)
+      ctx.strokeText(v.name, x, y)
+      ctx.fillStyle = v.selected || v.hovered ? P.white : rgba(P.white, 0.85)
+      ctx.fillText(v.name, x, y)
+    }
+  }
+
   _drawLabels(frame, ui) {
     const { ctx, camera: cam } = this
     const dpr = cam.dpr
@@ -1179,6 +1205,7 @@ export class Canvas2dRenderer {
     this._drawBadges(frame)
     this._drawSpotlights(frame)
     this._drawLabels(frame, ui)
+    if (ui.villagerNames) this._drawVillagerNames(frame, ui)
   }
 
   /** The landmark whose sprite is under world point `w`, the one in front if two overlap. */

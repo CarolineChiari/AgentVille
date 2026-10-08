@@ -39,7 +39,7 @@ export function newlyAsking(threads, asking) {
 }
 
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
-const titleOf = (t) => String(t.title || 'Untitled').replace(/\s+/g, ' ').trim()
+const titleOf = (t) => `${t.villager ? `${t.villager}: ` : ''}${String(t.title || 'Untitled').replace(/\s+/g, ' ').trim()}`
 
 /**
  * What the notification says: one villager by its title and what it wants, or several counted in

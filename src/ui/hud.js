@@ -190,7 +190,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   function threadRow(t) {
     // The spotlight's pink, the colour at a spotlit villager's feet, so the list says who is spotlit too.
     const lit = village.spotlightOf(t.id) ? `<span class="spot" role="img" aria-label="Spotlit" style="color:${P.spotlight}" title="Spotlit (F flies to it)">▼</span>` : ''
-    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}">${lit}<span class="t" title="${esc(t.title)}">${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
+    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}">${lit}<span class="t" title="${esc(t.title)}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
   }
 
   /**
@@ -346,6 +346,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <label>Fold away repos asleep for 3 days <input type="checkbox" data-set="hideDormant" ${s.hideDormant ? 'checked' : ''}></label>
         <label title="Turns a thread that has been asleep this long into a flower. It stays in the sidebar under Archived, and you can restore it.">Archive threads asleep for
           <select data-set="archiveAfterDays">${[[0, 'Never'], [30, '30 days'], [90, '90 days']].map(([n, label]) => `<option value="${n}" ${Number(s.archiveAfterDays) === n ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
+        <label title="A small name under each villager when you are zoomed in">Name the villagers <input type="checkbox" data-set="villagerNames" ${s.villagerNames ? 'checked' : ''}></label>
         <label>Only name busy plots <input type="checkbox" data-set="quietNames" ${s.quietNames ? 'checked' : ''}></label>
         <label>Time of day
           <select data-set="timeMode"><option value="live" ${s.timeMode === 'live' ? 'selected' : ''}>Follow my clock</option><option value="manual" ${s.timeMode === 'manual' ? 'selected' : ''}>Set by hand</option></select></label>

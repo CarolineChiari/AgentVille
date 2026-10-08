@@ -208,7 +208,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</b>
           <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || '')}</span>
         </div>
         <button class="btn" data-act="rename" title="Rename (or double-click the name)" aria-label="Rename">✎</button>
@@ -399,7 +399,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
-          <b title="${esc(wasTitle(t))}">${esc(t.title)}</b>
+          <b title="${esc(wasTitle(t))}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</b>
           <span class="status"><span style="color:${color}">${esc(finishedWords(f.theme).glyph)}</span> ${esc(f.name)} · ${esc(f.workLabel)}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
