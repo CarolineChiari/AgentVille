@@ -78,3 +78,26 @@ test('an old thread that is still running or stopped on a question is not archiv
   assert.deepEqual(r.auto, [])
   assert.equal(r.live.length, 3)
 })
+
+test('the days count from the last touch of any kind, not only the transcript', () => {
+  const opened = { ...asleep(200), lastFocusedAt: NOW - 10 * DAY }
+  const looked = { ...asleep(200), id: '2' }
+  const r = classify([T('1', 'a', opened), T('2', 'a', looked), T('3', 'a', asleep(200))], S({ viewedAt: { 2: NOW - 5 * DAY } }), { now: NOW, archiveAfterDays: 30, hideDormant: false })
+  assert.deepEqual(r.auto, ['3'])
+  // Opened or looked at, but still past the window: archived all the same.
+  const late = classify([T('1', 'a', opened)], S(), { now: NOW + 25 * DAY, archiveAfterDays: 30, hideDormant: false })
+  assert.deepEqual(late.auto, ['1'])
+})
+
+test('a thread dated only by its start is never archived for being old', () => {
+  const started = NOW - 200 * DAY
+  const r = classify([T('1', 'a', { createdAt: started, lastActivityAt: started }), T('2', 'a', { createdAt: started, lastActivityAt: started + 1 })], S(), { now: NOW, archiveAfterDays: 30, hideDormant: false })
+  assert.deepEqual(r.auto, ['2'])
+})
+
+test('a week or a fortnight works like a month', () => {
+  for (const [days, old, young] of [[7, 8, 6], [15, 16, 14]]) {
+    const r = classify([T('1', 'a', asleep(old)), T('2', 'a', asleep(young))], S(), { now: NOW, archiveAfterDays: days, hideDormant: false })
+    assert.deepEqual(r.auto, ['1'], `${days} days`)
+  }
+})
