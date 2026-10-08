@@ -418,6 +418,7 @@ addEventListener('keyup', (e) => {
 })
 // A key let go in another window never sends its keyup here.
 addEventListener('blur', () => held.clear())
+document.addEventListener('visibilitychange', () => held.clear())
 
 // ---------- polling ----------
 

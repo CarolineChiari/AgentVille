@@ -416,6 +416,7 @@ On first run a three-step tour shows the square, the badges and the keys; it com
 
 | Key | Does |
 | --- | --- |
+| `W` `A` `S` `D` / arrows | Move around while held; `Shift` is faster |
 | `N` | Fly to the next villager who needs you |
 | `R` | Fly to the next finished thread to review |
 | `P` | Fly to the next open PR |
