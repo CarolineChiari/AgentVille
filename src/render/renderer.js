@@ -92,7 +92,9 @@ function tint(color, k) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
 }
 
-function villagerFrame(v) {
+function villagerFrame(v, still) {
+  // The hop and the wave are the loops that move for no reason but to catch the eye; the badge says the rest.
+  if (still && (v.anim === 'wave' || v.anim === 'jump')) return 0
   switch (v.anim) {
     case 'walk': return Math.floor(v.animTime * 8) % 4
     case 'idle': return Math.floor(v.animTime / 0.7) % 2
@@ -103,13 +105,14 @@ function villagerFrame(v) {
 }
 
 /** Height of a hop in world pixels; the jump anim switches to its airborne pose above 1px. */
-const hopOf = (v) => (v.anim === 'jump' ? Math.round(Math.abs(Math.sin(v.animTime * Math.PI * 1.4)) * 5) : 0)
+const hopOf = (v, still) => (v.anim === 'jump' && !still ? Math.round(Math.abs(Math.sin(v.animTime * Math.PI * 1.4)) * 5) : 0)
 
 export class Canvas2dRenderer {
   constructor(canvas, camera) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d', { alpha: false })
     this.camera = camera
+    this.reducedMotion = false // no hops, waves, butterflies or cloud shadows; see src/game/motion.js
     this.chunks = new Map() // "cx,cy" → { version, canvas, water: [x, y, hash][], flowers: [x, y, hash][] }
     this.inView = [] // the chunks drawn this frame, for passes that only care about what is on screen
     this.cellStyle = new Map() // "cx,cy" → the style of the plot on that cell
@@ -364,9 +367,9 @@ export class Canvas2dRenderer {
       const ring = this._sprite(`fx.ring.${v.selected ? BADGE.waiting : P.white}`)
       this._blit(ring, px - 8, py - 4, v.selected ? 1 : 0.6)
     }
-    const hop = hopOf(v)
+    const hop = hopOf(v, this.reducedMotion)
     const anim = v.anim === 'jump' ? 'jump' : v.anim
-    const frame = v.anim === 'jump' ? (hop > 1 ? 1 : 0) : villagerFrame(v)
+    const frame = v.anim === 'jump' ? (hop > 1 ? 1 : 0) : villagerFrame(v, this.reducedMotion)
     const img = this._sprite(`villager.${anim}.${v.facing}`, frame, { look: v.look }, this._themeOf(v.plot))
     this._blit(img, px - VILLAGER_W / 2, py - VILLAGER_H + 1 - hop, v.alpha)
   }
@@ -845,6 +848,7 @@ export class Canvas2dRenderer {
 
   /** Soft shadows of clouds drifting over, fading out as night comes. */
   _drawClouds(frame, view, night, sky) {
+    if (this.reducedMotion) return
     // Grey skies when it falls: the shade deepens with the weather's intensity.
     const a = CLOUD_SHADE * (1 - night) * (1 + (sky && sky.kind !== 'clear' ? sky.intensity * 0.8 : 0))
     if (a < 0.01) return
@@ -866,7 +870,7 @@ export class Canvas2dRenderer {
 
   /** A few butterflies over the flowers on screen, garden and wild. Not after dark. */
   _drawButterflies(frame, flowers, night) {
-    if (night > 0.6) return
+    if (night > 0.6 || this.reducedMotion) return
     const sources = []
     for (const f of flowers) {
       const h = this._hash(f.id)
@@ -997,7 +1001,7 @@ export class Canvas2dRenderer {
       if (!v.badge) continue
       const bob = v.badge === 'waiting' ? Math.round(Math.sin(v.animTime * 4) * 1.5) : 0
       const img = this._sprite(`fx.badge.${v.badge}`)
-      this._blit(img, v.x * T - BADGE_W / 2, v.y * T - VILLAGER_H - BADGE_H + bob - hopOf(v), v.alpha)
+      this._blit(img, v.x * T - BADGE_W / 2, v.y * T - VILLAGER_H - BADGE_H + bob - hopOf(v, this.reducedMotion), v.alpha)
     }
   }
 
@@ -1015,7 +1019,7 @@ export class Canvas2dRenderer {
       const img = this._sprite(`fx.spotlight.${v.spotlight.id}`, 0, undefined, v.spotlight.theme)
       const bob = Math.round(Math.sin(frame.time * 4) * 2)
       const wx = Math.round(v.x * T - (MARKER_W * k) / 2)
-      const wy = Math.round(v.y * T - VILLAGER_H - BADGE_H - MARKER_H * k - 1 + bob - hopOf(v))
+      const wy = Math.round(v.y * T - VILLAGER_H - BADGE_H - MARKER_H * k - 1 + bob - hopOf(v, this.reducedMotion))
       // A pulse on the ground at its feet, so it stands out in a crowd too.
       const pulse = 0.5 + 0.5 * Math.sin(frame.time * 3)
       ctx.globalAlpha = (0.25 + 0.25 * pulse) * v.alpha

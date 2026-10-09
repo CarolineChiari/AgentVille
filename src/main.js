@@ -7,6 +7,8 @@ import { sprites } from './render/sprites/registry.js'
 import { TILE_PX } from './render/sprites/palette.js'
 import { dayFactor, duskFactor, hourNow } from './render/daynight.js'
 import { Village } from './game/village.js'
+import { announcementFor } from './game/notify.js'
+import { reducedMotion, villageSummary } from './game/motion.js'
 import { loadSettings, saveSettings } from './ui/settings.js'
 import { createHud } from './ui/hud.js'
 import { createCard } from './ui/card.js'
@@ -50,6 +52,17 @@ const toast = createToasts(hudRoot)
 const world = new World()
 const camera = new Camera()
 const renderer = new Canvas2dRenderer(canvas, camera)
+// The OS flag is read once and kept current; the decision itself is src/game/motion.js.
+const systemMotion = matchMedia('(prefers-reduced-motion: reduce)')
+function applyMotion() {
+  const still = reducedMotion(settings, systemMotion.matches)
+  renderer.reducedMotion = still
+  camera.instant = still
+  document.body.classList.toggle('reduced-motion', still)
+}
+systemMotion.addEventListener('change', applyMotion)
+applyMotion()
+canvas.setAttribute('role', 'img')
 let hovered = null
 let hoverPlot = null
 
@@ -61,7 +74,18 @@ const notices = createNotices({
     fly({ villager: id })
   },
 })
-const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, preview })
+// A polite live region the HUD never redraws, so an announcement is not repeated by a re-render.
+const live = document.createElement('div')
+live.className = 'sr-only'
+live.setAttribute('aria-live', 'polite')
+live.setAttribute('role', 'status')
+hudRoot.append(live)
+const speak = (text) => {
+  live.textContent = ''
+  // A change of text is what is announced, so clear first and set on the next tick.
+  setTimeout(() => { live.textContent = text }, 50)
+}
+const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, announce: (fresh) => speak(announcementFor(fresh)), preview })
 const transcript = createTranscript(hudRoot, village)
 const roomPanel = createRoomPanel(hudRoot, village, {
   // The conversation reads in its own panel, out in the village: both would want the same edge
@@ -104,6 +128,7 @@ const hud = createHud(hudRoot, {
     saveSettings(settings)
     village.apply()
     applyTheme()
+    applyMotion()
     if (settings.prGardens) village.pollPrs()
     if (settings.issueBoards) village.pollIssues()
     if (settings.repoLines) village.pollRepos()
@@ -122,6 +147,7 @@ const ui = {
     transcript.refresh()
     roomPanel.sync()
     syncFocus()
+    canvas.setAttribute('aria-label', villageSummary(village.counts()))
   },
 }
 

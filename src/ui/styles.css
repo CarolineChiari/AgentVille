@@ -557,3 +557,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .tip span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tip span[hidden] { display: none; }
 .taskeditor .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
+
+/* Visible keyboard focus on everything that takes a click; the mouse never draws it. */
+button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.reduced-motion * { animation: none !important; transition: none !important; }

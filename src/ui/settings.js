@@ -30,6 +30,7 @@ export const DEFAULTS = {
   // already saved as false.
   quietNames: false, // true: only name plots where something is happening
   villagerNames: true, // a small name under each villager when zoomed in
+  motion: 'system', // 'system' follows the OS's reduced-motion flag | 'reduce' | 'full'; see src/game/motion.js
   uiVisible: true,
   seenHelp: false,
 }

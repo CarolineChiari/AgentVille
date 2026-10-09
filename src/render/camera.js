@@ -27,6 +27,7 @@ export class Camera {
     this.target = null // eased fly-to
     this.vx = 0 // CSS px/s, from held movement keys
     this.vy = 0
+    this.instant = false // reduced motion: flyTo cuts instead of flying
   }
 
   resize(cssW, cssH, dpr) {
@@ -82,6 +83,15 @@ export class Camera {
   }
 
   flyTo(wx, wy) {
+    if (this.instant) {
+      // Reduced motion: a cut, not a flight.
+      this.x = wx
+      this.y = wy
+      this.target = null
+      this.vx = 0
+      this.vy = 0
+      return
+    }
     this.target = { x: wx, y: wy }
     // Or the last of a coast would cancel it.
     this.vx = 0
