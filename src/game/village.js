@@ -110,7 +110,7 @@ export class Village {
    * say; whether that becomes a notification is up to it.
    * @param {{ world: import('../sim/world.js').World, settings: object, demo?: boolean, onChange?: Function, toast?: Function, notify?: Function }} opts
    */
-  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {}, preview = null }) {
+  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {}, announce = () => {}, preview = null }) {
     this.world = world
     this.settings = settings
     this.demo = demo
@@ -119,6 +119,7 @@ export class Village {
     this.onChange = onChange
     this.toast = toast
     this.notify = notify
+    this.announce = announce
     this.state = emptyState()
     this.base = emptyState()
     /** The thread whose room is open, or null out in the village. */
@@ -395,7 +396,10 @@ export class Village {
     if (this.scanned) {
       const { fresh, asking } = newlyAsking(this.view.live, this._asking)
       this._asking = asking
-      if (fresh.length) this.notify(fresh)
+      if (fresh.length) {
+        this.notify(fresh)
+        this.announce(fresh)
+      }
     }
     const sel = this.selected
     if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
