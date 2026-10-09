@@ -30,6 +30,16 @@ export class Camera {
     this.instant = false // reduced motion: flyTo cuts instead of flying
   }
 
+  /** Reduced motion on or off. Turning it on lands a flight already under way. */
+  setInstant(on) {
+    this.instant = on
+    if (on && this.target) {
+      this.x = this.target.x
+      this.y = this.target.y
+      this.target = null
+    }
+  }
+
   resize(cssW, cssH, dpr) {
     this.dpr = dpr
     this.width = Math.max(1, Math.floor(cssW * dpr))

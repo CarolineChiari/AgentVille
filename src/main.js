@@ -57,12 +57,13 @@ const systemMotion = matchMedia('(prefers-reduced-motion: reduce)')
 function applyMotion() {
   const still = reducedMotion(settings, systemMotion.matches)
   renderer.reducedMotion = still
-  camera.instant = still
+  camera.setInstant(still)
   document.body.classList.toggle('reduced-motion', still)
 }
 systemMotion.addEventListener('change', applyMotion)
 applyMotion()
 canvas.setAttribute('role', 'img')
+canvas.setAttribute('aria-label', villageSummary({})) // named from the first paint, before any scan
 let hovered = null
 let hoverPlot = null
 

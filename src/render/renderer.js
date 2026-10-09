@@ -885,6 +885,10 @@ export class Canvas2dRenderer {
 
   /** Now and then a few birds cross the screen, their shadows on the ground far below. */
   _drawBirds(frame, view, night) {
+    if (this.reducedMotion) {
+      this.flock = null
+      return
+    }
     if (night > 0.5) {
       this.flock = null
       return
@@ -1129,6 +1133,9 @@ export class Canvas2dRenderer {
    *        `night` 0 by day to 1 at night; `dusk` how golden the light is round sunrise and sunset
    */
   render(frame, ui) {
+    // Water glints, sparkles, bunting, petals and the rest all run off the frame's clock; held still
+    // they stand as one stable picture. Villagers' own walk and work cycles run on their animTime.
+    if (this.reducedMotion && frame.time !== 0) frame = { ...frame, time: 0 }
     const { ctx, camera: cam } = this
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.imageSmoothingEnabled = false
