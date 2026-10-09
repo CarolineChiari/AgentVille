@@ -339,6 +339,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
           <select data-set="landmarkSpot">${SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === spot ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
+        <label title="Follow your system’s reduced-motion setting, or choose. Reduced: no hopping or waving, butterflies or cloud shadows, and the camera cuts instead of flying.">Motion
+          <select data-set="motion"><option value="system" ${s.motion === 'system' || !s.motion ? 'selected' : ''}>Follow system</option><option value="reduce" ${s.motion === 'reduce' ? 'selected' : ''}>Reduced</option><option value="full" ${s.motion === 'full' ? 'selected' : ''}>Full</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
         <label>${esc(finishedWords(theme).grow)} <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>

@@ -60,6 +60,12 @@ export function noticeFor(fresh) {
   return { id: fresh[0].id, title: `${fresh.length} villagers need you`, body: listed.join('\n') }
 }
 
+/** What a screen reader is told when threads start needing you: the same words as the notification. */
+export function announcementFor(fresh) {
+  const n = noticeFor(fresh)
+  return n ? [n.title, n.body.replace(/\n/g, ', ')].filter(Boolean).join('. ') : ''
+}
+
 export const APP_TITLE = 'AgentVille'
 
 /**
