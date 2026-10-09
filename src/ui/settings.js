@@ -4,7 +4,7 @@ const KEY = 'agentville.settings'
 
 export const DEFAULTS = {
   hideDormant: true,
-  archiveAfterDays: 0, // archive threads asleep longer than this many days; 0: never
+  archiveAfterDays: 0, // archive threads untouched longer than this many days, counted from their last activity; 0: never
   prGardens: true, // grow flowers from the repo's pull requests (reads GitHub through `gh`)
   issueBoards: true, // pin the repo's open issues on a notice board (reads GitHub through `gh`)
   repoLines: true, // count the lines of code in each repo, for its landmark (reads the files, never runs anything)
