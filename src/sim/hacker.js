@@ -37,6 +37,8 @@ const MIN_SCENE_MS = 150_000
 const MAX_SCENE_MS = 330_000
 
 export const DEFAULT_POOLS = { names: VILLAGER_NAMES, repos: T.FAKE_REPOS }
+/** The BroadcastChannel the village and the show on your other screens stop each other through. */
+export const SHOW_CHANNEL = 'agentville-hacker'
 
 const TONES = { '!': 'err', '+': 'ok', '?': 'warn', '~': 'dim' }
 
@@ -194,12 +196,12 @@ function place(kind, anchor, rand) {
   return { x, y, w, h }
 }
 
-function layoutScene(scene, ls, pools) {
+function layoutScene(scene, ls, pools, swap) {
   const rand = rngFor(`scene:${ls}:${scene.i}`)
   const act = T.ACTS[scene.act]
   const may = shuffle(rand, act.may)
   const total = Math.min(MAX_WINDOWS, 1 + act.need.length + 1 + Math.floor(rand() * may.length))
-  const kinds = [...act.need, ...may].slice(0, total - 1)
+  const kinds = [...act.need, ...may].slice(0, total - 1).map((k) => swap?.[k] || k)
   const anchors = shuffle(rand, ANCHORS)
   const windows = []
   let opensAt = scene.start
@@ -237,9 +239,10 @@ function layoutScene(scene, ls, pools) {
 /**
  * One loop of the show: scenes that tile [0, LOOP_MS) exactly. Acts are dealt like cards, so no
  * act follows itself and each comes round at least twice; every window kind is in some act's
- * `need`, so every kind is on screen at least twice a loop too.
+ * `need`, so every kind is on screen at least twice a loop too. `swap` trades one kind for
+ * another: a screen with no village behind it has no villagers for a live feed to follow.
  */
-export function scheduleFor(ls, pools = DEFAULT_POOLS) {
+export function scheduleFor(ls, pools = DEFAULT_POOLS, swap = null) {
   const rand = rngFor(`schedule:${ls}`)
   const scenes = []
   let deck = []
@@ -255,7 +258,7 @@ export function scheduleFor(ls, pools = DEFAULT_POOLS) {
     // Never leave a sliver too short to be a scene of its own at the end.
     if (LOOP_MS - end < MIN_SCENE_MS) end = LOOP_MS
     const scene = { i: scenes.length, act, mood: T.ACTS[act].mood, label: T.ACTS[act].label, start, end }
-    scene.windows = layoutScene(scene, ls, pools)
+    scene.windows = layoutScene(scene, ls, pools, swap)
     scenes.push(scene)
     prev = act
     start = end

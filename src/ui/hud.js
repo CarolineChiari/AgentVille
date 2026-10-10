@@ -65,7 +65,7 @@ const TOUR = [
 ]
 let tourStep = 0
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
+export function createHud(root, { village, settings, onSettings, onFly, session = () => '', onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -110,7 +110,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const words = finishedWords(village.theme)
     const release = village.release
     // Only when it changes: the desktop app turns every title update into a dock badge call.
-    const title = pageTitle(counts)
+    const title = pageTitle(counts, session())
     if (document.title !== title) document.title = title
 
     side.innerHTML = `

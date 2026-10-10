@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds } from '../electron/env.mjs'
-import { APP_TITLE, pageTitle } from '../src/game/notify.js'
+import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds, showDisplays, showSeed, showUrl } from '../electron/env.mjs'
+import { APP_TITLE, SESSION_RE, pageTitle } from '../src/game/notify.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
 test('a Finder-launched Mac app still finds Homebrew and ~/.local/bin', () => {
@@ -160,4 +160,30 @@ test('with no displays there is nothing to clamp to', () => {
 test('a window mostly on the second display stays there, though a sliver touches the primary', () => {
   const b = { x: 1800, y: 50, width: 1000, height: 700 }
   assert.deepEqual(clampBounds(b, [primary, second]), { x: 1920, y: 50, width: 1000, height: 700 })
+})
+
+test('the app reads a running hacker show out of the title the page writes', () => {
+  assert.equal(showSeed(pageTitle({ waiting: 2 }, '1791642000123')), '1791642000123')
+  assert.equal(badgeCount(pageTitle({ waiting: 2 }, '1791642000123')), 2)
+  assert.equal(showSeed(pageTitle({})), '')
+  assert.equal(showSeed('AgentVille · session ../../x'), '')
+  assert.equal(showSeed(undefined), '')
+  assert.ok(SESSION_RE.test(showSeed(pageTitle({}, 'a_b-1'))))
+})
+
+test('the show goes on every screen but the village\'s', () => {
+  const b = (x) => ({ x, y: 0, width: 1920, height: 1080 })
+  const shown = showDisplays([{ id: 1, bounds: b(0) }, { id: 2, bounds: b(1920) }, { id: 3, bounds: b(-1920) }, { id: 4, bounds: { x: 0, y: 0, width: 0, height: 9 } }], 1)
+  assert.deepEqual(shown.map((d) => d.id), [2, 3])
+  assert.deepEqual(showDisplays([{ id: 1, bounds: b(0) }], 1), [])
+  assert.deepEqual(showDisplays(null, 1), [])
+})
+
+test('a screen of the show loads show.html from the app, and nothing else', () => {
+  const u = new URL(showUrl('http://127.0.0.1:5275/', '123', 2))
+  assert.equal(u.origin, 'http://127.0.0.1:5275')
+  assert.equal(u.pathname, '/show.html')
+  assert.equal(u.searchParams.get('seed'), '123')
+  assert.equal(u.searchParams.get('screen'), '2')
+  assert.equal(new URL(showUrl('http://127.0.0.1:5275/', '<script>', 0)).searchParams.get('seed'), 'show')
 })

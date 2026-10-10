@@ -71,6 +71,13 @@ test('the schedule is the same for a seed, and the next loop is a different show
   assert.notEqual(a, b)
 })
 
+test('a screen with no village can trade the live feed for another window', () => {
+  const kinds = coverage(scheduleFor('swap/0', DEFAULT_POOLS, { feed: 'cipher' }))
+  assert.ok(!kinds.has('feed'))
+  assert.ok(kinds.has('cipher'))
+  assert.deepEqual(scheduleFor('swap/0').map((s) => s.act), scheduleFor('swap/0', DEFAULT_POOLS, { feed: 'cipher' }).map((s) => s.act))
+})
+
 test('acts never follow themselves, every act comes round twice, and every kind of window shows', () => {
   for (let n = 0; n < 30; n++) {
     const s = scheduleFor(`seed${n}/0`)

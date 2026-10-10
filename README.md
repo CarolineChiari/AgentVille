@@ -454,6 +454,8 @@ up, and it names villagers and invented repos, never your real ones. The same ke
 - **There are easter eggs.** Try `help`, a villager's name, `swordfish`, `enhance`, `hack the planet`,
   `shall we play a game`, the Konami code, and pressing DO NOT PRESS more than once.
 
+In the desktop app, every other screen gets a show of its own while it runs, each playing
+different scenes; you type on the village's screen, and the keys that end it work on any of them.
 Esc leaves full screen but not the show; the next key puts it back. With reduced motion on, the
 rain, shaking and flashing stop and the text keeps streaming. In a browser, Chrome and Firefox keep
 `⌘⇧H` for themselves; the desktop app has no menu to take it.

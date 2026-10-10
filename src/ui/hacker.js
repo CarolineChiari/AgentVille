@@ -36,7 +36,7 @@ const EXTRA_TITLE = { cracker: 'PASSWORD CRACKER', feed: 'ENHANCE', dossier: 'DO
  * @param {() => void} [opts.onStart] for the page to tidy up (a tip left showing)
  * @param {() => void} [opts.onStop] for the page to take the keyboard back
  */
-export function createHacker(root, { world, sprites, announce = () => {}, toast = () => {}, reducedMotion = () => false, names = () => VILLAGER_NAMES, repos = () => [], clock = () => new Date(), onStart = () => {}, onStop = () => {} } = {}) {
+export function createHacker(root, { world, sprites, swap = null, announce = () => {}, toast = () => {}, reducedMotion = () => false, names = () => VILLAGER_NAMES, repos = () => [], clock = () => new Date(), onStart = () => {}, onStop = () => {} } = {}) {
   const platform = globalThis.navigator?.platform || ''
   const label = H.comboLabel(platform)
   const armLabel = H.comboLabel(platform, true)
@@ -682,7 +682,7 @@ export function createHacker(root, { world, sprites, announce = () => {}, toast 
     const show = H.showAt(seed, e)
     if (show.loop !== loopIndex) {
       loopIndex = show.loop
-      schedule = H.scheduleFor(show.seed, pools)
+      schedule = H.scheduleFor(show.seed, pools, swap)
       events = H.eventsFor(show.seed)
       lastT = show.t
     }
@@ -796,6 +796,10 @@ export function createHacker(root, { world, sprites, announce = () => {}, toast 
     },
     get on() {
       return on
+    },
+    /** The running show's seed, or ''. */
+    get session() {
+      return on ? seed : ''
     },
     /** When an armed show will start (ms since the epoch), or 0. */
     get armedUntil() {

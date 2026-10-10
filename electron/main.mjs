@@ -4,7 +4,7 @@ import { app, BrowserWindow, nativeImage, screen, session, shell } from 'electro
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
-import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds } from './env.mjs'
+import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds, showDisplays, showSeed, showUrl } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { HEADERS } from '../server/headers.mjs'
 import { createShellOpener } from '../server/opener.mjs'
@@ -26,6 +26,9 @@ if (!app.requestSingleInstanceLock()) app.quit()
 process.env.PATH = augmentedPath(process.env, { home: os.homedir(), platform: process.platform })
 
 let win = null
+// Hacker mode on your other screens: one window per display while the village's show runs.
+let shows = []
+let showing = ''
 let appUrl = null
 let server = null
 
@@ -107,6 +110,51 @@ function rememberBounds(w) {
   })
 }
 
+const WEB = { contextIsolation: true, sandbox: true, nodeIntegration: false }
+
+/** Same rules as the village's window: nothing opens a window, nothing navigates off the app. */
+function lockDown(w) {
+  w.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  w.webContents.on('will-navigate', (e, target) => {
+    if (!isAppUrl(target, appUrl)) e.preventDefault()
+  })
+}
+
+function closeShows() {
+  for (const w of shows) if (!w.isDestroyed()) w.destroy()
+  shows = []
+}
+
+/**
+ * Follow the village's show: when one starts, cover every other screen with a show of its own;
+ * when it stops (from any screen: they tell the village, and it retitles), take them all down.
+ */
+function syncShows(seed) {
+  if (seed === showing) return
+  closeShows()
+  showing = seed
+  if (!seed || !win) return
+  const here = screen.getDisplayMatching(win.getBounds()).id
+  showDisplays(screen.getAllDisplays(), here).forEach((d, k) => {
+    const w = new BrowserWindow({
+      ...d.bounds,
+      frame: false,
+      fullscreen: true,
+      skipTaskbar: true,
+      show: false,
+      backgroundColor: APP_BG,
+      autoHideMenuBar: true,
+      webPreferences: WEB,
+    })
+    lockDown(w)
+    // Shown without taking the focus: the keyboard stays with the village's screen.
+    w.once('ready-to-show', () => w.showInactive())
+    w.on('closed', () => (shows = shows.filter((x) => x !== w)))
+    w.loadURL(showUrl(appUrl, seed, k + 1))
+    shows.push(w)
+  })
+}
+
 function createWindow() {
   const saved = savedBounds()
   win = new BrowserWindow({
@@ -117,18 +165,22 @@ function createWindow() {
     title: 'AgentVille',
     backgroundColor: APP_BG, // so the window doesn't flash white before the page paints
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+    webPreferences: WEB,
   })
   // Links the page opens go through the server's opener already; nothing gets a new window.
   if (saved?.maximized) win.maximize()
   rememberBounds(win)
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-  win.webContents.on('will-navigate', (e, target) => {
-    if (!isAppUrl(target, appUrl)) e.preventDefault()
+  lockDown(win)
+  // The page puts the count in its title, `(2) AgentVille`, and a running hacker-mode show's seed
+  // after it; it has no other way to reach us.
+  win.on('page-title-updated', (e, title) => {
+    showCount(badgeCount(title))
+    syncShows(showSeed(title))
   })
-  // The page puts the count in its title, `(2) AgentVille`; it has no other way to reach us.
-  win.on('page-title-updated', (e, title) => showCount(badgeCount(title)))
-  win.on('closed', () => (win = null))
+  win.on('closed', () => {
+    win = null
+    closeShows()
+  })
   win.loadURL(appUrl)
 }
 

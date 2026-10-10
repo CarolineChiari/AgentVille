@@ -21,7 +21,7 @@ import { createTaskEditor } from './ui/taskeditor.js'
 import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
 import { createHacker } from './ui/hacker.js'
-import { comboOf } from './sim/hacker.js'
+import { SHOW_CHANNEL, comboOf } from './sim/hacker.js'
 import { FAKE_REPOS } from './sim/hacker-text.js'
 import { VILLAGER_NAMES } from './sim/names.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
@@ -122,11 +122,22 @@ const hacker = createHacker(hudRoot, {
   reducedMotion: () => renderer.reducedMotion,
   names: () => VILLAGER_NAMES,
   repos: () => FAKE_REPOS,
+  // Starting and stopping retitle the page: the desktop app reads the show's seed out of the title
+  // and fills your other screens with it (see electron/main.mjs).
   onStart: () => {
     held.clear()
     tip.hide()
+    hud.render()
   },
-  onStop: () => canvas.focus?.({ preventScroll: true }),
+  onStop: () => {
+    hud.render()
+    canvas.focus?.({ preventScroll: true })
+  },
+})
+// The show on another screen (show.html) says when it was stopped there, so it stops here too.
+const showChannel = globalThis.BroadcastChannel ? new BroadcastChannel(SHOW_CHANNEL) : null
+showChannel?.addEventListener('message', (e) => {
+  if (e.data?.type === 'stop') hacker.stop()
 })
 const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
@@ -142,6 +153,7 @@ const hud = createHud(hudRoot, {
   village,
   settings,
   canNotify: notices.supported,
+  session: () => hacker.session,
   onSettings(key) {
     if (key === 'notify' && settings.notify) enableNotices()
     // Choosing a theme ends a preview of one.
