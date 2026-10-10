@@ -486,6 +486,8 @@ export function createHacker(root, { world, sprites, swap = null, announce = () 
     if (e.key === 'Backspace') {
       current = current.slice(0, -1)
       typedLine = typedLine.slice(0, -1)
+      // A typo fixed is fixed for the eggs too: swordfiss, ⌫, h is swordfish.
+      buffer = buffer.slice(0, -1)
       version++
       return
     }

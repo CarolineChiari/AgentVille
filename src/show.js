@@ -17,7 +17,10 @@ const screenNo = Number(query.get('screen')) || 1
 const seed = typeof raw === 'string' && SESSION_RE.test(raw) ? `${raw}-${screenNo}` : String(Date.now())
 const systemMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const still = () => reducedMotion(loadSettings(), systemMotion.matches)
-document.body.classList.toggle('reduced-motion', still())
+// Kept current, as the village keeps its own: the CSS stops animating on this class alone.
+const applyMotion = () => document.body.classList.toggle('reduced-motion', still())
+systemMotion.addEventListener('change', applyMotion)
+applyMotion()
 
 const channel = globalThis.BroadcastChannel ? new BroadcastChannel(SHOW_CHANNEL) : null
 const hacker = createHacker(document.getElementById('hud'), {
