@@ -56,6 +56,37 @@ export function badgeCount(title) {
   return m ? Number(m[1]) : 0
 }
 
+/**
+ * The seed of the hacker-mode show running in the village, read out of the page's title,
+ * `AgentVille · session 1791…`, or '' when none is. Checked to the same shape the page writes
+ * (SESSION_RE in src/game/notify.js), since it goes on into a URL.
+ * @param {unknown} title
+ */
+export function showSeed(title) {
+  if (typeof title !== 'string') return ''
+  const m = / · session ([A-Za-z0-9_-]{1,40})$/.exec(title)
+  return m ? m[1] : ''
+}
+
+/**
+ * The screens the show spreads to: every display but the one the village is on, by its bounds.
+ * @param {{ id: number, bounds: { x: number, y: number, width: number, height: number } }[]} displays
+ * @param {number} hereId the village's display
+ */
+export function showDisplays(displays, hereId) {
+  if (!Array.isArray(displays)) return []
+  const ok = (b) => b && [b.x, b.y, b.width, b.height].every(Number.isFinite) && b.width > 0 && b.height > 0
+  return displays.filter((d) => d && d.id !== hereId && ok(d.bounds)).map((d) => ({ id: d.id, bounds: { ...d.bounds } }))
+}
+
+/** The page a screen of the show loads: show.html on the app's own server, its seed and number. */
+export function showUrl(appUrl, seed, screenNo) {
+  const u = new URL('show.html', appUrl)
+  u.searchParams.set('seed', showSeed(` · session ${seed}`) || 'show')
+  u.searchParams.set('screen', String(Math.max(1, Math.floor(Number(screenNo)) || 1)))
+  return u.href
+}
+
 /** Digits in a 3×5 pixel font, one string per row, `#` for ink. */
 const DIGITS = [
   '### #.# #.# #.# ###', '.#. ##. .#. .#. ###', '### ..# ### #.. ###', '### ..# ### ..# ###', '#.# #.# ### ..# ..#',

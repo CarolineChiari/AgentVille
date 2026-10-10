@@ -432,6 +432,33 @@ On first run a three-step tour shows the square, the badges and the keys; it com
 | `Esc` | Deselect |
 | `W` `A` `S` `D` or arrows | Move around, like in a game; hold `Shift` to hurry |
 | `+` / `-`, `0` | Zoom, reset the view |
+| `⌘⇧H` / `Ctrl+Shift+H` | Hollywood hacker mode: a show, nothing real; the same keys end it |
+| `⌘⇧⌥H` / `Ctrl+Shift+Alt+H` | Arm it: it starts in a minute, a minute more for each press |
+
+### Hollywood hacker mode
+
+![A film's idea of a hack: a traceroute, a chat on a secure channel, a system monitor and a console full of typed code, all in amber](docs/screenshots/hacker.png)
+
+`⌘⇧H` (`Ctrl+Shift+H`) turns the window into a film's idea of a hack: full screen, windows
+streaming logs, a password cracker locking in letters, a spinning globe of pings, a live feed of
+your villagers being *enhanced*, red alerts and matrix rain. It is a joke and only ever an
+animation. It runs nothing, reads nothing, sends nothing and saves nothing; every word on it is made
+up, and it names villagers and invented repos, never your real ones. The same keys end it.
+
+- **It runs for two hours** without repeating, scene after scene, then deals itself a new show.
+- **Arm it and walk away.** `⌘⇧⌥H` (`Ctrl+Shift+Alt+H`) starts it in a minute, a minute more for
+  each press. The window goes full screen at once and the hack begins while you are gone.
+- **Play along.** Whatever you type comes out as code, Enter is denied three times and then lets
+  you in, and the buttons along the bottom all do something. Clicking a window raises it, and its
+  title bar drags it.
+- **There are easter eggs.** Try `help`, a villager's name, `swordfish`, `enhance`, `hack the planet`,
+  `shall we play a game`, the Konami code, and pressing DO NOT PRESS more than once.
+
+In the desktop app, every other screen gets a show of its own while it runs, each playing
+different scenes; you type on the village's screen, and the keys that end it work on any of them.
+Esc leaves full screen but not the show; the next key puts it back. With reduced motion on, the
+rain, shaking and flashing stop and the text keeps streaming. In a browser, Chrome and Firefox keep
+`⌘⇧H` for themselves; the desktop app has no menu to take it.
 
 ## Your own art
 

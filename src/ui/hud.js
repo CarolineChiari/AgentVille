@@ -9,6 +9,7 @@ import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.j
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
+import { comboLabel } from '../sim/hacker.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -52,6 +53,8 @@ const HELP = [
   ['Drag / Arrows', 'Move around too'],
   ['Scroll / + −', 'Zoom'],
   ['0', 'Back to the square'],
+  [comboLabel(globalThis.navigator?.platform), 'Hollywood hacker mode: a show, nothing real; the same keys end it'],
+  [comboLabel(globalThis.navigator?.platform, true), 'Arm it: starts in a minute, a minute more per press'],
 ]
 
 // Shown once on first run, and again from Keys. Plain words: the badges mean the same in every theme.
@@ -62,7 +65,7 @@ const TOUR = [
 ]
 let tourStep = 0
 
-export function createHud(root, { village, settings, onSettings, onFly, onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
+export function createHud(root, { village, settings, onSettings, onFly, session = () => '', onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
   side.className = 'side'
   const sheet = document.createElement('div')
@@ -107,7 +110,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const words = finishedWords(village.theme)
     const release = village.release
     // Only when it changes: the desktop app turns every title update into a dock badge call.
-    const title = pageTitle(counts)
+    const title = pageTitle(counts, session())
     if (document.title !== title) document.title = title
 
     side.innerHTML = `

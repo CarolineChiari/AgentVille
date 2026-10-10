@@ -68,13 +68,21 @@ export function announcementFor(fresh) {
 
 export const APP_TITLE = 'AgentVille'
 
+/** What a hacker-mode show's seed may look like, to travel in the title and a URL. */
+export const SESSION_RE = /^[A-Za-z0-9_-]{1,40}$/
+
 /**
  * The page's title, with how many villagers need you in front, `(2) AgentVille`, so the tab strip
  * says so without opening the village. The desktop app reads the same number back out of it for
  * the dock badge (`badgeCount` in electron/env.mjs), so the format is shared by the two.
+ *
+ * While hacker mode runs, its seed rides at the end, `AgentVille · session 1791…`: that is how the
+ * desktop app knows to fill your other screens with the show (`showSeed` in electron/env.mjs).
  * @param {{ waiting?: number, blocked?: number }} counts
+ * @param {string} [session] the running show's seed, or ''
  */
-export function pageTitle(counts) {
+export function pageTitle(counts, session = '') {
   const n = (counts?.waiting || 0) + (counts?.blocked || 0)
-  return n ? `(${n}) ${APP_TITLE}` : APP_TITLE
+  const base = n ? `(${n}) ${APP_TITLE}` : APP_TITLE
+  return typeof session === 'string' && SESSION_RE.test(session) ? `${base} · session ${session}` : base
 }
