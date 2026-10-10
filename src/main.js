@@ -1,6 +1,6 @@
 // Boot: settings → sprites → renderer → world → village → UI → poll loop.
 import { World } from './sim/world.js'
-import { CELL_TILES } from './sim/constants.js'
+import { CELL_TILES, GATE_CELL } from './sim/constants.js'
 import { Camera } from './render/camera.js'
 import { Canvas2dRenderer } from './render/renderer.js'
 import { sprites } from './render/sprites/registry.js'
@@ -254,7 +254,10 @@ function home() {
 
 /** Frame every plot, and the square, in the view. */
 function fitVillage() {
-  let x0 = world.gate.x * TILE_PX, x1 = x0, y0 = world.gate.y * TILE_PX, y1 = y0
+  // The square fills its whole cell; the gate is only a point inside it.
+  const [sx, sy] = GATE_CELL
+  let x0 = sx * CELL_TILES * TILE_PX, y0 = sy * CELL_TILES * TILE_PX
+  let x1 = x0 + CELL_TILES * TILE_PX, y1 = y0 + CELL_TILES * TILE_PX
   for (const p of world.plots.values()) {
     for (const [cx, cy] of p.cells) {
       x0 = Math.min(x0, cx * CELL_TILES * TILE_PX)
