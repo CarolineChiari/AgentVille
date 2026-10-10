@@ -20,6 +20,10 @@ import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
 import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
+import { createHacker } from './ui/hacker.js'
+import { comboOf } from './sim/hacker.js'
+import { FAKE_REPOS } from './sim/hacker-text.js'
+import { VILLAGER_NAMES } from './sim/names.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
 import { todayOf } from './sim/calendar.js'
@@ -108,6 +112,22 @@ const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSe
 const taskEditor = createTaskEditor(hudRoot, village)
 const groupEditor = createGroupEditor(hudRoot, village)
 const tip = createTip(hudRoot, village)
+// Hollywood hacker mode: a show over the village. It may name villagers, whose names are made up,
+// and made-up repos, never the real ones: people film their screen with this up.
+const hacker = createHacker(hudRoot, {
+  world,
+  sprites,
+  announce: speak,
+  toast,
+  reducedMotion: () => renderer.reducedMotion,
+  names: () => VILLAGER_NAMES,
+  repos: () => FAKE_REPOS,
+  onStart: () => {
+    held.clear()
+    tip.hide()
+  },
+  onStop: () => canvas.focus?.({ preventScroll: true }),
+})
 const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
   onEditGroups: (project) => groupEditor.open(project),
@@ -371,6 +391,18 @@ let hurry = false // Shift
 addEventListener('keydown', (e) => {
   hurry = e.shiftKey
   if (e.target.closest?.('input, select, textarea')) return
+  // While the show is on it has the keyboard (a capture listener in ui/hacker.js); this is only a
+  // backstop, so nothing here can steer the village under it.
+  if (hacker.on) return
+  // ⌘⇧H toggles hacker mode, ⌘⇧⌥H arms it. Before the line below, which lets every ⌘ combo go.
+  const combo = comboOf(e)
+  if (combo) {
+    held.clear() // as below: macOS sends no keyup for a key let go while ⌘ is down
+    e.preventDefault()
+    if (combo === 'arm') hacker.arm()
+    else hacker.toggle()
+    return
+  }
   // Ctrl on Windows, where the OS keeps the Windows key's shortcuts for itself.
   if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
     toggleUi()
@@ -566,7 +598,7 @@ async function boot() {
 // A handle for poking at the running village from devtools, and for the README's screenshots:
 // `review` reads a file at the board, `setBoard` puts any page of the log up.
 if (import.meta.env?.DEV) {
-  window.__agentville = { world, camera, village, settings, renderer, review, setBoard: (next) => (board = { ...board, ...next }) }
+  window.__agentville = { world, camera, village, settings, renderer, hacker, review, setBoard: (next) => (board = { ...board, ...next }) }
 }
 
 boot()

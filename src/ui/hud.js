@@ -9,6 +9,7 @@ import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.j
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
+import { comboLabel } from '../sim/hacker.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -52,6 +53,8 @@ const HELP = [
   ['Drag / Arrows', 'Move around too'],
   ['Scroll / + −', 'Zoom'],
   ['0', 'Back to the square'],
+  [comboLabel(globalThis.navigator?.platform), 'Hollywood hacker mode: a show, nothing real; the same keys end it'],
+  [comboLabel(globalThis.navigator?.platform, true), 'Arm it: starts in a minute, a minute more per press'],
 ]
 
 // Shown once on first run, and again from Keys. Plain words: the badges mean the same in every theme.
