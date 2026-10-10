@@ -52,6 +52,7 @@ const HELP = [
   ['Drag / Arrows', 'Move around too'],
   ['Scroll / + −', 'Zoom'],
   ['0', 'Back to the square'],
+  ['Z', 'Fit the whole village in view'],
 ]
 
 // Shown once on first run, and again from Keys. Plain words: the badges mean the same in every theme.
