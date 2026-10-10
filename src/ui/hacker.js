@@ -743,6 +743,14 @@ export function createHacker(root, { world, sprites, announce = () => {}, toast 
     solvedAt = null
     forgetKeys()
     lastKeyAt = 0
+    // Nothing from the last show carries over, so the same seed is the same show.
+    eggCount = 0
+    extraCount = 0
+    keyTimes = []
+    lastChordAt = -Infinity
+    lastWpmAt = -Infinity
+    rainBoostUntil = 0
+    for (const k of Object.keys(presses)) delete presses[k]
     const r = mulberry32(hashString(seed))
     say(CONSOLE_BANNER.map((l) => H.toneOf(H.fill(l, r, pools))))
     build()

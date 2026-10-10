@@ -47,7 +47,8 @@ const TONES = { '!': 'err', '+': 'ok', '?': 'warn', '~': 'dim' }
  * or null.
  */
 export function comboOf(e) {
-  if (!e || typeof e !== 'object') return null
+  // A held chord repeats its keydown: one physical press must toggle once and add one minute.
+  if (!e || typeof e !== 'object' || e.repeat) return null
   if (e.code !== KEY_CODE || !e.shiftKey || !(e.metaKey || e.ctrlKey)) return null
   return e.altKey ? 'arm' : 'toggle'
 }

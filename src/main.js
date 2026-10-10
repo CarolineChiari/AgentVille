@@ -390,11 +390,11 @@ let hurry = false // Shift
 
 addEventListener('keydown', (e) => {
   hurry = e.shiftKey
-  if (e.target.closest?.('input, select, textarea')) return
   // While the show is on it has the keyboard (a capture listener in ui/hacker.js); this is only a
   // backstop, so nothing here can steer the village under it.
   if (hacker.on) return
-  // ⌘⇧H toggles hacker mode, ⌘⇧⌥H arms it. Before the line below, which lets every ⌘ combo go.
+  // ⌘⇧H toggles hacker mode, ⌘⇧⌥H arms it, even from a text box: it is the only way to cancel an
+  // armed show, and no text box types anything with ⌘⇧. Before the ⌘ line below, which lets them go.
   const combo = comboOf(e)
   if (combo) {
     held.clear() // as below: macOS sends no keyup for a key let go while ⌘ is down
@@ -403,6 +403,7 @@ addEventListener('keydown', (e) => {
     else hacker.toggle()
     return
   }
+  if (e.target.closest?.('input, select, textarea')) return
   // Ctrl on Windows, where the OS keeps the Windows key's shortcuts for itself.
   if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
     toggleUi()

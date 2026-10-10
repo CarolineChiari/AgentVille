@@ -801,8 +801,8 @@ body.reduced-motion .hacker::before { display: none; }
 @keyframes hk-white { 50% { filter: brightness(3); } }
 .hacker.dance .hk-win { animation: hk-dance 0.5s ease-in-out infinite alternate; }
 @keyframes hk-dance { from { transform: rotate(-2deg); } to { transform: rotate(2deg) translateY(-6px); } }
+/* Windows keep the sizes their places were worked out for, so none is pushed past the edge. */
 @media (max-width: 720px) {
-  .hk-win { min-width: 60%; min-height: 30%; }
   .hk-btn { padding: 4px 6px; font-size: 10px; }
 }
 

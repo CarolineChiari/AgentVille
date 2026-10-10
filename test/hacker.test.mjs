@@ -29,6 +29,8 @@ test('nothing else is the combo', () => {
   assert.equal(comboOf({ key: 'h' }), null)
   assert.equal(comboOf(undefined), null)
   assert.equal(comboOf('KeyH'), null)
+  // Holding the chord repeats it; only the first press counts.
+  assert.equal(comboOf(key({ metaKey: true, repeat: true })), null)
 })
 
 test('the keys are named the way the keyboard writes them', () => {
