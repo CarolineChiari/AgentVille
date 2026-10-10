@@ -59,3 +59,25 @@ test('standing still leaves a fly-to alone, and a fly-to ends a coast', () => {
   cam.steer({ x: 0, y: 0 }, false, STEP)
   assert.deepEqual(cam.target, { x: 0, y: 0 })
 })
+
+test('fitBounds picks the biggest whole zoom that frames the box, centred', () => {
+  const cam = new Camera()
+  cam.resize(1000, 600, 1)
+  cam.fitBounds(0, 0, 400, 100, 0)
+  assert.equal(cam.scale, 2, '1000/400 = 2.5 floors to 2')
+  assert.deepEqual(cam.target, { x: 200, y: 50 })
+  cam.fitBounds(0, 0, 100, 100, 0)
+  assert.equal(cam.scale, 6, 'height limits it: 600/100')
+})
+
+test('fitBounds leaves the panels out of the room and stays within the zoom limits', () => {
+  const cam = new Camera()
+  cam.resize(1000, 600, 1)
+  cam.insetRight = 500
+  cam.fitBounds(0, 0, 250, 10, 0)
+  assert.equal(cam.scale, 2)
+  cam.fitBounds(0, 0, 1, 1, 0)
+  assert.equal(cam.scale, 12)
+  cam.fitBounds(0, 0, 100000, 100000, 0)
+  assert.equal(cam.scale, 1)
+})

@@ -252,6 +252,20 @@ function home() {
   camera.flyTo(world.gate.x * TILE_PX, world.gate.y * TILE_PX)
 }
 
+/** Frame every plot, and the square, in the view. */
+function fitVillage() {
+  let x0 = world.gate.x * TILE_PX, x1 = x0, y0 = world.gate.y * TILE_PX, y1 = y0
+  for (const p of world.plots.values()) {
+    for (const [cx, cy] of p.cells) {
+      x0 = Math.min(x0, cx * CELL_TILES * TILE_PX)
+      y0 = Math.min(y0, cy * CELL_TILES * TILE_PX)
+      x1 = Math.max(x1, (cx + 1) * CELL_TILES * TILE_PX)
+      y1 = Math.max(y1, (cy + 1) * CELL_TILES * TILE_PX)
+    }
+  }
+  camera.fitBounds(x0, y0, x1, y1)
+}
+
 /** The page's own nod to the village's theme; see styles.css. */
 function applyTheme() {
   document.body.dataset.theme = village.theme
@@ -434,6 +448,8 @@ addEventListener('keydown', (e) => {
     case '+': case '=': camera.zoomAt(centerX, centerY, 1); break
     case '-': case '_': camera.zoomAt(centerX, centerY, -1); break
     case '0': home(); break
+    // F is the next spotlit villager, so fitting the village is Z for zoom-out-to-fit.
+    case 'z': case 'Z': fitVillage(); break
     default: return
   }
   e.preventDefault()
