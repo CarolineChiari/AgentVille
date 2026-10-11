@@ -318,6 +318,13 @@ test('a background task runs with no terminal and no clipboard', async () => {
   assert.equal(j.promptPassed, true)
 })
 
+test('a background task the thread cannot take is refused, never opened in a window', async () => {
+  fakeHarness.continueThread = async () => ({ ok: false, error: 'no CLI' })
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'go', target: 'background' })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 400)
+})
+
 test('a task falls back to a new session in the folder when the thread cannot take it', async () => {
   let seen
   fakeHarness.continueThread = async () => ({ ok: false, error: 'no CLI' })

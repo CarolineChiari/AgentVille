@@ -232,6 +232,8 @@ export function createApiMiddleware(opts = {}) {
           return [200, { ok: true, continued: true, where: result.where || '', promptPassed: result.terminal || result.background ? Boolean(launched.promptPassed) : Boolean(result.promptPassed) }]
         }
       }
+      // Quietly in the background only continues a thread; a new session would open a window.
+      if (body?.target === 'background') return [400, { ok: false, error: 'This thread can’t be continued in the background.' }]
       const dir = await resolveFolder(body?.folder)
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const [status, out] = await startIn(h, dir, { target: body?.target, prompt })
