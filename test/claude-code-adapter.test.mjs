@@ -299,6 +299,11 @@ test('continueThread follows the target: VS Code and the app open the thread, a 
   assert.equal((await a.continueThread({ cwd: '/work/app' }, { prompt: 'x', target: 'vscode' })).ok, false, 'VS Code cannot open a desktop-only thread')
   assert.equal((await a.continueThread(ref, { prompt: ' ', target: 'vscode' })).ok, false, 'no prompt')
   assert.ok((await a.continueThread(ref, { prompt: 'x', target: 'terminal' })).terminal)
+  const bg = await a.continueThread(ref, { prompt: ' run it ', target: 'background' })
+  assert.equal(bg.terminal, undefined, 'no window')
+  assert.equal(bg.promptPassed, true)
+  assert.deepEqual(bg.background, { exe: '/bin/claude', args: ['--resume', id], cwd: '/work/app', prompt: 'run it' })
+  assert.equal((await a.continueThread({ cwd: '/work/app' }, { prompt: 'x', target: 'background' })).ok, false, 'no CLI session to resume')
   assert.ok((await a.continueThread(ref, { prompt: 'x', target: 'nonsense' })).terminal, 'an unknown target is the terminal, as before')
 })
 

@@ -400,11 +400,12 @@ export function createClaudeCodeAdapter(opts = {}) {
    * Hand an existing thread one more prompt. Where the person opens threads decides where it
    * lands: VS Code or the Claude app open the thread exactly as Open does, and the prompt goes on
    * the clipboard (`promptPassed` stays false), since those links take a session or a prompt but
-   * not both. Otherwise the CLI resumes it by id, in its own folder, in a terminal. A thread the
+   * not both. 'terminal' has the CLI resume it by id in its own folder, and 'background' does the
+   * same with no window. Anything else is the terminal. A thread the
    * chosen place can't open (desktop-only in VS Code, no CLI for a terminal) is refused, and the
    * caller starts a fresh session with the prompt instead.
    * @param {object} ref
-   * @param {{ prompt?: string, target?: 'app'|'vscode'|'terminal' }} [opts]
+   * @param {{ prompt?: string, target?: 'app'|'vscode'|'terminal'|'background' }} [opts]
    */
   async function continueThread(ref, { prompt = '', target = 'terminal' } = {}) {
     const r = ref && typeof ref === 'object' ? ref : {}
@@ -419,6 +420,8 @@ export function createClaudeCodeAdapter(opts = {}) {
     if (!text) return { ok: false, error: 'Nothing to send.' }
     const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
     if (!exe) return { ok: false, error: "Couldn't find the claude command." }
+    // No window at all: the same resume, run print-mode and detached; the transcript shows it work.
+    if (target === 'background') return { ok: true, where: 'the background', promptPassed: true, background: { exe, args: ['--resume', r.cliSessionId], cwd: r.cwd, prompt: text } }
     return { ok: true, where: 'a terminal', terminal: { exe, args: ['--resume', r.cliSessionId], cwd: r.cwd, prompt: text } }
   }
 

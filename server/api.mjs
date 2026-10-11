@@ -10,6 +10,7 @@ import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf } fro
 import { createRepoStore } from './repo.mjs'
 import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
+import { runInBackground } from './background.mjs'
 import { listFolders } from './folders.mjs'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
@@ -110,6 +111,7 @@ export function createApiMiddleware(opts = {}) {
   const store = opts.stateStore ?? createStateStore(opts.dataDir ?? DEFAULT_DATA_DIR)
   const opener = opts.opener ?? createOpener()
   const terminal = opts.terminal ?? ((spec) => openInTerminal(spec, { dataDir: opts.dataDir ?? DEFAULT_DATA_DIR }))
+  const background = opts.background ?? ((spec) => runInBackground(spec, { dataDir: opts.dataDir ?? DEFAULT_DATA_DIR }))
   const extraHosts = new Set(opts.extraHosts ?? [])
   const prStore = opts.prStore ?? createPrStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const issueStore = opts.issueStore ?? createIssueStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
@@ -131,6 +133,7 @@ export function createApiMiddleware(opts = {}) {
   // terminal window to run a command in.
   const launch = async (result) => {
     if (result.terminal) return terminal(result.terminal)
+    if (result.background) return background(result.background)
     return Array.isArray(result.urls) && result.urls.length > 1 && opener.launchAll
       ? opener.launchAll(result.urls)
       : opener.launch(result.urls?.[0] ?? result.url)
@@ -226,7 +229,7 @@ export function createApiMiddleware(opts = {}) {
         if (result?.ok) {
           const launched = await launch(result)
           if (!launched.ok) return [500, { ok: false, error: launched.error }]
-          return [200, { ok: true, continued: true, where: result.where || '', promptPassed: result.terminal ? Boolean(launched.promptPassed) : Boolean(result.promptPassed) }]
+          return [200, { ok: true, continued: true, where: result.where || '', promptPassed: result.terminal || result.background ? Boolean(launched.promptPassed) : Boolean(result.promptPassed) }]
         }
       }
       const dir = await resolveFolder(body?.folder)

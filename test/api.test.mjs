@@ -41,7 +41,7 @@ before(async () => {
   const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
   const weatherStore = { get: async (place) => (place === 'Lyon' ? { ok: true, place: 'Lyon, France', code: 3 } : { ok: false, error: 'nope' }) }
   const releaseStore = { get: async () => ({ current: '0.39.0', latest: '0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0', newer: true }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, weatherStore, terminal })
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, weatherStore, terminal, background: async () => ({ ok: true, promptPassed: true }) })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -304,6 +304,18 @@ test('a task goes into the thread when the harness can continue it', async () =>
   assert.deepEqual(await r.json(), { ok: true, continued: true, where: 'a terminal', promptPassed: true })
   assert.deepEqual(seen, { ref: { sid: '1' }, opts: { prompt: 'commit it', target: 'vscode' } })
   assert.equal(terminals.length, before + 1)
+})
+
+test('a background task runs with no terminal and no clipboard', async () => {
+  fakeHarness.continueThread = async (ref, opts) => ({ ok: true, where: 'the background', promptPassed: true, background: { exe: '/bin/x', args: ['--resume', '1'], cwd: '/w', prompt: opts.prompt } })
+  const before = terminals.length
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'go', target: 'background' })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 200)
+  assert.equal(terminals.length, before)
+  const j = await r.json()
+  assert.equal(j.continued, true)
+  assert.equal(j.promptPassed, true)
 })
 
 test('a task falls back to a new session in the folder when the thread cannot take it', async () => {

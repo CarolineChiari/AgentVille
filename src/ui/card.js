@@ -316,7 +316,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     if (t.running || t.needsInput) return '<p class="tasks note">Busy right now. Tasks can go once it stops.</p>'
     // Only Claude Code resumes a thread with a prompt; the server falls back to a new session.
     const how = t.harness === 'claude-code'
-      ? 'Continues this conversation where you open threads (the task goes on the clipboard in VS Code and the Claude app), or starts a new session here if it can’t.'
+      ? (village.settings.taskIn === 'background' ? 'Continues this conversation quietly in the background, with no window; it stops at the first permission prompt.'
+        : village.settings.taskIn === 'terminal' ? 'Continues this conversation in a terminal, or starts a new session here if it can’t.'
+          : 'Continues this conversation where you open threads (the task goes on the clipboard in VS Code and the Claude app), or starts a new session here if it can’t.')
       : `Starts a new ${esc(t.harnessName || 'agent')} session in this folder.`
     return `<div class="tasks">
       ${village.tasksFor(t.project).map((x) => `<button class="btn${x.id.startsWith('c-') ? ' custom' : ''}" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}
@@ -563,7 +565,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
       if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus')) return
       if (id !== shownId || key !== shownKey) {
