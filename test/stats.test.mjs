@@ -9,17 +9,17 @@ const f = (id, kind, daysAgo, open = false) => ({ id, kind, open, finishedAt: NO
 
 test('counts finished work by kind and repo, skipping open PRs', () => {
   const gardens = new Map([
-    ['orchard', [f('a', 'daisy', 1), f('b', 'daisy', 2), f('c', 'tulip', 3), f('pr:x#1', 'tulip', 0, true)]],
-    ['quill', [f('d', 'lavender', 1)]],
+    ['orchard', [f('a', 0, 1), f('b', 0, 2), f('c', 1, 3), f('pr:x#1', 1, 0, true)]],
+    ['quill', [f('d', 2, 1)]],
   ])
   const s = almanac([], gardens, NOW)
   assert.equal(s.finished, 4)
-  assert.deepEqual(s.byKind, [{ key: 'daisy', n: 2 }, { key: 'lavender', n: 1 }, { key: 'tulip', n: 1 }])
+  assert.deepEqual(s.byKind, [{ key: 0, n: 2 }, { key: 1, n: 1 }, { key: 2, n: 1 }])
   assert.deepEqual(s.byRepo, [{ key: 'orchard', n: 3 }, { key: 'quill', n: 1 }])
 })
 
 test('buckets finished work into weeks ending with this one', () => {
-  const gardens = new Map([['r', [f('a', 'daisy', 0), f('b', 'daisy', 2), f('c', 'daisy', 9), f('d', 'daisy', 400)]]])
+  const gardens = new Map([['r', [f('a', 0, 0), f('b', 0, 2), f('c', 0, 9), f('d', 0, 400)]]])
   const s = almanac([], gardens, NOW)
   assert.equal(s.weeks.length, WEEKS)
   assert.equal(s.weeks[WEEKS - 1].n, 2) // Mon the 12th and Wed the 14th
@@ -28,7 +28,7 @@ test('buckets finished work into weeks ending with this one', () => {
 })
 
 test('counts PRs merged this month only', () => {
-  const gardens = new Map([['r', [f('pr:o/r#1', 'tulip', 1), f('pr:o/r#2', 'tulip', 20), f('t1', 'daisy', 1)]]])
+  const gardens = new Map([['r', [f('pr:o/r#1', 1, 1), f('pr:o/r#2', 1, 20), f('t1', 0, 1)]]])
   assert.equal(almanac([], gardens, NOW).mergedThisMonth, 1)
 })
 

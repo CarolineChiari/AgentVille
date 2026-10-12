@@ -5,7 +5,7 @@ import { ACCENTS, PALETTE as P } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
-import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
+import { THEMES, THEME_IDS, finishedName, finishedWords, landmarkWords } from '../sim/themes.js'
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
@@ -326,7 +326,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     return `<h2>Almanac</h2>
       <p class="note">${a.finished} finished ${a.finished === 1 ? words.one : words.many} · ${a.mergedThisMonth} PR${a.mergedThisMonth === 1 ? '' : 's'} merged this month · ${a.sessions} session${a.sessions === 1 ? '' : 's'}</p>
       <h3>Finished by week</h3>${bars(a.weeks.map((w) => ({ name: weekName(w), n: w.n })), (r) => `${r.n} in the week of ${r.name}`)}
-      <h3>By kind of work</h3>${bars(a.byKind.slice(0, 6).map((r) => ({ name: r.key, n: r.n })), (r) => `${r.n} ${r.name}`)}
+      <h3>By kind of work</h3>${bars(a.byKind.slice(0, 6).map((r) => ({ name: finishedName(village.theme, r.key), n: r.n })), (r) => `${r.n} ${r.name}`)}
       <h3>By repo</h3>${bars(a.byRepo.slice(0, 6).map((r) => ({ name: r.key, n: r.n })), (r) => `${r.n} in ${r.name}`)}
       <h3>When sessions start</h3>${bars(hourRows, (r) => `${r.n}`)}
       <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`

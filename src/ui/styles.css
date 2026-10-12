@@ -379,6 +379,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   z-index: 2;
 }
 .sheet[hidden] { display: none; }
+/* The almanac is taller than Electron's smallest window (480px), so the sheet scrolls rather than lose its Close button. */
+.sheet { max-height: calc(100% - 24px); overflow-y: auto; }
 .sheet h2 { margin: 0 0 10px; font-size: 14px; }
 .sheet label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; }
 /* A select sizes itself to its longest option; without this a wordy one grew out past the sheet. */

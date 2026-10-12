@@ -17,7 +17,7 @@ const ranked = (map) => [...map].map(([key, n]) => ({ key, n })).sort((a, b) => 
 
 /**
  * @param {{ createdAt?: number }[]} threads  every thread the scan found
- * @param {Map<string, { id: string, kind: string, open?: boolean, finishedAt: number }[]>} gardens  each repo's flowers
+ * @param {Map<string, { id: string, kind: number, open?: boolean, finishedAt: number }[]>} gardens  each repo's flowers
  * @param {number} now
  */
 export function almanac(threads, gardens, now = Date.now()) {
@@ -25,7 +25,12 @@ export function almanac(threads, gardens, now = Date.now()) {
   const byRepo = new Map()
   const thisWeek = weekStart(now)
   // Oldest first, ending with this week, so a chart reads left to right.
-  const weeks = Array.from({ length: WEEKS }, (_, i) => ({ start: thisWeek - (WEEKS - 1 - i) * 7 * DAY, n: 0 }))
+  // Stepped by calendar date, not by 7 × 24h: across a daylight-saving change the latter lands an hour off midnight.
+  const weeks = Array.from({ length: WEEKS }, (_, i) => {
+    const d = new Date(thisWeek)
+    d.setDate(d.getDate() - (WEEKS - 1 - i) * 7)
+    return { start: d.getTime(), n: 0 }
+  })
   const month = new Date(now)
   let finished = 0
   let mergedThisMonth = 0
@@ -38,7 +43,6 @@ export function almanac(threads, gardens, now = Date.now()) {
       tally(byRepo, repo)
       const at = new Date(f.finishedAt)
       if (String(f.id).startsWith('pr:') && at.getFullYear() === month.getFullYear() && at.getMonth() === month.getMonth()) mergedThisMonth++
-      // Weeks are a fixed 7 × 24h apart in the list, so find the slot by comparing starts, not by dividing.
       const slot = weeks.findIndex((w, i) => f.finishedAt >= w.start && (i === WEEKS - 1 || f.finishedAt < weeks[i + 1].start))
       if (slot >= 0 && f.finishedAt <= now) weeks[slot].n++
     }
