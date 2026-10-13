@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { createWatcher } from '../server/watch.mjs'
+import { createWatcher, RETRY_MS } from '../server/watch.mjs'
 import { createLive, LIVE_POLL_MS, POLL_MS } from '../src/game/live.js'
 
 /** A fake clock: timers run only when the test says so. */
@@ -12,8 +12,8 @@ function clock() {
     setTimer: (fn, ms) => (timers.set(++n, { fn, ms }), n),
     clearTimer: (id) => timers.delete(id),
     pending: () => [...timers.values()].map((t) => t.ms),
-    fire() {
-      const [[id, t]] = [...timers]
+    fire(ms) {
+      const [id, t] = [...timers].find(([, t]) => ms === undefined || t.ms === ms)
       timers.delete(id)
       return t.fn()
     },
@@ -129,4 +129,38 @@ test('without EventSource the page keeps the plain poll', async () => {
   await c.fire()
   assert.equal(polls, 1)
   assert.deepEqual(c.pending(), [POLL_MS])
+})
+
+test('a directory that appears later is picked up on the retry', async () => {
+  const fs = fakeFs()
+  const c = clock()
+  let there = false
+  const watch = (dir, opts, cb) => {
+    if (dir === '/late' && !there) throw new Error('ENOENT')
+    return fs.watch(dir, opts, cb)
+  }
+  const w = createWatcher({ dirs: () => ['/a', '/late'], watch, ...c })
+  w.subscribe(() => {})
+  await settle()
+  assert.equal(w.watching, 1)
+  assert.deepEqual(c.pending(), [RETRY_MS])
+  there = true
+  c.fire(RETRY_MS)
+  await settle()
+  assert.equal(w.watching, 2)
+  assert.deepEqual(c.pending(), [])
+})
+
+test('unsubscribing and resubscribing while directories are being looked up leaks no watch', async () => {
+  const fs = fakeFs()
+  let release
+  const gate = new Promise((r) => (release = r))
+  const w = createWatcher({ dirs: async () => (await gate, ['/a']), watch: fs.watch, ...clock() })
+  const off = w.subscribe(() => {})
+  off()
+  w.subscribe(() => {})
+  release()
+  await settle()
+  assert.equal(fs.opened.length, 1)
+  assert.equal(w.watching, 1)
 })

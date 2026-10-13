@@ -119,7 +119,14 @@ export function createApiMiddleware(opts = {}) {
   const releaseStore = opts.releaseStore ?? createReleaseStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   // Which directories mean "rescan me": whatever each harness says it keeps its sessions in.
   const watcher = opts.watcher ?? createWatcher({
-    dirs: async () => (await Promise.all(harnesses.map((h) => Promise.resolve(h.watchPaths?.()).catch(() => [])))).flat().filter((d) => typeof d === 'string' && d),
+    // One adapter that throws, sync or async, must not cost the others their watches.
+    dirs: async () => (await Promise.all(harnesses.map(async (h) => {
+      try {
+        return (await h.watchPaths?.()) ?? []
+      } catch {
+        return []
+      }
+    }))).flat().filter((d) => typeof d === 'string' && d),
   })
   // Repo name → folder, from the latest scan: the PR and issue lookups read each folder's git remote.
   let projects = new Map()
