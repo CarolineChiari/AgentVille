@@ -714,10 +714,13 @@ export class Village {
 
   // ---------- the foreman ----------
 
-  /** Who a round would check: everyone standing in the village who isn't asleep, busiest first. */
-  foremanRound() {
+  /**
+   * Who a round would check: everyone standing in the village who isn't asleep, busiest first; or,
+   * given a folder, only the ones on its plot.
+   */
+  foremanRound(folder = '') {
     return this.view.live
-      .filter((t) => t.status !== 'sleeping')
+      .filter((t) => t.status !== 'sleeping' && (!folder || t.project === folder))
       .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
       .slice(0, MAX_ROUND)
       .map((t) => t.id)
@@ -742,7 +745,7 @@ export class Village {
   _takeForeman(s) {
     if (!s || typeof s !== 'object') return
     const was = this.foreman
-    this.foreman = { ...s, report: Array.isArray(s.report) ? s.report : [], round: Array.isArray(s.round) ? s.round : [], asking: Array.isArray(s.asking) ? s.asking : [] }
+    this.foreman = { ...s, folder: typeof s.folder === 'string' ? s.folder : '', report: Array.isArray(s.report) ? s.report : [], round: Array.isArray(s.round) ? s.round : [], asking: Array.isArray(s.asking) ? s.asking : [] }
     if (isRunning(was) && !isRunning(this.foreman)) {
       const line = roundLine(this.foreman)
       this.toast(line, this.foreman.phase === 'failed' ? 'error' : undefined)
@@ -761,14 +764,14 @@ export class Village {
     this.world.setVerdicts(verdictsOf(f))
   }
 
-  /** Send the foreman round everyone at work, once. */
-  async sendForeman() {
+  /** Send the foreman round everyone at work, once; or, given a folder, only that folder's. */
+  async sendForeman(folder = '') {
     if (isRunning(this.foreman)) return
-    const ids = this.foremanRound()
-    if (!ids.length) return this.toast('Nobody is at work for the foreman to check.')
-    if (this.demo) return this._demoForeman(ids)
+    const ids = this.foremanRound(folder)
+    if (!ids.length) return this.toast(`Nobody is at work${folder ? ` in ${folder}` : ''} for the foreman to check.`)
+    if (this.demo) return this._demoForeman(ids, folder)
     try {
-      this._takeForeman(await api.sendForeman('start', ids))
+      this._takeForeman(await api.sendForeman('start', ids, folder))
     } catch (err) {
       this.toast(`Couldn’t send the foreman: ${err.message}`, 'error')
     }
@@ -785,12 +788,12 @@ export class Village {
     }
   }
 
-  _demoForeman(ids) {
+  _demoForeman(ids, folder = '') {
     const startedAt = Date.now()
-    this._takeForeman({ phase: 'reading', startedAt, round: ids, report: [] })
+    this._takeForeman({ phase: 'reading', startedAt, folder, round: ids, report: [] })
     setTimeout(() => {
       const report = sortReport(demoForemanReport(ids.map((id) => this.thread(id)).filter(Boolean)))
-      this._takeForeman({ phase: 'done', startedAt, finishedAt: Date.now(), report })
+      this._takeForeman({ phase: 'done', startedAt, finishedAt: Date.now(), folder, report })
     }, DEMO_ROUND_MS)
   }
 

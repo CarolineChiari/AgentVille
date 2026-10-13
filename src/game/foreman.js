@@ -35,6 +35,14 @@ export const MAX_ROUND = 24
 const ID_RE = /^[a-z][a-z0-9-]{0,30}:[A-Za-z0-9_.:-]{1,120}$/
 export const isThreadId = (v) => typeof v === 'string' && ID_RE.test(v)
 
+/**
+ * A folder a round can be scoped to: a repo name exactly as threads carry it in `project`. A round
+ * is held to its folder by comparing the two, so nothing is trimmed or cut here; a name longer than
+ * any file name can be is no folder's at all.
+ */
+export const FOLDER_MAX = 255
+export const isFolder = (v) => typeof v === 'string' && v.length > 0 && v.length <= FOLDER_MAX
+
 const text = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 
 /** One row of a report as kept, or null when it isn't one. */
@@ -65,10 +73,11 @@ export function tally(rows) {
 
 /** A round summed up in a sentence: the toast when it finishes, and the screen reader's line. */
 export function roundLine(status) {
-  if (status?.phase === 'failed') return `The foreman couldn’t finish: ${status.error || 'something went wrong.'}`
+  const where = status?.folder ? ` in ${status.folder}` : ''
+  if (status?.phase === 'failed') return `The foreman couldn’t finish${where}: ${status.error || 'something went wrong.'}`
   const rows = status?.report || []
-  if (!rows.length) return 'The foreman found nobody at work.'
+  if (!rows.length) return `The foreman found nobody at work${where}.`
   const n = tally(rows)
   const parts = VERDICTS.filter((v) => n[v]).map((v) => `${n[v]} ${VERDICT_LABEL[v].toLowerCase()}`)
-  return `The foreman checked ${rows.length} session${rows.length === 1 ? '' : 's'}: ${parts.join(', ')}.`
+  return `The foreman checked ${rows.length} session${rows.length === 1 ? '' : 's'}${where}: ${parts.join(', ')}.`
 }

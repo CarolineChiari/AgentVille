@@ -12,6 +12,7 @@ import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
 import { createForeman } from './foreman.mjs'
+import { isFolder } from '../src/game/foreman.js'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
@@ -249,13 +250,16 @@ export function createApiMiddleware(opts = {}) {
     'GET /api/foreman': async () => [200, await foreman.status()],
 
     /**
-     * Send the foreman round the villagers in `ids`, or `clear` its report. POST because a round
+     * Send the foreman round the villagers in `ids` (only those in `folder`, when one is named), or `clear` its report. POST because a round
      * runs the person's CLI and spends on their plan: only this page, by its Origin, can ask for one.
      */
     'POST /api/foreman': async (body) => {
       if (body?.action === 'clear') return [200, await foreman.clear()]
       if (body?.action !== 'start') return [400, { ok: false, error: 'Unknown action.' }]
-      return [200, await foreman.start(body?.ids)]
+      // No folder is everybody; a folder that isn't one is refused, rather than taken for everybody.
+      const folder = body?.folder ?? ''
+      if (folder !== '' && !isFolder(folder)) return [400, { ok: false, error: 'Not a folder.' }]
+      return [200, await foreman.start(body?.ids, { folder })]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */
