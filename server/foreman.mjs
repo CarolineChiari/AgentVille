@@ -8,7 +8,7 @@
 import { spawn as nodeSpawn } from 'node:child_process'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
-import { ASKED_VERDICTS, JUDGED_VERDICTS, MAX_ROUND, cleanFolder, cleanRow, isRunning, isThreadId, sortReport } from '../src/game/foreman.js'
+import { ASKED_VERDICTS, JUDGED_VERDICTS, MAX_ROUND, cleanRow, isFolder, isRunning, isThreadId, sortReport } from '../src/game/foreman.js'
 import { needsInputLabel } from '../src/sim/status.js'
 import { harnessById } from './harnesses/index.mjs'
 import { readHeadless } from './harnesses/claude-code/headless.mjs'
@@ -208,7 +208,7 @@ export function createForeman({ dataDir, harnesses, threads, run = runHeadless, 
         error: typeof saved.error === 'string' ? saved.error.slice(0, 300) : '',
         report: phase === 'done' && Array.isArray(saved.report) ? saved.report.map(cleanRow).filter(Boolean) : [],
         costUsd: Number(saved.costUsd) || 0,
-        folder: cleanFolder(saved.folder),
+        folder: isFolder(saved.folder) ? saved.folder : '',
         round: [],
         asking: [],
       }
@@ -302,15 +302,17 @@ export function createForeman({ dataDir, harnesses, threads, run = runHeadless, 
      * Send the foreman round `ids`, the villagers the page has standing in the village, busiest
      * first. Answers at once; the round goes on in the background, and `status` follows it.
      * With a `folder`, the round is that folder's alone: a thread of any other is left off, so a
-     * round sent to one folder can never check, or ask, a session somewhere else.
+     * round sent to one folder can never check, or ask, a session somewhere else. The folder is
+     * matched exactly; one that isn't a folder's name matches nobody, never everybody.
      */
     async start(ids, { folder = '' } = {}) {
       await load()
       if (busy) return view()
-      const only = cleanFolder(folder)
+      const scoped = folder !== '' && folder !== undefined && folder !== null
+      const only = scoped && isFolder(folder) ? folder : ''
       const wanted = [...new Set(Array.isArray(ids) ? ids.filter(isThreadId) : [])]
       const known = new Map((await threads()).map((t) => [t.id, t]))
-      const list = wanted.map((id) => known.get(id)).filter((t) => t && (!only || t.project === only)).slice(0, MAX_ROUND)
+      const list = scoped && !only ? [] : wanted.map((id) => known.get(id)).filter((t) => t && (!only || t.project === only)).slice(0, MAX_ROUND)
       status = { ...idle(), phase: 'reading', startedAt: now(), folder: only, round: list.map((t) => t.id) }
       busy = (async () => {
         try {

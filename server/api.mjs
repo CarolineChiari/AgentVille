@@ -12,6 +12,7 @@ import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
 import { createForeman } from './foreman.mjs'
+import { isFolder } from '../src/game/foreman.js'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
@@ -255,7 +256,10 @@ export function createApiMiddleware(opts = {}) {
     'POST /api/foreman': async (body) => {
       if (body?.action === 'clear') return [200, await foreman.clear()]
       if (body?.action !== 'start') return [400, { ok: false, error: 'Unknown action.' }]
-      return [200, await foreman.start(body?.ids, { folder: body?.folder })]
+      // No folder is everybody; a folder that isn't one is refused, rather than taken for everybody.
+      const folder = body?.folder ?? ''
+      if (folder !== '' && !isFolder(folder)) return [400, { ok: false, error: 'Not a folder.' }]
+      return [200, await foreman.start(body?.ids, { folder })]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

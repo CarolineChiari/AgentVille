@@ -242,9 +242,21 @@ test('a round sent to one folder checks and asks only that folder’s sessions',
 test('a round with no folder named is the whole village’s', async (t) => {
   const threads = [thread(1, { project: 'web' }), thread(2, { project: 'api', running: true })]
   const { foreman } = rig(t, { threads, judge: () => ({ sessions: [] }) })
-  const started = await foreman.start(threads.map((x) => x.id), { folder: ['web'] })
-  assert.equal(started.folder, '', 'a folder that isn’t a string is no folder')
+  const started = await foreman.start(threads.map((x) => x.id))
+  assert.equal(started.folder, '')
   assert.equal(started.round.length, 2)
   await foreman.settled()
   assert.match(roundLine(await foreman.status()), /checked 2 sessions: /)
+})
+
+test('a folder is matched exactly, and one that isn’t a folder’s name matches nobody', async (t) => {
+  const long = 'x'.repeat(130)
+  const threads = [thread(1, { project: 'web' }), thread(2, { project: long }), thread(3, { project: 'api' })]
+  const ids = threads.map((x) => x.id)
+  for (const [folder, want] of [[' web', []], ['web ', []], [long, ['claude-code:2']], [long.slice(0, 120), []], [['web'], []], ['y'.repeat(300), []]]) {
+    const { foreman } = rig(t, { threads, judge: () => ({ sessions: [] }) })
+    const started = await foreman.start(ids, { folder })
+    assert.deepEqual(started.round, want, JSON.stringify(folder).slice(0, 40))
+    await foreman.settled()
+  }
 })

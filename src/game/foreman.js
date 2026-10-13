@@ -35,8 +35,13 @@ export const MAX_ROUND = 24
 const ID_RE = /^[a-z][a-z0-9-]{0,30}:[A-Za-z0-9_.:-]{1,120}$/
 export const isThreadId = (v) => typeof v === 'string' && ID_RE.test(v)
 
-/** A folder's name as a round is scoped to it: a repo name, as threads carry it in `project`. */
-export const cleanFolder = (v) => (typeof v === 'string' ? v.trim().slice(0, 120) : '')
+/**
+ * A folder a round can be scoped to: a repo name exactly as threads carry it in `project`. A round
+ * is held to its folder by comparing the two, so nothing is trimmed or cut here; a name longer than
+ * any file name can be is no folder's at all.
+ */
+export const FOLDER_MAX = 255
+export const isFolder = (v) => typeof v === 'string' && v.length > 0 && v.length <= FOLDER_MAX
 
 const text = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '')
 

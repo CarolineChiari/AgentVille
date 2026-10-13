@@ -330,10 +330,15 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const running = isRunning(f)
     const rows = village.foremanReport()
     const n = tally(rows)
-    const who = village.foremanRound().length
-    // A folder picked on the map can have a round of its own, from here as from its panel.
+    const everyone = village.foremanRound()
+    const who = everyone.length
+    // A folder picked on the map can have a round of its own, from here as from its panel: offered
+    // unless it would be the very same round. Compared by id, not by count: both rounds stop at
+    // MAX_ROUND, so a folder of 24 and a village of 40 would count the same.
     const here = village.selectedPlot
-    const whoHere = here ? village.foremanRound(here).length : 0
+    const mine = here ? village.foremanRound(here) : []
+    const whoHere = mine.length
+    const sameRound = whoHere === who && mine.every((id) => everyone.includes(id))
     const where = f.folder ? ` in ${f.folder}` : ''
     const state = f.phase === 'reading'
       ? `On his rounds${where}: reading ${f.round.length} session${f.round.length === 1 ? '’s' : 's’'} transcript${f.round.length === 1 ? '' : 's'}…`
@@ -354,7 +359,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       ${f.phase === 'done' ? (rows.length ? groups : '<p class="note">Nobody was at work.</p>') : ''}
       <div class="actions">
         <button class="btn primary" data-act="foremanSend" ${running || !who ? 'disabled' : ''}>${running ? 'On his rounds…' : `Check ${who} session${who === 1 ? '' : 's'}`}<kbd>K</kbd></button>
-        ${here && !running && whoHere && whoHere < who ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} at work in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
+        ${here && !running && whoHere && !sameRound ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} at work in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
         ${f.phase === 'done' || f.phase === 'failed' ? '<button class="btn" data-act="foremanClear" title="Take the report down, and the clipboards over the villagers with it">Clear</button>' : ''}
         <button class="btn" data-act="closeSheet">Close</button>
       </div>`
