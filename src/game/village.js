@@ -7,7 +7,8 @@ import { STATUS_RANK, gradeOf } from '../sim/status.js'
 import { themeOnDay, todayOf } from '../sim/calendar.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
-import { demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
+import { demoForemanReport, demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
+import { MAX_ROUND, isRunning, roundLine, sortReport, verdictsOf } from './foreman.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
@@ -103,6 +104,10 @@ const emptyState = () => ({
 
 /** The real weather is asked for this often; it changes slowly, and the server caches it for the same hour. */
 export const WEATHER_POLL_MS = 60 * 60 * 1000
+// How often a round out is looked in on: often enough to see the foreman move on to the asking.
+export const FOREMAN_POLL_MS = 3000
+// How long the demo's foreman spends on his rounds before he reports.
+const DEMO_ROUND_MS = 9000
 
 export class Village {
   /**
@@ -110,7 +115,7 @@ export class Village {
    * say; whether that becomes a notification is up to it.
    * @param {{ world: import('../sim/world.js').World, settings: object, demo?: boolean, onChange?: Function, toast?: Function, notify?: Function }} opts
    */
-  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {}, announce = () => {}, preview = null }) {
+  constructor({ world, settings, demo = false, onChange = () => {}, toast = () => {}, notify = () => {}, announce = () => {}, speak = () => {}, preview = null }) {
     this.world = world
     this.settings = settings
     this.demo = demo
@@ -120,6 +125,7 @@ export class Village {
     this.toast = toast
     this.notify = notify
     this.announce = announce
+    this.speak = speak
     this.state = emptyState()
     this.base = emptyState()
     /** The thread whose room is open, or null out in the village. */
@@ -156,6 +162,9 @@ export class Village {
     this._nextIndex = -1
     // Sessions started in a group that haven't walked in yet: { project, group, at, before }. See arrivals.
     this._waiting = []
+    /** The foreman's round as the server last told it: see src/game/foreman.js and server/foreman.mjs. */
+    this.foreman = { phase: 'idle', report: [], round: [], asking: [] }
+    this._foremanTimer = null
   }
 
   async load() {
@@ -170,6 +179,8 @@ export class Village {
     this.base = structuredClone(state)
     this.harnesses = h.harnesses || []
     this.platform = h.platform || ''
+    // A round sent before a reload is still out, or its report still up: pick it back up.
+    this.pollForeman()
   }
 
   async poll() {
@@ -401,6 +412,7 @@ export class Village {
         this.announce(fresh)
       }
     }
+    this._dressForeman()
     const sel = this.selected
     if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
     // A building you were standing in that is no longer standing — archived, finished, gone from
@@ -698,6 +710,88 @@ export class Village {
       .catch((err) => this.toast(err.message, 'error'))
       .finally(() => (this._saving = null))
     await this._saving
+  }
+
+  // ---------- the foreman ----------
+
+  /** Who a round would check: everyone standing in the village who isn't asleep, busiest first. */
+  foremanRound() {
+    return this.view.live
+      .filter((t) => t.status !== 'sleeping')
+      .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
+      .slice(0, MAX_ROUND)
+      .map((t) => t.id)
+  }
+
+  /** The last round's report, each row with its villager's name and whether it is still on the map. */
+  foremanReport() {
+    return (this.foreman.report || []).map((r) => ({ ...r, villager: this.thread(r.id)?.villager || '', here: Boolean(this.world.villager(r.id)) }))
+  }
+
+  async pollForeman() {
+    clearTimeout(this._foremanTimer)
+    if (this.demo) return
+    try {
+      this._takeForeman(await api.fetchForeman())
+    } catch {
+      // The next look will do: a round goes on in the server whether or not the page is watching.
+      if (isRunning(this.foreman)) this._foremanTimer = setTimeout(() => this.pollForeman(), FOREMAN_POLL_MS)
+    }
+  }
+
+  _takeForeman(s) {
+    if (!s || typeof s !== 'object') return
+    const was = this.foreman
+    this.foreman = { ...s, report: Array.isArray(s.report) ? s.report : [], round: Array.isArray(s.round) ? s.round : [], asking: Array.isArray(s.asking) ? s.asking : [] }
+    if (isRunning(was) && !isRunning(this.foreman)) {
+      const line = roundLine(this.foreman)
+      this.toast(line, this.foreman.phase === 'failed' ? 'error' : undefined)
+      this.speak(line)
+    }
+    clearTimeout(this._foremanTimer)
+    if (isRunning(this.foreman)) this._foremanTimer = setTimeout(() => this.pollForeman(), FOREMAN_POLL_MS)
+    this._dressForeman()
+    this.onChange()
+  }
+
+  /** Out on his rounds while one is out, at the doors of whoever he's asking once he's asking; and the clipboards. */
+  _dressForeman() {
+    const f = this.foreman
+    this.world.setForeman(isRunning(f) ? (f.phase === 'asking' && f.asking.length ? f.asking : f.round) : null)
+    this.world.setVerdicts(verdictsOf(f))
+  }
+
+  /** Send the foreman round everyone at work, once. */
+  async sendForeman() {
+    if (isRunning(this.foreman)) return
+    const ids = this.foremanRound()
+    if (!ids.length) return this.toast('Nobody is at work for the foreman to check.')
+    if (this.demo) return this._demoForeman(ids)
+    try {
+      this._takeForeman(await api.sendForeman('start', ids))
+    } catch (err) {
+      this.toast(`Couldn’t send the foreman: ${err.message}`, 'error')
+    }
+  }
+
+  /** Take the report down, and the clipboards with it. */
+  async clearForeman() {
+    if (isRunning(this.foreman)) return
+    if (this.demo) return this._takeForeman({ phase: 'idle', report: [] })
+    try {
+      this._takeForeman(await api.sendForeman('clear'))
+    } catch (err) {
+      this.toast(`Couldn’t clear the report: ${err.message}`, 'error')
+    }
+  }
+
+  _demoForeman(ids) {
+    const startedAt = Date.now()
+    this._takeForeman({ phase: 'reading', startedAt, round: ids, report: [] })
+    setTimeout(() => {
+      const report = sortReport(demoForemanReport(ids.map((id) => this.thread(id)).filter(Boolean)))
+      this._takeForeman({ phase: 'done', startedAt, finishedAt: Date.now(), report })
+    }, DEMO_ROUND_MS)
   }
 
   // ---------- reading ----------

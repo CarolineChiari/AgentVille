@@ -15,7 +15,8 @@ It reads Claude Code's own session files, on your own machine. Nothing is upload
 no account, and it never writes to Claude Code's files. Everything it writes goes in `data/`.
 The one thing that touches the network is the PR gardens and issue boards, which ask GitHub
 through your own `gh` login — and, while either is on, a once-a-day look at whether a newer
-AgentVille has been released. Turn them off in Settings and nothing leaves the machine.
+AgentVille has been released. Turn them off in Settings and nothing leaves the machine. The
+foreman, sent only when you send him, runs your own `claude` CLI.
 
 ## Run it
 
@@ -309,6 +310,32 @@ shows its own plot's theme's first until you pick another under **Marker** on th
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
 
+### The foreman
+
+The foreman checks, once, whether each session at work has finished what it was given. Press `K`
+(or **Foreman** in the sidebar's footer) and send him: he walks in from the square and calls at
+each door in turn while he works. Everyone standing in the village who isn't asleep is on his
+list, the busiest first, up to 24.
+
+What the village can already see, he doesn't ask about: a session working right now, waiting on
+you or stuck on an error says so. The rest he reads, the opening ask and the last few turns of
+each transcript, and judges whether it is done, not finished, stuck or waiting on you. Where the
+transcript doesn't say, he asks the session itself, in the background: a copy of it, resumed with
+`--fork-session` and never saved, so the session's own conversation never gets a turn it didn't
+have. It may read its files to check; it has no tool that could change one. He asks at most six
+sessions a round.
+
+When he's done, his report is in the sheet, most pressing first, and every villager he checked
+holds up a clipboard beside its badge: a green tick, a red `!`, an amber `?`, dots for not
+finished. Clicking a row flies to its villager. The report is kept in `data/foreman.json` until you
+**Clear** it.
+
+He runs your own `claude` CLI with no window: `-p` with `--no-session-persistence` (so no new
+villager walks in for him), `--setting-sources user` (so no repo's own settings or hooks are read),
+`--strict-mcp-config`, Sonnet, and a spending cap per run. It uses your Claude plan or API key like
+any session; the sheet says what the last round came to. If the CLI isn't signed in, the round
+stops and says so: run `claude` once in a terminal to sign in.
+
 ### The gardens
 
 Every finished thread leaves a flower in its repo's garden. Beds fill a row at a time, left to
@@ -427,6 +454,7 @@ On first run a three-step tour shows the square, the badges and the keys; it com
 | `B` | Step inside the selected thread's building |
 | `G` | Put the selected thread in a group |
 | `F` | Fly to the next spotlit villager |
+| `K` | The foreman's sheet; `K` again sends him round |
 | `H` | Hide the panels |
 | `,` | Settings |
 | `Esc` | Deselect |

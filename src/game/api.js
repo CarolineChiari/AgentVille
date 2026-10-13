@@ -60,3 +60,5 @@ export const openUrl = (url) => post('/api/open-url', { url }).then((r) => r.bod
 export const githubRepo = (folder) => post('/api/github-repo', { folder }).then((r) => r.body)
 export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.body)
 export const sendTask = (harness, ref, folder, prompt, target = '') => post('/api/task', { harness, ref, folder, prompt, target }).then((r) => r.body)
+export const fetchForeman = async () => (await json(await fetch('/api/foreman'))).body
+export const sendForeman = (action, ids = []) => post('/api/foreman', { action, ids }).then((r) => r.body)
