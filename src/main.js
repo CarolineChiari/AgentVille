@@ -8,6 +8,7 @@ import { TILE_PX } from './render/sprites/palette.js'
 import { dayFactor, duskFactor, hourNow } from './render/daynight.js'
 import { Village } from './game/village.js'
 import { announcementFor } from './game/notify.js'
+import { createLive } from './game/live.js'
 import { reducedMotion, villageSummary } from './game/motion.js'
 import { loadSettings, saveSettings } from './ui/settings.js'
 import { createHud } from './ui/hud.js'
@@ -25,8 +26,6 @@ import { roomFrame } from './sim/room.js'
 import { todayOf } from './sim/calendar.js'
 import { fromCode, skyFor } from './sim/weather.js'
 
-// Often enough that a question from Claude shows up within seconds; a scan costs well under a second.
-const POLL_MS = 8_000
 const WHEEL_STEP = 80 // accumulated wheel delta per zoom step; trackpads send many small ones
 // How long stepping through a door takes. Long enough to read as going inside, short enough that
 // it never stands between you and the log you came to read.
@@ -537,7 +536,10 @@ async function boot() {
   }
   await poll()
   village.pollWeather()
-  setInterval(poll, POLL_MS)
+  // The server says when a harness's files moved; the timer is only the heartbeat behind it.
+  // The demo village has no files to watch.
+  if (demo) setInterval(poll, 8_000)
+  else createLive({ poll, open: () => new EventSource('/api/events') }).start()
   // The calendar rolls over at midnight, and a village left open overnight should change with it.
   let worn = village.theme
   let wornDay = todayOf()

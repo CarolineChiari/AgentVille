@@ -50,6 +50,12 @@ export function createClaudeCodeAdapter(opts = {}) {
     return desktopDir ? path.join(desktopDir, SESSIONS_SUBDIR) : null
   }
 
+  /** Where a session's records land: the CLI's transcripts and live pids, and the desktop app's records. */
+  async function watchPaths() {
+    const root = await desktopRoot()
+    return [cli.projects, cli.sessions, root].filter(Boolean)
+  }
+
   async function detect() {
     const root = await desktopRoot()
     return (await exists(cli.projects)) || (root ? await exists(root) : false)
@@ -449,7 +455,7 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli }, looked: () => [tilde(cli.projects, home), desktopDir ? tilde(path.join(desktopDir, SESSIONS_SUBDIR), home) : ''].filter(Boolean), url: 'https://claude.com/product/claude-code' }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli }, watchPaths, looked: () => [tilde(cli.projects, home), desktopDir ? tilde(path.join(desktopDir, SESSIONS_SUBDIR), home) : ''].filter(Boolean), url: 'https://claude.com/product/claude-code' }
 }
 
 /** `vscode://file/<path>/?windowId=_blank`: focuses the VS Code window on the folder, or opens a new one. */

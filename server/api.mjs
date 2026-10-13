@@ -12,6 +12,7 @@ import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
+import { createWatcher } from './watch.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -116,6 +117,10 @@ export function createApiMiddleware(opts = {}) {
   const repoStore = opts.repoStore ?? createRepoStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
   const weatherStore = opts.weatherStore ?? createWeatherStore()
   const releaseStore = opts.releaseStore ?? createReleaseStore({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR })
+  // Which directories mean "rescan me": whatever each harness says it keeps its sessions in.
+  const watcher = opts.watcher ?? createWatcher({
+    dirs: async () => (await Promise.all(harnesses.map((h) => Promise.resolve(h.watchPaths?.()).catch(() => [])))).flat().filter((d) => typeof d === 'string' && d),
+  })
   // Repo name → folder, from the latest scan: the PR and issue lookups read each folder's git remote.
   let projects = new Map()
   const remember = (threads) => {
@@ -322,12 +327,21 @@ export function createApiMiddleware(opts = {}) {
     },
   }
 
+  /** Server-sent events: one `changed` whenever a harness's files moved. The page rescans on it. */
+  function events(req, res) {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
+    res.write(': connected\n\n')
+    const off = watcher.subscribe(() => res.write('event: changed\ndata: {}\n\n'))
+    res.on('close', off)
+  }
+
   return async function apiMiddleware(req, res, next) {
     const url = new URL(req.url || '/', 'http://local')
     if (!url.pathname.startsWith('/api/')) return next ? next() : send(res, 404, { error: 'Not found' })
     if (!isLocalRequest(req, extraHosts)) {
       return send(res, 403, { error: 'AgentVille only answers its own page on this machine.' })
     }
+    if (req.method === 'GET' && url.pathname === '/api/events') return events(req, res)
     const handler = routes[`${(req.method || 'GET').toUpperCase()} ${url.pathname}`]
     if (!handler) return send(res, 404, { error: 'Not found' })
     try {

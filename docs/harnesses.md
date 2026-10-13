@@ -60,6 +60,9 @@ see the `HarnessAdapter` typedef in `types.mjs`. Required:
 
 Optional, added only once you can back them for real:
 
+- `watchPaths()` — the directories whose change means "rescan me" (strings, sync or async). The server
+  listens to them with `fs.watch`, read-only, and tells the page over `GET /api/events`, so a stopped
+  session shows its `?` in about a second. Without it the page still finds you on its next poll.
 - `readTranscript(ref, { limit })` — the conversation, for the transcript panel. Returns
   `{ ok, messages, total, ... }` or `{ ok: false, error }`.
 - `readChanges(ref, { detail, path })` — what the session changed **on disk, read from its own
