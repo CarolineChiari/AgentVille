@@ -315,7 +315,9 @@ theme, so three villagers you're following can each carry a different one. Spotl
 The foreman checks, once, whether each session at work has finished what it was given. Press `K`
 (or **Foreman** in the sidebar's footer) and send him: he walks in from the square and calls at
 each door in turn while he works. Everyone standing in the village who isn't asleep is on his
-list, the busiest first, up to 24.
+list, the busiest first, up to 24. To check one folder alone, pick it and press **Foreman** in its
+panel (or **Only <folder>** in his sheet): he calls only at its doors, and nobody anywhere else is
+read or asked.
 
 What the village can already see, he doesn't ask about: a session working right now, waiting on
 you or stuck on an error says so. The rest he reads, the opening ask and the last few turns of

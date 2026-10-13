@@ -176,6 +176,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="copy">Copy path</button>
         <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
         <button class="btn" data-act="groups" title="Put this repo's sessions in groups: each group's houses stand together and fly its flag">Groups${r.groups.length ? ` (${r.groups.length})` : ''}</button>
+        ${foremanButton(r.name)}
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
@@ -316,6 +317,13 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
+  /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
+  function foremanButton(name) {
+    const who = village.foremanRound(name).length
+    const why = isRunning(village.foreman) ? 'The foreman is already on his rounds' : who ? `Send the foreman to check whether ${name}’s ${who} session${who === 1 ? ' has' : 's have'} finished` : `Nobody in ${name} is at work`
+    return `<button class="btn" data-act="foremanHere" title="${esc(why)}" ${who && !isRunning(village.foreman) ? '' : 'disabled'}>Foreman</button>`
+  }
+
   /** The foreman: what a round does, how the one out is going, and the last report. */
   function foremanSheet() {
     const f = village.foreman
@@ -323,14 +331,18 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const rows = village.foremanReport()
     const n = tally(rows)
     const who = village.foremanRound().length
+    // A folder picked on the map can have a round of its own, from here as from its panel.
+    const here = village.selectedPlot
+    const whoHere = here ? village.foremanRound(here).length : 0
+    const where = f.folder ? ` in ${f.folder}` : ''
     const state = f.phase === 'reading'
-      ? `On his rounds: reading ${f.round.length} session${f.round.length === 1 ? '’s' : 's’'} transcript${f.round.length === 1 ? '' : 's'}…`
+      ? `On his rounds${where}: reading ${f.round.length} session${f.round.length === 1 ? '’s' : 's’'} transcript${f.round.length === 1 ? '' : 's'}…`
       : f.phase === 'asking'
         ? `Asking ${f.asking.length} session${f.asking.length === 1 ? '' : 's'} that the transcripts didn’t settle…`
         : f.phase === 'failed'
           ? `The last round didn’t finish: ${f.error || 'something went wrong.'}`
           : f.phase === 'done'
-            ? `Last round ${ago(f.finishedAt)}${f.costUsd ? `, about $${f.costUsd.toFixed(2)} of Claude usage` : ''}.`
+            ? `Last round${f.folder ? `, of ${f.folder} only,` : ''} ${ago(f.finishedAt)}${f.costUsd ? `, about $${f.costUsd.toFixed(2)} of Claude usage` : ''}.`
             : 'No round yet.'
     const row = (r) => `<li><button class="thread-row foreman-row v-${esc(r.verdict)}" data-act="foremanRow" data-id="${esc(r.id)}" ${r.here ? '' : 'disabled'} title="${esc(r.note || r.summary)}">
         <span class="t">${r.villager ? `<span class="vname">${esc(r.villager)}</span> ` : ''}${esc(r.title || 'Untitled')}</span>
@@ -342,6 +354,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       ${f.phase === 'done' ? (rows.length ? groups : '<p class="note">Nobody was at work.</p>') : ''}
       <div class="actions">
         <button class="btn primary" data-act="foremanSend" ${running || !who ? 'disabled' : ''}>${running ? 'On his rounds…' : `Check ${who} session${who === 1 ? '' : 's'}`}<kbd>K</kbd></button>
+        ${here && !running && whoHere && whoHere < who ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} at work in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
         ${f.phase === 'done' || f.phase === 'failed' ? '<button class="btn" data-act="foremanClear" title="Take the report down, and the clipboards over the villagers with it">Clear</button>' : ''}
         <button class="btn" data-act="closeSheet">Close</button>
       </div>`
@@ -430,6 +443,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'openRepo': village.openRepo(); break
       case 'copy': village.copyPath(); break
       case 'tasks': onEditTasks(village.selectedPlot); break
+      // The round goes on in the background; the sheet is where it reports.
+      case 'foremanHere': village.sendForeman(village.selectedPlot); openSheet('foreman'); break
       case 'hide': village.hide(); break
       case 'unhide': village.unhide(name); break
       case 'unarchive': village.unarchive(id); break
@@ -474,6 +489,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     const act = e.target.closest('[data-act]')?.dataset.act
     if (act === 'closeSheet') showSheet(sheetMode)
     else if (act === 'foremanSend') village.sendForeman()
+    else if (act === 'foremanHere') village.sendForeman(village.selectedPlot)
     else if (act === 'foremanClear') village.clearForeman()
     else if (act === 'foremanRow') {
       const id = e.target.closest('[data-id]')?.dataset.id

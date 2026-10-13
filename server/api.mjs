@@ -249,13 +249,13 @@ export function createApiMiddleware(opts = {}) {
     'GET /api/foreman': async () => [200, await foreman.status()],
 
     /**
-     * Send the foreman round the villagers in `ids`, or `clear` its report. POST because a round
+     * Send the foreman round the villagers in `ids` (only those in `folder`, when one is named), or `clear` its report. POST because a round
      * runs the person's CLI and spends on their plan: only this page, by its Origin, can ask for one.
      */
     'POST /api/foreman': async (body) => {
       if (body?.action === 'clear') return [200, await foreman.clear()]
       if (body?.action !== 'start') return [400, { ok: false, error: 'Unknown action.' }]
-      return [200, await foreman.start(body?.ids)]
+      return [200, await foreman.start(body?.ids, { folder: body?.folder })]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

@@ -219,3 +219,32 @@ test('a report read back by hand keeps only real rows', () => {
   assert.match(roundLine({ phase: 'done', report: [{ verdict: 'done' }, { verdict: 'done' }, { verdict: 'stuck' }] }), /3 sessions: 1 stuck, 2 done/)
   assert.match(roundLine({ phase: 'failed', error: 'nope' }), /nope/)
 })
+
+test('a round sent to one folder checks and asks only that folder’s sessions', async (t) => {
+  const threads = [thread(1, { project: 'web' }), thread(2, { project: 'api' }), thread(3, { project: 'web' })]
+  const { foreman, runs, home } = rig(t, { threads, judge: () => ({ sessions: [] }), answers: {} })
+  // The page asks for a thread from another folder too: it is left off, never read or asked.
+  const started = await foreman.start(threads.map((x) => x.id), { folder: 'web' })
+  assert.deepEqual(started.round, ['claude-code:1', 'claude-code:3'])
+  assert.equal(started.folder, 'web')
+  await foreman.settled()
+  const s = await foreman.status()
+  assert.deepEqual(s.report.map((r) => r.id).sort(), ['claude-code:1', 'claude-code:3'])
+  assert.ok(!runs[0].input.includes('claude-code:2'), 'not read')
+  assert.ok(!runs.some((r) => r.ref?.n === 2), 'not asked')
+  assert.match(roundLine(s), /in web:/)
+  // Remembered with the report, and gone with it.
+  const again = createForeman({ dataDir: home, harnesses: [], threads: async () => [], now: () => NOW })
+  assert.equal((await again.status()).folder, 'web')
+  assert.equal((await foreman.clear()).folder, '')
+})
+
+test('a round with no folder named is the whole village’s', async (t) => {
+  const threads = [thread(1, { project: 'web' }), thread(2, { project: 'api', running: true })]
+  const { foreman } = rig(t, { threads, judge: () => ({ sessions: [] }) })
+  const started = await foreman.start(threads.map((x) => x.id), { folder: ['web'] })
+  assert.equal(started.folder, '', 'a folder that isn’t a string is no folder')
+  assert.equal(started.round.length, 2)
+  await foreman.settled()
+  assert.match(roundLine(await foreman.status()), /checked 2 sessions: /)
+})

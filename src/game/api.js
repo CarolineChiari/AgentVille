@@ -61,4 +61,4 @@ export const githubRepo = (folder) => post('/api/github-repo', { folder }).then(
 export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.body)
 export const sendTask = (harness, ref, folder, prompt, target = '') => post('/api/task', { harness, ref, folder, prompt, target }).then((r) => r.body)
 export const fetchForeman = async () => (await json(await fetch('/api/foreman'))).body
-export const sendForeman = (action, ids = []) => post('/api/foreman', { action, ids }).then((r) => r.body)
+export const sendForeman = (action, ids = [], folder = '') => post('/api/foreman', { action, ids, folder }).then((r) => r.body)

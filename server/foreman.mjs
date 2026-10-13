@@ -8,7 +8,7 @@
 import { spawn as nodeSpawn } from 'node:child_process'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
-import { ASKED_VERDICTS, JUDGED_VERDICTS, MAX_ROUND, cleanRow, isRunning, isThreadId, sortReport } from '../src/game/foreman.js'
+import { ASKED_VERDICTS, JUDGED_VERDICTS, MAX_ROUND, cleanFolder, cleanRow, isRunning, isThreadId, sortReport } from '../src/game/foreman.js'
 import { needsInputLabel } from '../src/sim/status.js'
 import { harnessById } from './harnesses/index.mjs'
 import { readHeadless } from './harnesses/claude-code/headless.mjs'
@@ -182,6 +182,9 @@ async function pool(items, limit, fn) {
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
 }
 
+/** No round out and no report up. `folder` is the one folder a round was sent to, '' for every one. */
+const idle = () => ({ phase: 'idle', startedAt: 0, finishedAt: 0, error: '', report: [], costUsd: 0, folder: '', round: [], asking: [] })
+
 /**
  * @param {{ dataDir: string, harnesses: object[], threads: () => Promise<object[]>, run?: Function, now?: () => number }} opts
  *        `threads` is the latest scan's threads; only those can be checked, whatever the page asks for.
@@ -205,20 +208,21 @@ export function createForeman({ dataDir, harnesses, threads, run = runHeadless, 
         error: typeof saved.error === 'string' ? saved.error.slice(0, 300) : '',
         report: phase === 'done' && Array.isArray(saved.report) ? saved.report.map(cleanRow).filter(Boolean) : [],
         costUsd: Number(saved.costUsd) || 0,
+        folder: cleanFolder(saved.folder),
         round: [],
         asking: [],
       }
     } catch {
-      status = { phase: 'idle', startedAt: 0, finishedAt: 0, error: '', report: [], costUsd: 0, round: [], asking: [] }
+      status = idle()
     }
     return status
   }
 
   async function save() {
-    const { phase, startedAt, finishedAt, error, report, costUsd } = status
+    const { phase, startedAt, finishedAt, error, report, costUsd, folder } = status
     await fsp.mkdir(dataDir, { recursive: true })
     const tmp = `${file}.tmp`
-    await fsp.writeFile(tmp, JSON.stringify({ version: FOREMAN_VERSION, phase, startedAt, finishedAt, error, report, costUsd }, null, 2))
+    await fsp.writeFile(tmp, JSON.stringify({ version: FOREMAN_VERSION, phase, startedAt, finishedAt, error, report, costUsd, folder }, null, 2))
     await fsp.rename(tmp, file)
   }
 
@@ -297,14 +301,17 @@ export function createForeman({ dataDir, harnesses, threads, run = runHeadless, 
     /**
      * Send the foreman round `ids`, the villagers the page has standing in the village, busiest
      * first. Answers at once; the round goes on in the background, and `status` follows it.
+     * With a `folder`, the round is that folder's alone: a thread of any other is left off, so a
+     * round sent to one folder can never check, or ask, a session somewhere else.
      */
-    async start(ids) {
+    async start(ids, { folder = '' } = {}) {
       await load()
       if (busy) return view()
+      const only = cleanFolder(folder)
       const wanted = [...new Set(Array.isArray(ids) ? ids.filter(isThreadId) : [])]
       const known = new Map((await threads()).map((t) => [t.id, t]))
-      const list = wanted.map((id) => known.get(id)).filter(Boolean).slice(0, MAX_ROUND)
-      status = { phase: 'reading', startedAt: now(), finishedAt: 0, error: '', report: [], costUsd: 0, round: list.map((t) => t.id), asking: [] }
+      const list = wanted.map((id) => known.get(id)).filter((t) => t && (!only || t.project === only)).slice(0, MAX_ROUND)
+      status = { ...idle(), phase: 'reading', startedAt: now(), folder: only, round: list.map((t) => t.id) }
       busy = (async () => {
         try {
           status.report = await round(list)
@@ -327,7 +334,7 @@ export function createForeman({ dataDir, harnesses, threads, run = runHeadless, 
     async clear() {
       await load()
       if (isRunning(status)) return view()
-      status = { phase: 'idle', startedAt: 0, finishedAt: 0, error: '', report: [], costUsd: 0, round: [], asking: [] }
+      status = idle()
       await save()
       return view()
     },
