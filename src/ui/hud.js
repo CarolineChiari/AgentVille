@@ -336,6 +336,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <h3>By repo</h3>${bars(a.byRepo.slice(0, 6).map((r) => ({ name: r.key, n: r.n })), (r) => `${r.n} in ${r.name}`)}
       <h3>When sessions start</h3>${bars(hourRows, (r) => `${r.n}`)}
       <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
+  }
+
   /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
   function foremanButton(name) {
     const who = village.foremanRound(name).length
