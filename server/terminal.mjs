@@ -4,12 +4,15 @@
 // Nothing the person typed is ever interpreted by a shell. On macOS the command goes into a
 // one-shot `.command` script under data/ (the only place AgentVille writes): every value in it
 // is single-quoted, the prompt is not in it at all but in a sibling file read with `cat`, and the
-// script deletes both files as its first act. On Windows the prompt is not passed (the page
+// script deletes both files as its first act. Linux does the same with a `.sh` script run by
+// `sh`, in whichever terminal emulator is installed. On Windows the prompt is not passed (the page
 // copies it to the clipboard instead), and paths that cmd.exe would treat specially are refused.
 import { spawn as nodeSpawn } from 'node:child_process'
 import crypto from 'node:crypto'
 import fsp from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
+import { findExe } from './lib/which.mjs'
 
 /** POSIX single-quoting: the only character that needs care inside '…' is ' itself. */
 export const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`
@@ -28,11 +31,11 @@ const CMD_SPECIAL = /["%^&|<>!\r\n]/
  * The text of the macOS launch script. Exported for tests: what matters is what it does not do.
  * `promptArgs` go just before the prompt and only with it: `copilot -i <prompt>` needs its flag,
  * and a bare `-i` with no prompt after it would be an error.
- * @param {{ cwd: string, exe: string, args: string[], promptArgs?: string[], promptFile?: string, self: string }} o
+ * @param {{ cwd: string, exe: string, args: string[], promptArgs?: string[], promptFile?: string, self: string, shebang?: string }} o
  */
-export function commandScript({ cwd, exe, args, promptArgs = [], promptFile, self }) {
+export function commandScript({ cwd, exe, args, promptArgs = [], promptFile, self, shebang = '#!/bin/zsh -l' }) {
   const lines = [
-    '#!/bin/zsh -l',
+    shebang,
     `rm -f -- ${shq(self)}`,
     `cd -- ${shq(cwd)} || exit 1`,
   ]
@@ -47,11 +50,40 @@ export function commandScript({ cwd, exe, args, promptArgs = [], promptFile, sel
 }
 
 /**
+ * The terminal emulators tried on Linux, in order: the person's own `$TERMINAL`, Debian's
+ * alternatives entry (which follows their desktop's choice), then GNOME's. `flag` is what
+ * precedes the command: gnome-terminal wants `--`, nearly everything else `-e`.
+ */
+export const LINUX_TERMINALS = [
+  { name: 'x-terminal-emulator', flag: '-e' },
+  { name: 'gnome-terminal', flag: '--' },
+]
+
+/**
+ * Pick the Linux terminal to launch: `$TERMINAL` if it is a bare command name or an absolute
+ * path (never split into words, so nothing in it is read as extra arguments), else the first of
+ * LINUX_TERMINALS that is installed.
+ * @returns {Promise<{ exe: string, flag: string } | null>}
+ */
+export async function findLinuxTerminal({ home, env, find = findExe }) {
+  const own = typeof env.TERMINAL === 'string' ? env.TERMINAL.trim() : ''
+  if (/^[\w.+-]+$/.test(own) || (/^\/[^\s'"$`\\]+$/.test(own))) {
+    const exe = own.startsWith('/') ? own : await find(own, { home, env, platform: 'linux' })
+    if (exe) return { exe, flag: own.endsWith('gnome-terminal') ? '--' : '-e' }
+  }
+  for (const t of LINUX_TERMINALS) {
+    const exe = await find(t.name, { home, env, platform: 'linux', dirs: ['/usr/bin', '/snap/bin'] })
+    if (exe) return { exe, flag: t.flag }
+  }
+  return null
+}
+
+/**
  * @param {{ exe: string, args: string[], cwd: string, prompt?: string, promptArgs?: string[] }} spec
- * @param {{ dataDir: string, platform?: string, spawn?: Function }} opts
+ * @param {{ dataDir: string, platform?: string, spawn?: Function, env?: object, home?: string, find?: Function }} opts
  * @returns {Promise<{ ok: true, promptPassed: boolean } | { ok: false, error: string }>}
  */
-export async function openInTerminal(spec, { dataDir, platform = process.platform, spawn = nodeSpawn }) {
+export async function openInTerminal(spec, { dataDir, platform = process.platform, spawn = nodeSpawn, env = process.env, home = os.homedir(), find = findExe }) {
   const { exe, args, cwd } = spec
   const prompt = typeof spec.prompt === 'string' ? spec.prompt : ''
   // Judge paths by the target platform's rules, so a Windows launch is checkable on a Mac.
@@ -74,6 +106,22 @@ export async function openInTerminal(spec, { dataDir, platform = process.platfor
     await fsp.writeFile(self, commandScript({ cwd, exe, args, promptArgs, promptFile, self }), { mode: 0o700 })
     // `open` hands a .command file to whatever terminal the person uses for them (Terminal by default).
     run('open', [self])
+    return { ok: true, promptPassed: Boolean(prompt) }
+  }
+
+  if (platform === 'linux') {
+    const term = await findLinuxTerminal({ home, env, find })
+    if (!term) return { ok: false, error: 'No terminal found. Set $TERMINAL to one, or install gnome-terminal.' }
+    const dir = path.join(dataDir, 'launch')
+    await fsp.mkdir(dir, { recursive: true })
+    const id = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`
+    const self = path.join(dir, `${id}.sh`)
+    const promptFile = prompt ? path.join(dir, `${id}.prompt.txt`) : undefined
+    if (promptFile) await fsp.writeFile(promptFile, promptArg(prompt), { mode: 0o600 })
+    const promptArgs = Array.isArray(spec.promptArgs) ? spec.promptArgs.map(String) : []
+    await fsp.writeFile(self, commandScript({ cwd, exe, args, promptArgs, promptFile, self, shebang: '#!/bin/sh' }), { mode: 0o700 })
+    // Run through `sh` rather than relying on the file's mode, which a noexec mount would void.
+    run(term.exe, [term.flag, '/bin/sh', self])
     return { ok: true, promptPassed: Boolean(prompt) }
   }
 
