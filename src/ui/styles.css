@@ -405,6 +405,12 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .sheet td { padding: 3px 0; color: var(--muted); }
 .sheet td:first-child { color: var(--text); font-family: var(--mono); width: 90px; }
 
+.sheet .bars { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.sheet .bar { display: flex; align-items: center; gap: 6px; height: 12px; }
+.sheet .bar .k { flex: 0 0 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.sheet .bar .fill { height: 8px; min-width: 1px; background: var(--accent); }
+.sheet .bar .n { color: var(--text); font-family: var(--mono); }
+
 .hint {
   position: absolute;
   left: 12px;

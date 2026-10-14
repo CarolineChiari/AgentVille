@@ -5,10 +5,11 @@ import { ACCENTS, PALETTE as P } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
-import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
+import { THEMES, THEME_IDS, finishedName, finishedWords, landmarkWords } from '../sim/themes.js'
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
+import { almanac } from '../game/stats.js'
 import { VERDICT_LABEL, isRunning, tally, VERDICTS } from '../game/foreman.js'
 
 const COUNT_KEYS = [
@@ -54,6 +55,7 @@ const HELP = [
   ['Drag / Arrows', 'Move around too'],
   ['Scroll / + −', 'Zoom'],
   ['0', 'Back to the square'],
+  ['Z', 'Fit the whole village in view'],
 ]
 
 // Shown once on first run, and again from Keys. Plain words: the badges mean the same in every theme.
@@ -126,6 +128,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       </div>
       <div class="foot">
         <button data-act="settings">Settings</button>
+        <button data-act="almanac" title="What the village has got done">Almanac</button>
         <button data-act="help">Keys</button>
         <button data-act="foreman" title="Send the foreman to check whether each session has finished (K)">${isRunning(village.foreman) ? 'Foreman (on his rounds…)' : 'Foreman'}</button>
         <span class="spacer"></span>
@@ -317,6 +320,25 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
+  const bars = (rows, label) => {
+    const top = Math.max(1, ...rows.map((r) => r.n))
+    return `<div class="bars">${rows.map((r) => `<div class="bar" title="${esc(label(r))}"><span class="k">${esc(r.name)}</span><span class="fill" style="width:${Math.round((r.n / top) * 100)}%"></span><span class="n">${r.n}</span></div>`).join('')}</div>`
+  }
+
+  function almanacSheet(a) {
+    const words = finishedWords(village.theme)
+    if (!a.finished && !a.sessions) return '<h2>Almanac</h2><p class="note">Nothing to add up yet.</p><div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>'
+    const weekName = (w) => new Date(w.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    const hourRows = a.hours.map((n, h) => ({ name: h % 6 ? '' : String(h).padStart(2, '0'), n }))
+    return `<h2>Almanac</h2>
+      <p class="note">${a.finished} finished ${a.finished === 1 ? words.one : words.many} · ${a.mergedThisMonth} PR${a.mergedThisMonth === 1 ? '' : 's'} merged this month · ${a.sessions} session${a.sessions === 1 ? '' : 's'}</p>
+      <h3>Finished by week</h3>${bars(a.weeks.map((w) => ({ name: weekName(w), n: w.n })), (r) => `${r.n} in the week of ${r.name}`)}
+      <h3>By kind of work</h3>${bars(a.byKind.slice(0, 6).map((r) => ({ name: finishedName(village.theme, r.key), n: r.n })), (r) => `${r.n} ${r.name}`)}
+      <h3>By repo</h3>${bars(a.byRepo.slice(0, 6).map((r) => ({ name: r.key, n: r.n })), (r) => `${r.n} in ${r.name}`)}
+      <h3>When sessions start</h3>${bars(hourRows, (r) => `${r.n}`)}
+      <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
+  }
+
   /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
   function foremanButton(name) {
     const who = village.foremanRound(name).length
@@ -373,6 +395,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <div class="actions">${tourStep ? '<button class="btn" data-act="tourBack">Back</button>' : ''}
           <button class="btn primary" data-act="${last ? 'closeSheet' : 'tourNext'}">${last ? 'Done' : 'Next'}</button>
           ${last ? '' : '<button class="btn" data-act="closeSheet">Skip</button>'}</div>`
+    } else if (sheetMode === 'almanac') {
+      sheet.innerHTML = almanacSheet(almanac(village.threads, village.gardens))
     } else if (sheetMode === 'foreman') {
       sheet.innerHTML = foremanSheet()
     } else if (sheetMode === 'help') {
@@ -395,6 +419,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
           <select data-set="landmarkSpot">${SPOT_LABELS.map(([id, label]) => `<option value="${id}" ${id === spot ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></label>
         <label>Open Claude Code threads in
           <select data-set="openIn"><option value="vscode" ${s.openIn === 'vscode' ? 'selected' : ''}>VS Code</option><option value="app" ${s.openIn === 'app' ? 'selected' : ''}>Claude app</option></select></label>
+        <label title="Where a task runs. The background runs it with no window (claude -p), so it stops at the first permission prompt: the villager then shows ? with nothing to click. It needs your CLI's permission mode to allow what the task does.">Run tasks in
+          <select data-set="taskIn"><option value="thread" ${s.taskIn === 'thread' || !s.taskIn ? 'selected' : ''}>Where the thread opens</option><option value="terminal" ${s.taskIn === 'terminal' ? 'selected' : ''}>A terminal</option><option value="background" ${s.taskIn === 'background' ? 'selected' : ''}>Quietly in the background</option></select></label>
         <label title="Follow your system’s reduced-motion setting, or choose. Reduced: no hopping or waving, butterflies or cloud shadows, and the camera cuts instead of flying.">Motion
           <select data-set="motion"><option value="system" ${s.motion === 'system' || !s.motion ? 'selected' : ''}>Follow system</option><option value="reduce" ${s.motion === 'reduce' ? 'selected' : ''}>Reduced</option><option value="full" ${s.motion === 'full' ? 'selected' : ''}>Full</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
@@ -458,6 +484,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'update': village.openRelease(); break
       case 'help': showSheet('help'); break
+      case 'almanac': showSheet('almanac'); break
       case 'foreman': showSheet('foreman'); break
       case 'tour': showSheet('tour'); break
       case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
