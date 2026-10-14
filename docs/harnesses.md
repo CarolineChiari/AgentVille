@@ -74,8 +74,9 @@ Optional, added only once you can back them for real:
   if it refuses), the caller starts a fresh session in the thread's folder instead — so it's fine
   to leave unwritten if the harness has no way to resume a specific session headlessly.
 
-- `headless(ref, { prompt, schema, cwd })` — one run with no window, answering in `schema`'s
-  shape, for the foreman (`server/foreman.mjs`). With no `ref` it runs fresh in `cwd` with no tools
+- `headless(ref, { prompt, schema, cwd, budget })` — one run with no window, answering in `schema`'s
+  shape, for the foreman (`server/foreman.mjs`) and post mortems (`server/postmortem.mjs`), which
+  pass a larger `budget` in dollars, capped by the adapter. With no `ref` it runs fresh in `cwd` with no tools
   at all; with a thread's `ref` it asks that thread in a copy that is never saved, with reading
   tools only. Returns what to spawn, `{ ok, exe, args, cwd, input }`, the prompt as `input` for
   stdin. Only Claude Code has this today (`claude-code/headless.mjs`); a harness without it is

@@ -424,3 +424,17 @@ test('the foreman refuses a folder that isn’t one, rather than checking everyb
   assert.equal(r.status, 200)
   assert.deepEqual((await r.json()).round, [], 'a folder with nobody in it is a round of nobody')
 })
+
+test('a post mortem takes only the actions it has, and holds one only of a thread the scan found', async () => {
+  for (const action of ['explode', '__proto__', 'constructor', ['start']]) {
+    assert.equal((await post('/api/postmortem', { action, id: 'fake:1' })).status, 400, String(action))
+  }
+  assert.equal((await post('/api/postmortem', { action: 'start', id: 'fake:404' })).status, 400)
+  assert.equal((await post('/api/postmortem', { action: 'mark', id: 'fake:1', key: 'self.lessons.0', done: true })).status, 400, 'none held yet')
+  const r = await post('/api/postmortem', { action: 'start', id: 'fake:1' })
+  assert.equal(r.status, 200)
+  assert.equal((await r.json()).postmortems[0].id, 'fake:1')
+  const body = await (await fetch(`${base}/api/postmortems`)).json()
+  assert.ok(Array.isArray(body.postmortems) && Array.isArray(body.running))
+  assert.equal((await post('/api/postmortem', { action: 'start', id: 'fake:1' }, { 'Content-Type': 'application/json' })).status, 403, 'only this page may hold one')
+})

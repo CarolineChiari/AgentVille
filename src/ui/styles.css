@@ -266,9 +266,9 @@ button.btn.danger:hover { background: var(--danger); color: #fff; }
 button.btn:disabled { opacity: 0.4; cursor: default; }
 kbd { font: 10px var(--mono); opacity: 0.6; margin-left: 4px; }
 
-.foot { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--muted); border-top: 1px solid var(--panel-border); padding-top: 8px; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 11px; color: var(--muted); border-top: 1px solid var(--panel-border); padding-top: 8px; }
 .foot .spacer { flex: 1; }
-.foot button { all: unset; cursor: pointer; color: var(--muted); }
+.foot button { all: unset; cursor: pointer; color: var(--muted); white-space: nowrap; }
 .foot button:hover { color: var(--text); }
 .foot .update { color: var(--accent); }
 
@@ -403,6 +403,21 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .foreman-row.v-stuck .s b { color: var(--danger); }
 .foreman-row.v-you .s b { color: var(--accent); }
 .foreman-row:disabled { cursor: default; opacity: 0.6; }
+/* The post mortems: a row per session laid to rest, the open one's findings under it, each to tick off. */
+.sheet.wide { width: min(440px, calc(100% - 24px)); }
+.pm-list, .pm-items { list-style: none; margin: 0; padding: 0; }
+.pm-row { flex-direction: column; align-items: stretch; gap: 1px; }
+.pm-row .t { width: 100%; }
+.pm-row.on { background: rgba(255, 255, 255, 0.07); }
+.pm-body { padding: 2px 8px 10px; }
+.pm-body h3 { margin-top: 10px; }
+.pm-sum { font-size: 12px; margin: 6px 0; line-height: 1.4; }
+.pm-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; }
+.sheet label.pm-check { flex: 1; justify-content: flex-start; align-items: flex-start; gap: 6px; padding: 0; font-size: 12px; line-height: 1.4; }
+.pm-check input { margin: 2px 0 0; flex: none; }
+.pm-item.done .pm-check > span { opacity: 0.55; text-decoration: line-through; }
+.pm-item .who { color: var(--muted); }
+.pm-apply { flex: none; font-size: 11px; padding: 1px 6px; }
 .sheet h2 { margin: 0 0 10px; font-size: 14px; }
 .sheet label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; }
 /* A select sizes itself to its longest option; without this a wordy one grew out past the sheet. */

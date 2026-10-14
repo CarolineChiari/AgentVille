@@ -143,6 +143,10 @@ const card = createCard(hudRoot, village, {
   onEditTasks: (project) => taskEditor.open(project),
   onEditGroups: (project) => groupEditor.open(project),
   onRecruit: (project, prompt) => newSession.open(project, { prompt }),
+  onPostMortem: async (id) => {
+    if (await village.postMortem(id)) hud.showPostMortem(id)
+  },
+  onSeePostMortem: (id) => hud.showPostMortem(id),
   onTranscript: (id) => {
     transcript.toggle(id)
     // Bring the villager (or flower) into the part of the map the panel leaves visible.

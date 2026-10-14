@@ -26,7 +26,7 @@ const NEW_GROUP = ':new'
 /** The spotlight picker's choice while one is lit: leaves it as it is. No span id has a colon. */
 const KEEP_SPOTLIGHT = ':keep'
 
-export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {}, onPostMortem = () => {}, onSeePostMortem = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -143,6 +143,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     if (act === 'open') village.open()
     else if (act === 'viewed') village.viewed()
     else if (act === 'archive') village.archive()
+    else if (act === 'postMortem') onPostMortem(village.selected)
+    else if (act === 'seePostMortem') onSeePostMortem(village.selected)
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
     else if (act === 'openThread') village.open(b.dataset.id)
@@ -193,6 +195,16 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     }
   })
 
+  /**
+   * Archive, and look back on it: the session's own word and a reviewer's on what to learn from it.
+   * Once one is held, the button goes to it instead.
+   */
+  function postMortemButton(t) {
+    if (village.postMortemOf(t.id)) return '<button class="btn" data-act="seePostMortem" title="What its post mortem found">Post mortem ▸</button>'
+    if (t.running) return '<button class="btn danger" disabled title="It’s still working: hold its post mortem once it stops">Post mortem</button>'
+    return '<button class="btn danger" data-act="postMortem" title="Archive it, and ask it and a reviewer what to learn from it: lessons, changes to the instructions, and feedback for you">Post mortem</button>'
+  }
+
   function fill(t) {
     const statusColor = { waiting: BADGE.waiting, blocked: BADGE.blocked, working: BADGE.working, done: BADGE.done, celebrating: BADGE.party }[t.status]
     const meta = [
@@ -226,6 +238,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
+        ${postMortemButton(t)}
       </div>
       ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>
@@ -412,6 +425,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : `<span class="note">Archived in ${esc(t.harnessName || 'Claude')}</span>`}
+        ${postMortemButton(t)}
       </div>
       ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>`
@@ -565,7 +579,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
       if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus')) return
       if (id !== shownId || key !== shownKey) {

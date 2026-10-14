@@ -1,14 +1,15 @@
 // The orchestrator: scan in, village out. Owns the saved state, the selection, and every action a
 // person can take; the HUD and the renderer only read from it.
 import * as api from './api.js'
-import { classify, hideProject, unhideProject } from './hidden.js'
+import { classify, hideProject, isArchived, unhideProject } from './hidden.js'
 import { mergeState } from './merge-state.js'
 import { STATUS_RANK, gradeOf } from '../sim/status.js'
 import { themeOnDay, todayOf } from '../sim/calendar.js'
 import { newlyAsking } from './notify.js'
 import { wearOf } from '../sim/wear.js'
-import { demoForemanReport, demoGroups, demoIssues, demoRepos, demoThreads } from './demo.js'
+import { demoForemanReport, demoGroups, demoIssues, demoPostMortem, demoRepos, demoThreads } from './demo.js'
 import { MAX_ROUND, isRunning, roundLine, sortReport, verdictsOf } from './foreman.js'
+import { cleanPostMortem, isItemKey, pmLine } from './postmortem.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
 import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
@@ -165,6 +166,9 @@ export class Village {
     /** The foreman's round as the server last told it: see src/game/foreman.js and server/foreman.mjs. */
     this.foreman = { phase: 'idle', report: [], round: [], asking: [] }
     this._foremanTimer = null
+    /** Every post mortem held, newest first, and the ids of those still out: see server/postmortem.mjs. */
+    this.pm = { postmortems: [], running: [] }
+    this._pmTimer = null
   }
 
   async load() {
@@ -181,6 +185,7 @@ export class Village {
     this.platform = h.platform || ''
     // A round sent before a reload is still out, or its report still up: pick it back up.
     this.pollForeman()
+    this.pollPostMortems()
   }
 
   async poll() {
@@ -982,7 +987,7 @@ export class Village {
     this.queueSave()
   }
 
-  archive(id = this.selected) {
+  archive(id = this.selected, { quiet = false } = {}) {
     const t = this.thread(id)
     if (!t) return
     if (!this.state.archived.includes(id)) this.state.archived.push(id)
@@ -991,7 +996,114 @@ export class Village {
     if (this.focused === id) this.focused = null
     this.apply()
     this.queueSave()
-    this.toast(`Archived ${t.villager}: “${t.title}”`)
+    if (!quiet) this.toast(`Archived ${t.villager}: “${t.title}”`)
+  }
+
+  // ---------- post mortems ----------
+
+  /** Every post mortem held, newest first, each with its villager's name and whether it is still out. */
+  postMortems() {
+    return this.pm.postmortems.map((p) => ({ ...p, villager: this.byId.get(p.id)?.villager || '', running: this.pm.running.includes(p.id) }))
+  }
+
+  postMortemOf(id) {
+    return this.pm.postmortems.find((p) => p.id === id) || null
+  }
+
+  async pollPostMortems() {
+    clearTimeout(this._pmTimer)
+    if (this.demo) return
+    try {
+      this._takePostMortems(await api.fetchPostMortems())
+    } catch {
+      // As with the foreman: it goes on in the server whether or not the page is watching.
+      if (this.pm.running.length) this._pmTimer = setTimeout(() => this.pollPostMortems(), FOREMAN_POLL_MS)
+    }
+  }
+
+  _takePostMortems(s) {
+    if (!s || typeof s !== 'object') return
+    const was = this.pm.running
+    const postmortems = (Array.isArray(s.postmortems) ? s.postmortems : []).map(cleanPostMortem).filter(Boolean)
+    const running = Array.isArray(s.running) ? s.running.filter((id) => postmortems.some((p) => p.id === id)) : []
+    this.pm = { postmortems, running }
+    for (const id of was) {
+      const p = running.includes(id) ? null : this.postMortemOf(id)
+      if (!p) continue
+      const line = pmLine(p)
+      this.toast(line, p.phase === 'failed' ? 'error' : undefined)
+      this.speak(line)
+    }
+    clearTimeout(this._pmTimer)
+    if (running.length) this._pmTimer = setTimeout(() => this.pollPostMortems(), FOREMAN_POLL_MS)
+    this.onChange()
+  }
+
+  /**
+   * Lay a session to rest: hold its post mortem, and archive it unless it already is. A session
+   * still working can't be: its copy would be asked mid-turn, and it isn't done with.
+   * @returns {Promise<boolean>} whether one is under way
+   */
+  async postMortem(id = this.selected) {
+    const t = this.thread(id)
+    if (!t) return false
+    if (t.running) {
+      this.toast(`${t.villager || 'It'} is still working. Hold its post mortem once it stops.`)
+      return false
+    }
+    if (this.pm.running.includes(id)) return true
+    if (this.demo) this._demoPostMortem(t)
+    else {
+      try {
+        this._takePostMortems(await api.sendPostMortem('start', id))
+      } catch (err) {
+        this.toast(`Couldn’t hold the post mortem: ${err.message}`, 'error')
+        return false
+      }
+    }
+    const resting = isArchived(t, this.state)
+    if (!resting) this.archive(id, { quiet: true })
+    this.toast(`${resting ? 'Looking back on' : 'Laid to rest:'} ${t.villager ? `${t.villager}, ` : ''}“${t.title}”. Its post mortem is under way.`)
+    return true
+  }
+
+  /** Tick a finding off, or back on. */
+  async markPostMortem(id, key, done) {
+    const p = this.postMortemOf(id)
+    if (!p || !isItemKey(key)) return
+    if (this.demo) {
+      p.done = done ? [...new Set([...p.done, key])] : p.done.filter((k) => k !== key)
+      return this.onChange()
+    }
+    try {
+      this._takePostMortems(await api.sendPostMortem('mark', id, { key, done: Boolean(done) }))
+    } catch (err) {
+      this.toast(`Couldn’t save that: ${err.message}`, 'error')
+    }
+  }
+
+  /** Put a post mortem away for good. The session stays archived; Restore brings it back. */
+  async removePostMortem(id) {
+    if (this.pm.running.includes(id)) return
+    if (this.demo) {
+      this.pm.postmortems = this.pm.postmortems.filter((p) => p.id !== id)
+      return this.onChange()
+    }
+    try {
+      this._takePostMortems(await api.sendPostMortem('remove', id))
+    } catch (err) {
+      this.toast(`Couldn’t remove it: ${err.message}`, 'error')
+    }
+  }
+
+  _demoPostMortem(t) {
+    const p = cleanPostMortem({ id: t.id, title: t.title, project: t.project, phase: 'running', startedAt: Date.now() })
+    this.pm = { postmortems: [p, ...this.pm.postmortems.filter((x) => x.id !== t.id)], running: [...this.pm.running, t.id] }
+    this.onChange()
+    setTimeout(() => {
+      const done = cleanPostMortem({ ...p, ...demoPostMortem(t), phase: 'done', finishedAt: Date.now() })
+      this._takePostMortems({ postmortems: this.pm.postmortems.map((x) => (x.id === t.id ? done : x)), running: this.pm.running.filter((id) => id !== t.id) })
+    }, DEMO_ROUND_MS)
   }
 
   // ---------- spotlights ----------

@@ -14,7 +14,7 @@ import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mj
 import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
 import { tilde } from '../../lib/tilde.mjs'
-import { ASK_BUDGET_USD, ASK_TOOLS, JUDGE_BUDGET_USD, headlessArgs } from './headless.mjs'
+import { ASK_BUDGET_USD, ASK_TOOLS, JUDGE_BUDGET_USD, MAX_BUDGET_USD, headlessArgs } from './headless.mjs'
 
 const NAME = 'Claude Code'
 // Enough of the head to reach the first real prompt past a long run of tool-list attachments.
@@ -433,14 +433,14 @@ export function createClaudeCodeAdapter(opts = {}) {
   }
 
   /**
-   * One run of the CLI with no window, for the foreman (see headless.mjs). With no `ref` it starts
+   * One run of the CLI with no window, for the foreman and post mortems (see headless.mjs). With no `ref` it starts
    * fresh in `cwd` with no tools at all. With a thread's `ref` it asks that thread, in a copy of it
    * that is never saved, in the thread's own folder, where it may read but not change anything.
    * Returned as what to spawn; the prompt is `input`, for stdin.
    * @param {object|null} ref
-   * @param {{ prompt: string, schema: object, cwd?: string }} o
+   * @param {{ prompt: string, schema: object, cwd?: string, budget?: number }} o  `budget` in US dollars, capped
    */
-  async function headless(ref, { prompt = '', schema, cwd = '' } = {}) {
+  async function headless(ref, { prompt = '', schema, cwd = '', budget = 0 } = {}) {
     const text = typeof prompt === 'string' ? prompt.trim() : ''
     if (!text) return { ok: false, error: 'Nothing to ask.' }
     if (!schema || typeof schema !== 'object') return { ok: false, error: 'No shape to answer in.' }
@@ -454,9 +454,11 @@ export function createClaudeCodeAdapter(opts = {}) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'No folder to run in.' }
     const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
     if (!exe) return { ok: false, error: "Couldn't find the claude command. The foreman needs Claude Code's CLI." }
+    // A caller may ask for more than a status check costs (a post mortem), never past the cap.
+    const asked = Number.isFinite(budget) && budget > 0 ? Math.min(budget, MAX_BUDGET_USD) : 0
     const args = resume
-      ? headlessArgs({ schema, tools: ASK_TOOLS, resume, budget: ASK_BUDGET_USD })
-      : headlessArgs({ schema, budget: JUDGE_BUDGET_USD })
+      ? headlessArgs({ schema, tools: ASK_TOOLS, resume, budget: asked || ASK_BUDGET_USD })
+      : headlessArgs({ schema, budget: asked || JUDGE_BUDGET_USD })
     return { ok: true, exe, args, cwd: dir, input: text }
   }
 

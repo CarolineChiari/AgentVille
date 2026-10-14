@@ -12,6 +12,7 @@ import { landmarkSpotOf } from '../sim/shape.js'
 import { almanac } from '../game/stats.js'
 import { comboLabel } from '../sim/hacker.js'
 import { VERDICT_LABEL, isRunning, tally, VERDICTS } from '../game/foreman.js'
+import { KINDS, KIND_LABEL, SOURCE_LABEL, itemsOf, openCount, workPrompt } from '../game/postmortem.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -68,6 +69,7 @@ const TOUR = [
   { title: 'Getting around', body: '<p>Drag, or use WASD or the arrow keys, to move; scroll to zoom; 0 returns to the square. Press ? any time for every key.</p>' },
 ]
 let tourStep = 0
+const PM_NONE = ' none' // never a thread id: those have no spaces
 
 export function createHud(root, { village, settings, onSettings, onFly, session = () => '', onNewSession = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onShowPanels = () => {}, canNotify = false }) {
   const side = document.createElement('div')
@@ -88,6 +90,9 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
   const foldedGroups = new Set()
   let sheetMode = null
   let stale = false
+  // The post mortem open in its space: '' for the newest, PM_NONE once that one is folded shut.
+  let pmShown = ''
+  const shownPm = () => (pmShown === PM_NONE ? null : village.postMortems().find((p) => p.id === pmShown) || village.postMortems()[0] || null)
 
   const folderWord = () => (village.platform === 'win32' ? 'Explorer' : village.platform === 'darwin' ? 'Finder' : 'Folder')
 
@@ -134,12 +139,14 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
         <button data-act="almanac" title="What the village has got done">Almanac</button>
         <button data-act="help">Keys</button>
         <button data-act="foreman" title="Send the foreman to check whether each session has finished (K)">${isRunning(village.foreman) ? 'Foreman (on his rounds…)' : 'Foreman'}</button>
+        <button data-act="postmortems" title="Sessions laid to rest, and what to learn from them">${village.pm.running.length ? 'Post mortems (under way…)' : 'Post mortems'}</button>
         <span class="spacer"></span>
         ${release.newer ? `<button class="update" data-act="update" title="${esc(`You are running ${release.current}. Open the release notes.`)}">${esc(release.latest)} available</button>` : ''}
         <span>${village.demo ? 'Demo' : village.harnesses.filter((h) => h.detected).map((h) => esc(h.name)).join(', ') || 'No harness found'}</span>
       </div>`
-    // The foreman's sheet follows his round as it goes; the others only change when you change them.
-    if (sheetMode === 'foreman') renderSheet()
+    // The foreman's sheet follows his round as it goes, and the post mortems theirs; the others only
+    // change when you change them.
+    if (sheetMode === 'foreman' || sheetMode === 'postmortem') renderSheet()
     hint.hidden = Boolean(village.selected || village.selectedPlot)
     hint.textContent = counts.waiting || counts.blocked
       ? 'Press N to visit whoever needs you'
@@ -395,7 +402,56 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
       </div>`
   }
 
+  /**
+   * The post-mortem space: every session laid to rest with one, and what the session and the reviewer
+   * found, to tick off as it is dealt with or hand to a new session to work through.
+   */
+  function postMortemSheet() {
+    const all = village.postMortems()
+    const shown = all.find((p) => p.id === shownPm()?.id)
+    const state = (p) => p.running ? 'Under way…' : p.phase === 'failed' ? 'Couldn’t finish' : openCount(p) ? `${openCount(p)} to work through` : 'All worked through'
+    const head = (p) => `<li><button class="thread-row pm-row${p === shown ? ' on' : ''}" data-act="pmShow" data-id="${esc(p.id)}" aria-expanded="${p === shown}">
+        <span class="t">${p.villager ? `<span class="vname">${esc(p.villager)}</span> ` : ''}${esc(p.title || 'Untitled')}</span>
+        <span class="s">${esc(p.project)} · ${esc(state(p))}</span></button>${p === shown ? body(p) : ''}</li>`
+    const side = (p, source) => {
+      const f = p[source]
+      const note = p[`${source}Note`]
+      const who = SOURCE_LABEL[source][0].toUpperCase() + SOURCE_LABEL[source].slice(1)
+      if (f?.summary) return `<p class="pm-sum"><b>${esc(who)}:</b> ${esc(f.summary)}</p>`
+      return note ? `<p class="note">${esc(who)} had nothing to say: ${esc(note)}</p>` : ''
+    }
+    const item = (p, i) => `<li class="pm-item${i.done ? ' done' : ''}">
+        <label class="pm-check"><input type="checkbox" data-pm="${esc(p.id)}" data-key="${esc(i.key)}" ${i.done ? 'checked' : ''} ${i.kind === 'wentWell' ? 'hidden' : ''}>
+          <span>${i.where ? `<b>${esc(i.where)}:</b> ` : ''}${esc(i.text)} <span class="who">· ${esc(SOURCE_LABEL[i.source])}</span></span></label>
+        ${i.kind === 'instructions' && !i.done ? `<button class="btn pm-apply" data-act="pmApply" data-id="${esc(p.id)}" data-key="${esc(i.key)}" title="Start a session in ${esc(p.project)} to make this change">Make it</button>` : ''}</li>`
+    function body(p) {
+      if (p.running) return '<div class="pm-body"><p class="note" role="status">Asking the session about itself, in a copy that is never saved, and having a reviewer read its transcript…</p></div>'
+      if (p.phase === 'failed') return `<div class="pm-body"><p class="note">${esc(p.error || 'Neither side answered.')}</p>${pmActions(p)}</div>`
+      const items = itemsOf(p)
+      const groups = KINDS.map((k) => {
+        const mine = items.filter((i) => i.kind === k)
+        return mine.length ? `<h3>${esc(KIND_LABEL[k])}</h3><ul class="pm-items">${mine.map((i) => item(p, i)).join('')}</ul>` : ''
+      }).join('')
+      return `<div class="pm-body">${side(p, 'self')}${side(p, 'review')}${groups}${pmActions(p)}
+        <p class="note">${esc(`Held ${ago(p.startedAt)}`)}${p.costUsd ? `, about $${p.costUsd.toFixed(2)} of Claude usage` : ''}.</p></div>`
+    }
+    function pmActions(p) {
+      const work = workPrompt(p)
+      return `<div class="actions">
+        ${work ? `<button class="btn primary" data-act="pmWork" data-id="${esc(p.id)}" title="Start a session in ${esc(p.project)} with the open changes and lessons as its first prompt; you can edit it first">Work through these</button>` : ''}
+        ${village.thread(p.id) ? `<button class="btn" data-act="pmAgain" data-id="${esc(p.id)}" title="Hold it again, from scratch">Again</button>` : ''}
+        <button class="btn" data-act="pmRemove" data-id="${esc(p.id)}" title="Put this post mortem away. The session stays archived.">Remove</button>
+      </div>`
+    }
+    return `<h2>Post mortems</h2>
+      <p class="note">Lay a session to rest with <b>Post mortem</b> on its card: it is archived, and two look back on it. The session is asked about itself, in a copy that is never saved and can change nothing, and a reviewer reads its transcript cold beside the project’s CLAUDE.md. Both say what to learn, what the instructions were missing, and what made the work harder. It runs your own <code>claude</code> CLI with no window, on your Claude plan.</p>
+      ${all.length ? `<ul class="pm-list">${all.map(head).join('')}</ul>` : '<p class="note">None yet.</p>'}
+      <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
+  }
+
   function renderSheet() {
+    // Findings want more room than a settings row.
+    sheet.classList.toggle('wide', sheetMode === 'postmortem')
     if (sheetMode === 'tour') {
       const step = TOUR[tourStep]
       const last = tourStep === TOUR.length - 1
@@ -407,6 +463,8 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
       sheet.innerHTML = almanacSheet(almanac(village.threads, village.gardens))
     } else if (sheetMode === 'foreman') {
       sheet.innerHTML = foremanSheet()
+    } else if (sheetMode === 'postmortem') {
+      sheet.innerHTML = postMortemSheet()
     } else if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
         <div class="actions"><button class="btn" data-act="tour">Take the tour</button><button class="btn" data-act="closeSheet">Close</button></div>`
@@ -494,6 +552,7 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
       case 'help': showSheet('help'); break
       case 'almanac': showSheet('almanac'); break
       case 'foreman': showSheet('foreman'); break
+      case 'postmortems': showSheet('postmortem'); break
       case 'tour': showSheet('tour'); break
       case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
       case 'status': {
@@ -531,6 +590,19 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
     else if (act === 'foremanSend') village.sendForeman()
     else if (act === 'foremanHere') village.sendForeman(village.selectedPlot)
     else if (act === 'foremanClear') village.clearForeman()
+    else if (act?.startsWith('pm')) {
+      const b = e.target.closest('[data-act]')
+      const p = village.postMortemOf(b.dataset.id)
+      if (!p) return
+      if (act === 'pmShow') {
+        pmShown = shownPm()?.id === p.id ? PM_NONE : p.id
+        renderSheet()
+      } else if (act === 'pmWork' || act === 'pmApply') {
+        const prompt = workPrompt(p, act === 'pmApply' ? [b.dataset.key] : [])
+        if (prompt) onNewSession(p.project, { prompt })
+      } else if (act === 'pmAgain') village.postMortem(p.id)
+      else if (act === 'pmRemove') village.removePostMortem(p.id)
+    }
     else if (act === 'foremanRow') {
       const id = e.target.closest('[data-id]')?.dataset.id
       if (id && village.thread(id)) {
@@ -550,6 +622,7 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
     }
   })
   sheet.addEventListener('input', (e) => {
+    if (e.target.dataset.pm) return village.markPostMortem(e.target.dataset.pm, e.target.dataset.key, e.target.checked)
     const holiday = e.target.dataset.holiday
     if (holiday) {
       settings.holidays = { ...settings.holidays, [holiday]: e.target.checked }
@@ -590,5 +663,12 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
   /** Open a sheet, or leave it open: unlike showSheet, never a toggle. */
   const openSheet = (mode) => sheetMode !== mode && showSheet(mode)
 
-  return { render, showSheet, openSheet, get sheetMode() { return sheetMode }, get sheetOpen() { return Boolean(sheetMode) }, closeSheet: () => sheetMode && showSheet(sheetMode) }
+  /** Open the post-mortem space on one of them. */
+  const showPostMortem = (id) => {
+    pmShown = id || ''
+    if (sheetMode === 'postmortem') renderSheet()
+    else openSheet('postmortem')
+  }
+
+  return { render, showSheet, openSheet, showPostMortem, get sheetMode() { return sheetMode }, get sheetOpen() { return Boolean(sheetMode) }, closeSheet: () => sheetMode && showSheet(sheetMode) }
 }
