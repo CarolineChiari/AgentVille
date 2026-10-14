@@ -29,7 +29,10 @@ Anything that breaks one of these is in scope:
 - **It never writes to an agent's files.** Everything it writes goes in its own `data/`
   directory (under the app's user data directory in the desktop app).
 - **The only network access is GitHub, through your own `gh` CLI**, for the PR gardens and
-  issue boards, and turning both off in Settings stops it.
+  issue boards, and turning both off in Settings stops it; the weather, only once you type a
+  place; and the foreman, only when you send him, through your own `claude` CLI. His runs save
+  no session, read no repo's settings or hooks, start no MCP server and have only reading tools:
+  none at all for his own look, `Read`, `Grep` and `Glob` for a session checking its own work.
 - **Nothing it reads is ever run.** Session transcripts, issue and PR titles, labels and
   prompts are shown as text; commands are started with an argument list and no shell, and a
   prompt is never read as a command-line option; and opening a thread goes through a URL your

@@ -187,3 +187,9 @@ test('a screen of the show loads show.html from the app, and nothing else', () =
   assert.equal(u.searchParams.get('screen'), '2')
   assert.equal(new URL(showUrl('http://127.0.0.1:5275/', '<script>', 0)).searchParams.get('seed'), 'show')
 })
+
+test('a Linux launcher-started app still finds snap and ~/.local/bin', () => {
+  const dirs = augmentedPath({ PATH: '/usr/bin:/bin' }, { home: '/home/me', platform: 'linux' }).split(':')
+  assert.ok(dirs.includes('/snap/bin'))
+  assert.ok(dirs.includes('/home/me/.local/bin'))
+})

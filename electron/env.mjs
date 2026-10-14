@@ -12,7 +12,7 @@ export const APP_PORT = 5275
 
 /**
  * PATH with the directories command-line tools are usually installed in appended. A Mac app
- * started from Finder or the Dock inherits launchd's PATH (`/usr/bin:/bin:/usr/sbin:/sbin`), not
+ * (or a Linux one from a desktop launcher) started from Finder or the Dock inherits launchd's PATH (`/usr/bin:/bin:/usr/sbin:/sbin`), not
  * the shell's, so `gh` from Homebrew would never be found and the PR gardens would stay empty.
  * Appended, not prepended, so whatever the environment already chose still wins. Windows apps
  * get the full user PATH from Explorer, so there it is left alone.
@@ -23,7 +23,8 @@ export function augmentedPath(env, { home, platform }) {
   const current = String(env.PATH || '')
   if (platform === 'win32') return current
   const have = current.split(':').filter(Boolean)
-  const extra = ['/opt/homebrew/bin', '/usr/local/bin', path.posix.join(home, '.local', 'bin'), '/usr/bin', '/bin', '/usr/sbin', '/sbin']
+  // /snap/bin: a desktop launcher on Linux hands the app a PATH without it, where snap puts `gh`.
+  const extra = ['/opt/homebrew/bin', '/usr/local/bin', path.posix.join(home, '.local', 'bin'), '/snap/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
   return [...have, ...extra.filter((d) => !have.includes(d))].join(':')
 }
 

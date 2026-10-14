@@ -123,3 +123,22 @@ export function demoRepos() {
   for (const [name, n] of Object.entries(lines)) repos[name] = { repo: true, lines: n, files: Math.round(n / 120), skipped: 0, truncated: false, countedAt: 0 }
   return { repos, updating: false }
 }
+
+/**
+ * What the demo's foreman comes back with: a verdict read off each villager's status, with a line
+ * of the kind a real round writes. Nothing is asked of anyone; the demo has no sessions to ask.
+ */
+const DEMO_VERDICT = { working: 'working', waiting: 'you', blocked: 'stuck', done: 'done', celebrating: 'done', idle: 'unfinished' }
+const DEMO_SUMMARY = {
+  working: 'Working right now.',
+  you: 'Asking which of two layouts to keep.',
+  stuck: 'Tests fail on a missing fixture.',
+  done: 'Finished, and the tests pass.',
+  unfinished: 'Stopped with the docs still to update.',
+}
+export function demoForemanReport(threads) {
+  return threads.map((t) => {
+    const verdict = DEMO_VERDICT[t.status] || 'unfinished'
+    return { id: t.id, title: t.title, project: t.project, verdict, summary: DEMO_SUMMARY[verdict], asked: verdict === 'unfinished', note: '' }
+  })
+}

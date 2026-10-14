@@ -15,7 +15,8 @@ It reads Claude Code's own session files, on your own machine. Nothing is upload
 no account, and it never writes to Claude Code's files. Everything it writes goes in `data/`.
 The one thing that touches the network is the PR gardens and issue boards, which ask GitHub
 through your own `gh` login — and, while either is on, a once-a-day look at whether a newer
-AgentVille has been released. Turn them off in Settings and nothing leaves the machine.
+AgentVille has been released. Turn them off in Settings and nothing leaves the machine. The
+foreman, sent only when you send him, runs your own `claude` CLI.
 
 ## Run it
 
@@ -32,21 +33,24 @@ binds elsewhere.
 
 `npm run app` builds and opens AgentVille in its own window. `npm run dist` packages it for the
 machine you're on into `release/`. Every push to `main` builds the Mac (`.dmg`, Apple silicon
-and Intel) and Windows (installer and portable `.exe`) apps in GitHub Actions; they're on the
+and Intel), Windows (installer and portable `.exe`) and Linux (`.AppImage` and `.deb`) apps in GitHub Actions; they're on the
 run's page under **Artifacts**. Every commit bumps the minor version in `package.json`
 (`npm version --no-git-tag-version minor`), and a push whose version has no `v<version>` tag yet
 publishes the apps as that release and tags the commit.
 
 The app is the same server and page as `npm start`, on port 5275 so it can run alongside
 `npm run dev`. Its `data/` lives in `~/Library/Application Support/AgentVille/` (macOS) or
-`%APPDATA%\AgentVille\` (Windows) instead of the repo.
+`%APPDATA%\AgentVille\` (Windows) or `~/.config/AgentVille/` (Linux) instead of the repo.
 
 The builds aren't signed with a developer certificate yet, so the first launch needs a nudge.
 On macOS, right-click the app and choose **Open** (or run
 `xattr -dr com.apple.quarantine /Applications/AgentVille.app`). On Windows, choose **More info →
 Run anyway** in the SmartScreen prompt.
 
-macOS and Windows are both supported. Opening a thread, starting a new session and revealing
+macOS, Windows and Linux are all supported. On Linux, `chmod +x` the AppImage (or install the
+`.deb`); the app finds Claude Code's files in `~/.claude` and the desktop app's in
+`~/.config/Claude`, and starts a terminal session in `$TERMINAL`, else `x-terminal-emulator`,
+else `gnome-terminal`. Opening a thread, starting a new session and revealing
 a folder go through a deep link handed to the OS opener.
 
 **Open in VS Code** is the default. AgentVille opens the repo folder in VS Code first, then hands
@@ -60,7 +64,7 @@ this way. Switch to the Claude app under Settings → Open threads in.
 | --- | --- |
 | CLI transcripts | `~/.claude/projects/<encoded-cwd>/<session>.jsonl` |
 | Live sessions | `~/.claude/sessions/*.json` |
-| Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows) |
+| Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows), `~/.config/Claude/claude-code-sessions/…` (Linux) |
 
 | Your repos | The files in each git repository a session works in, to count its lines of code for its landmark. A folder that isn't a repository (your home, Documents, Downloads) is never walked. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
 | Folder names | Only while you browse under **Another folder…** in the new-session form: the names of the folders inside the one you're looking at, so a session can start in a folder no session has been in yet. Nothing inside them is read |
@@ -250,11 +254,11 @@ level, and an optional first prompt. The new villager steps out of the portal a 
 | Open in | Model and effort | First prompt |
 | --- | --- | --- |
 | VS Code | Your defaults (change them in VS Code's menus) | Typed in for you; press Enter to send |
-| Terminal | Any model (Fable, Opus, Opus 1M, Sonnet, Haiku) and effort (low to max) | Sent as the opening message (macOS); on the clipboard (Windows) |
+| Terminal | Any model (Fable, Opus, Opus 1M, Sonnet, Haiku) and effort (low to max) | Sent as the opening message (macOS, Linux); on the clipboard (Windows) |
 | Claude app | Your defaults | On the clipboard |
 
 Only the terminal can take a model or an effort level, because neither the VS Code nor the
-Claude app link has a way to pass them; picking either switches the form to Terminal. On macOS the terminal is started
+Claude app link has a way to pass them; picking either switches the form to Terminal. On macOS and Linux the terminal is started
 from a one-shot script in `data/launch/` that deletes itself as it runs; the prompt is read from
 a separate file, so nothing you type is ever run as a command.
 
@@ -308,6 +312,34 @@ sunflower and milk churn; and Thanksgiving's maple leaf, acorn, pie, corn cob an
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
+
+### The foreman
+
+The foreman checks, once, whether each session at work has finished what it was given. Press `K`
+(or **Foreman** in the sidebar's footer) and send him: he walks in from the square and calls at
+each door in turn while he works. Everyone standing in the village who isn't asleep is on his
+list, the busiest first, up to 24. To check one folder alone, pick it and press **Foreman** in its
+panel (or **Only <folder>** in his sheet): he calls only at its doors, and nobody anywhere else is
+read or asked.
+
+What the village can already see, he doesn't ask about: a session working right now, waiting on
+you or stuck on an error says so. The rest he reads, the opening ask and the last few turns of
+each transcript, and judges whether it is done, not finished, stuck or waiting on you. Where the
+transcript doesn't say, he asks the session itself, in the background: a copy of it, resumed with
+`--fork-session` and never saved, so the session's own conversation never gets a turn it didn't
+have. It may read its files to check; it has no tool that could change one. He asks at most six
+sessions a round.
+
+When he's done, his report is in the sheet, most pressing first, and every villager he checked
+holds up a clipboard beside its badge: a green tick, a red `!`, an amber `?`, dots for not
+finished. Clicking a row flies to its villager. The report is kept in `data/foreman.json` until you
+**Clear** it.
+
+He runs your own `claude` CLI with no window: `-p` with `--no-session-persistence` (so no new
+villager walks in for him), `--setting-sources user` (so no repo's own settings or hooks are read),
+`--strict-mcp-config`, Sonnet, and a spending cap per run. It uses your Claude plan or API key like
+any session; the sheet says what the last round came to. If the CLI isn't signed in, the round
+stops and says so: run `claude` once in a terminal to sign in.
 
 ### The gardens
 
@@ -427,6 +459,7 @@ On first run a three-step tour shows the square, the badges and the keys; it com
 | `B` | Step inside the selected thread's building |
 | `G` | Put the selected thread in a group |
 | `F` | Fly to the next spotlit villager |
+| `K` | The foreman's sheet; `K` again sends him round |
 | `H` | Hide the panels |
 | `,` | Settings |
 | `Esc` | Deselect |

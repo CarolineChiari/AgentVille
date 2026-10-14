@@ -9,6 +9,7 @@ import { DEFAULT_SPOT, isSpot, landmarkSpotOf } from './shape.js'
 import { Building } from './building.js'
 import { CHEER_EVERY, Landmark } from './landmark.js'
 import { Villager } from './villager.js'
+import { FOREMAN_ID, Foreman } from './foreman.js'
 import { STATUS_RANK } from './status.js'
 import { hashString } from './rng.js'
 import { paintWild } from './wild.js'
@@ -78,6 +79,8 @@ export class World {
     this.everywhere = null // the sub-theme of `theme` every folder without a pick of its own wears, if any
     this.spot = DEFAULT_SPOT // where a plot stands its landmark in its field, unless it picked somewhere
     this.spotPicks = new Map() // plot name → the spot its folder picked for itself
+    this.foreman = null // walking the rounds while a check is out; see foreman.js
+    this.verdicts = new Map() // thread id → what the foreman's last round made of it, until cleared
     this._rebuild()
   }
 
@@ -144,6 +147,27 @@ export class World {
     const k = `${theme}:${style?.sub ?? ''}`
     if (v.dressed?.key !== k) v.dressed = { key: k, look: dress(v.look, theme, style?.sub) }
     return v.dressed.look
+  }
+
+  /**
+   * Send the foreman round these threads' houses, in order, or (null) send him home. He walks in
+   * from the square the first time and out through it at the end, like anyone else.
+   * @param {string[]|null} stops
+   */
+  setForeman(stops) {
+    if (stops) {
+      if (!this.foreman || this.foreman.loco === 'gone') this.foreman = new Foreman({ x: this.gate.x, y: this.gate.y })
+      if (this.foreman.loco === 'leaving') this.foreman.loco = 'site'
+      this.foreman.setStops(stops)
+    } else if (this.foreman && this.foreman.loco !== 'gone') {
+      this.foreman.loco = 'leaving'
+      this.foreman.goal = null
+    }
+  }
+
+  /** What the foreman made of each thread: held up on a clipboard over its villager. */
+  setVerdicts(verdicts) {
+    this.verdicts = verdicts instanceof Map ? verdicts : new Map()
   }
 
   /**
@@ -479,6 +503,10 @@ export class World {
     this._separate(dt)
     this._cheer(dt)
     for (const [id, v] of this.villagers) if (v.loco === 'gone') this.villagers.delete(id)
+    if (this.foreman) {
+      this.foreman.tick(dt, this)
+      if (this.foreman.loco === 'gone') this.foreman = null
+    }
     for (const e of this.effects) e.age += dt
     this.effects = this.effects.filter((e) => e.age < e.life)
   }
@@ -605,7 +633,9 @@ export class World {
           id: v.id, name: v.name, x: v.x, y: v.y, facing: v.facing, anim: v.anim, animTime: v.animTime, look: this._look(v), status: v.status,
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
           spotlight: spotlit?.has(v.id) ? markerFor(spotlit.get(v.id), this.plots.get(v.building?.plot)?.style?.theme ?? this.theme) : null,
-        })),
+          verdict: this.verdicts.get(v.id) ?? null,
+        }))
+        .concat(this.foreman ? [this._foremanFrame(hovered)] : []),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
       boards: [...this.boards.values()].map((b) => ({ ...b, selected: b.id === selected, hovered: b.id === hovered })),
       landmarks: [...this.landmarks.values()].map((l) => {
@@ -619,6 +649,15 @@ export class World {
         }
       }),
       effects: this.effects,
+    }
+  }
+
+  /** The foreman as a frame draws him: nobody's villager, so no status, and his own clipboard. */
+  _foremanFrame(hovered) {
+    const f = this.foreman
+    return {
+      id: FOREMAN_ID, name: f.name, x: f.x, y: f.y, facing: f.facing, anim: f.anim, animTime: f.animTime, look: f.look, status: 'idle',
+      badge: null, alpha: f.alpha, selected: false, hovered: hovered === FOREMAN_ID, plot: '', spotlight: null, verdict: 'rounds',
     }
   }
 
