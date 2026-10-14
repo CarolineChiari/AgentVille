@@ -354,8 +354,9 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <span class="s"><b>${esc(VERDICT_LABEL[r.verdict])}</b>${r.asked ? ' (asked)' : ''} · ${esc(r.summary || r.note || r.project)}</span>
         ${r.next ? `<span class="s next">Left to do: ${esc(r.next)}</span>` : ''}</button></li>`
     // The question the round answers, first: which can be closed, and which still want something.
-    const left = rows.length - n.done
-    const closing = rows.length ? `<p class="note">${n.done} can be closed; ${left} ${left === 1 ? 'has' : 'have'} more to do or ${left === 1 ? 'is' : 'are'} still going.</p>` : ''
+    // `unsure` is neither: the foreman couldn't tell, so it's counted on its own.
+    const left = rows.length - n.done - n.unsure
+    const closing = rows.length ? `<p class="note">${n.done} can be closed; ${left} ${left === 1 ? 'has' : 'have'} more to do or ${left === 1 ? 'is' : 'are'} still going${n.unsure ? `; ${n.unsure} couldn’t be told` : ''}.</p>` : ''
     const groups = closing + VERDICTS.filter((v) => n[v]).map((v) => `<h3>${esc(VERDICT_LABEL[v])} (${n[v]})</h3><ul class="foreman-list">${rows.filter((r) => r.verdict === v).map(row).join('')}</ul>`).join('')
     return `<h2>The foreman</h2>
       <p class="note">Checks, once, every session that isn’t archived, asleep or not: where each stands, and whether it can be closed or has more to do. He reads each transcript; where that doesn’t say, he asks the session itself, in the background, in a copy that is never saved, with nothing it could change files with. It runs your own <code>claude</code> CLI with no window, and uses your Claude plan like any session.</p>

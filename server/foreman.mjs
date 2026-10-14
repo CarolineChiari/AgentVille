@@ -190,7 +190,11 @@ export function runHeadless(spec, { spawn = nodeSpawn, timeoutMs = RUN_TIMEOUT_M
   })
 }
 
-/** Run `fn` over `items`, `limit` at a time. The first to throw stops the rest from starting. */
+/**
+ * Run `fn` over `items`, `limit` at a time. The first to throw stops the rest from starting, but
+ * its error waits for the runs already out: a run still going when the round is called failed
+ * would add its cost to whatever round came next.
+ */
 async function pool(items, limit, fn) {
   let next = 0
   let failed = false
@@ -204,7 +208,9 @@ async function pool(items, limit, fn) {
       }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  const ran = await Promise.allSettled(Array.from({ length: Math.min(limit, items.length) }, worker))
+  const err = ran.find((r) => r.status === 'rejected')
+  if (err) throw err.reason
 }
 
 /** No round out and no report up. `folder` is the one folder a round was sent to, '' for every one. */

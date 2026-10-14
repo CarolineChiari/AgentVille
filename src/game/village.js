@@ -793,8 +793,11 @@ export class Village {
   _demoForeman(ids, folder = '') {
     const startedAt = Date.now()
     this._takeForeman({ phase: 'reading', startedAt, folder, round: ids, report: [] })
+    // Off the map as well as on it: `thread` only gives a status to the villagers standing.
+    const { live, folded, hidden } = this.view
+    const byId = new Map([...live, ...folded, ...hidden].map((t) => [t.id, t]))
     setTimeout(() => {
-      const report = sortReport(demoForemanReport(ids.map((id) => this.thread(id)).filter(Boolean)))
+      const report = sortReport(demoForemanReport(ids.map((id) => byId.get(id)).filter(Boolean)))
       this._takeForeman({ phase: 'done', startedAt, finishedAt: Date.now(), folder, report })
     }, DEMO_ROUND_MS)
   }

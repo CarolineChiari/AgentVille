@@ -188,6 +188,36 @@ test('a big round is read in batches, so every session gets an answer', async (t
   assert.equal(runs.filter((r) => r.ref).length, 0, 'nobody asked when the reading settled it')
 })
 
+test('a failed batch waits for the batches already out, and starts no more', async (t) => {
+  const threads = Array.from({ length: JUDGE_BATCH * 2 + 1 }, (_, i) => thread(i + 1))
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  let reads = 0
+  let release
+  let siblingDone = false
+  const run = (spec) => {
+    reads++
+    if (reads === 1) return Promise.resolve({ ok: false, error: 'boom' })
+    return new Promise((r) => (release = () => {
+      siblingDone = true
+      r({ ok: true, stdout: cli({ sessions: [] }, { total_cost_usd: 0.5 }) })
+    }))
+  }
+  const harness = { id: 'claude-code', headless: async (ref, { prompt, cwd }) => ({ ok: true, exe: '/bin/claude', args: [], cwd, input: prompt }) }
+  const foreman = createForeman({ dataDir: home, harnesses: [harness], threads: async () => threads, run, now: () => NOW })
+  await foreman.start(threads.map((x) => x.id))
+  while (!release) await new Promise((r) => setImmediate(r))
+  for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r))
+  assert.equal((await foreman.status()).phase, 'reading', 'still out while a sibling runs')
+  release()
+  await foreman.settled()
+  assert.ok(siblingDone)
+  const s = await foreman.status()
+  assert.equal(s.phase, 'failed')
+  assert.equal(s.costUsd, 0.5, 'the sibling’s cost is this round’s')
+  assert.equal(reads, 2, 'the third batch never started')
+})
+
 test('a round only asks a few sessions', async (t) => {
   const threads = Array.from({ length: MAX_ASKS + 3 }, (_, i) => thread(i + 1))
   const { foreman, runs } = rig(t, { threads, judge: () => ({ sessions: [] }), answers: {} })
