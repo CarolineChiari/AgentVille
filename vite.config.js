@@ -15,5 +15,7 @@ export default defineConfig({
   // PORT lets a second copy run alongside the first. Loopback only: the API reads your
   // session transcripts and can ask the OS to open things.
   server: { host: '127.0.0.1', port: Number(process.env.PORT) || 5274, strictPort: false, headers: DEV_HEADERS },
-  build: { target: 'esnext' },
+  // Two pages: the village, and show.html, hacker mode alone, which the desktop app puts on your
+  // other screens while the show runs.
+  build: { target: 'esnext', rollupOptions: { input: { main: 'index.html', show: 'show.html' } } },
 })

@@ -795,6 +795,23 @@ export const CONFETTI = ['#ef4f4f', '#ffc93c', '#6fdb8a', '#5cc4f2', '#b27cf0', 
 /** Butterfly wings: brimstone, cabbage white, orange tip, blue, pink. */
 export const BUTTERFLIES = ['#f5d94e', '#fbf8ef', '#f09a3a', '#8fd0f5', '#e87fd4']
 
+/**
+ * Hollywood hacker mode's phosphor set (src/ui/hacker.js). Not village paint: the show breaks with
+ * the pixel art on purpose, to look like a film's idea of a real screen. Kept in step with the
+ * `--hk-*` variables in styles.css.
+ */
+export const HACKER = {
+  ink: '#030806', // near-black with a little green in it, so the glow reads as phosphor
+  panel: '#07120c',
+  green: '#39ff7a',
+  greenDim: '#1d7a41',
+  amber: '#ffb33a',
+  red: '#ff3b47',
+  cyan: '#46e3ff',
+  pink: '#ff5ad1',
+  white: '#e8fff0',
+}
+
 /** Night is a multiply towards this colour; lights are then added back on top. */
 // The desktop window's backdrop before the page paints; the same as `--bg` in styles.css.
 export const APP_BG = '#12111a'
