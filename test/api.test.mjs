@@ -386,6 +386,35 @@ test('weather answers for a place, and needs the page\'s Origin', async () => {
   assert.equal((await post('/api/weather', { place: 'Lyon' }, { 'Content-Type': 'application/json' })).status, 403)
 })
 
+test('GET /api/events streams a changed event from the watcher and only to local hosts', async () => {
+  let fire
+  let unsubscribed = false
+  const watcher = { subscribe: (fn) => ((fire = fn), () => { unsubscribed = true }) }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], watcher })
+  const srv = http.createServer((req, res) => api(req, res, null))
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+  const url = `http://127.0.0.1:${srv.address().port}/api/events`
+  try {
+    const bad = await new Promise((resolve) => http.get(url, { headers: { Host: 'evil.example' } }, (res) => (res.resume(), resolve(res.statusCode))))
+    assert.equal(bad, 403)
+    const ctl = new AbortController()
+    const r = await fetch(url, { signal: ctl.signal })
+    assert.equal(r.status, 200)
+    assert.match(r.headers.get('content-type'), /text\/event-stream/)
+    const reader = r.body.getReader()
+    await reader.read() // the opening comment
+    fire()
+    const { value } = await reader.read()
+    assert.match(new TextDecoder().decode(value), /event: changed/)
+    ctl.abort()
+    await new Promise((r) => setTimeout(r, 50))
+    assert.equal(unsubscribed, true)
+  } finally {
+    srv.closeAllConnections?.()
+    srv.close()
+  }
+})
+
 test('the foreman refuses a folder that isn’t one, rather than checking everybody', async () => {
   for (const folder of [5, ['web'], 'x'.repeat(300)]) {
     const r = await post('/api/foreman', { action: 'start', ids: ['fake:1'], folder })
