@@ -39,8 +39,10 @@ const HEAD_SHARE = 0.3
 const PERSON_CHARS = 2000
 const AGENT_CHARS = 1200
 const TOOL_CHARS = 200
-// The whole of the transcript the adapter keeps in hand; TRANSCRIPT_CHARS decides what is read.
-const MESSAGES_READ = 2000
+// Messages asked of the adapter, from each end: the opening, where the ask is, and the newest.
+// More than TRANSCRIPT_CHARS can hold, which decides what is read in the end.
+const HEAD_MESSAGES = 400
+const TAIL_MESSAGES = 1600
 // A CLAUDE.md longer than this is mostly not about how to work; the start is what a session reads first.
 export const INSTRUCTIONS_CHARS = 12_000
 
@@ -84,7 +86,9 @@ const clip = (s, n) => {
  * be left out.
  */
 export function transcriptText(messages = [], max = TRANSCRIPT_CHARS) {
+  const gap = (n) => `[… ${n} message${n === 1 ? '' : 's'} left out here …]`
   const lines = messages.filter((m) => m && m.role !== 'thinking').map((m) => {
+    if (m.role === 'gap') return gap(Number(m.count) || 0)
     if (m.role === 'tool') return `tool: ${clip(`${m.name || 'tool'} ${m.detail || ''}`, TOOL_CHARS)}`
     return m.role === 'user' ? `person: ${clip(m.text, PERSON_CHARS)}` : `agent: ${clip(m.text, AGENT_CHARS)}`
   })
@@ -103,8 +107,7 @@ export function transcriptText(messages = [], max = TRANSCRIPT_CHARS) {
     tail.unshift(lines[i])
     used += lines[i].length + 1
   }
-  const gone = lines.length - head.length - tail.length
-  return [...head, `[… ${gone} message${gone === 1 ? '' : 's'} left out here …]`, ...tail].join('\n')
+  return [...head, gap(lines.length - head.length - tail.length), ...tail].join('\n')
 }
 
 export function reviewPrompt({ title = '', project = '', transcript = '', instructions = '' }) {
@@ -150,11 +153,17 @@ export function createPostMortems({ dataDir, harnesses, threads, run = runHeadle
   // Where the reviewer works: a folder of its own, so no repo's CLAUDE.md is read into it as its own.
   const desk = path.join(dataDir, 'postmortem')
   let all = null
+  let loading = null
   const out = new Map()
   let writing = Promise.resolve()
 
-  async function load() {
-    if (all) return all
+  /** Read once, however many ask at once: a second read landing late would drop what the first let in. */
+  function load() {
+    loading ||= read()
+    return loading
+  }
+
+  async function read() {
     try {
       const saved = JSON.parse(await fsp.readFile(file, 'utf8'))
       all = (Array.isArray(saved?.postmortems) ? saved.postmortems : []).map(cleanPostMortem).filter(Boolean).slice(0, POSTMORTEM_MAX)
@@ -204,12 +213,15 @@ export function createPostMortems({ dataDir, harnesses, threads, run = runHeadle
     const judge = harnesses.find((x) => typeof x.headless === 'function')
     if (!judge) return { note: 'The reviewer needs Claude Code’s CLI to read with.' }
     if (!h?.readTranscript) return { note: `${h?.name || 'This agent'} keeps no transcript to read.` }
-    const r = await h.readTranscript(t.ref, { limit: MESSAGES_READ }).catch((err) => ({ ok: false, error: err.message }))
+    const r = await h.readTranscript(t.ref, { limit: TAIL_MESSAGES, head: HEAD_MESSAGES }).catch((err) => ({ ok: false, error: err.message }))
     if (!r?.ok) return { note: `Couldn’t read the transcript: ${r?.error || 'it is gone.'}` }
     if (!r.messages?.length) return { note: 'The transcript is empty.' }
+    // An adapter that only gives the newest: the reviewer is told the start is missing, not left to think it began there.
+    const missing = Number(r.total) - r.messages.length
+    const messages = missing > 0 && !r.messages.some((m) => m?.role === 'gap') ? [{ role: 'gap', count: missing }, ...r.messages] : r.messages
     const instructions = await readInstructions(t.projectPath).catch(() => '')
     await fsp.mkdir(desk, { recursive: true })
-    const prompt = reviewPrompt({ title: t.title, project: t.project, transcript: transcriptText(r.messages), instructions })
+    const prompt = reviewPrompt({ title: t.title, project: t.project, transcript: transcriptText(messages), instructions })
     return ask(await judge.headless(null, { prompt, schema: FINDINGS_SCHEMA, cwd: desk, budget: POSTMORTEM_BUDGET_USD }), p)
   }
 
@@ -228,11 +240,19 @@ export function createPostMortems({ dataDir, harnesses, threads, run = runHeadle
       if (!isThreadId(id)) return { ok: false, error: 'Not a thread.' }
       if (out.has(id)) return { ok: true, ...view() }
       if (out.size >= RUNNING_MAX) return { ok: false, error: `${RUNNING_MAX} post mortems are already under way. Hold this one when one is in.` }
-      const t = (await threads()).find((x) => x.id === id)
-      if (!t) return { ok: false, error: 'AgentVille can’t find that session any more.' }
-      if (t.running) return { ok: false, error: 'It’s still working. Hold its post mortem once it stops.' }
+      // The slot is taken before anything is awaited, so two clicks can't both get past the checks above.
+      let release
+      out.set(id, new Promise((r) => (release = r)))
+      const refuse = (error) => {
+        out.delete(id)
+        release()
+        return { ok: false, error }
+      }
+      const t = (await threads().catch(() => [])).find((x) => x.id === id)
+      if (!t) return refuse('AgentVille can’t find that session any more.')
+      if (t.running) return refuse('It’s still working. Hold its post mortem once it stops.')
       const h = harnessById(t.harness, harnesses)
-      const p = cleanPostMortem({ id, title: t.title, project: t.project, phase: 'running', startedAt: now() })
+      const p = cleanPostMortem({ id, title: t.title, project: t.project, projectPath: t.projectPath, phase: 'running', startedAt: now() })
       all = [p, ...all.filter((x) => x.id !== id)].slice(0, POSTMORTEM_MAX)
       await save().catch(() => {})
       const job = (async () => {
@@ -249,6 +269,7 @@ export function createPostMortems({ dataDir, harnesses, threads, run = runHeadle
         await save().catch(() => {})
       })()
       out.set(id, job)
+      release()
       return { ok: true, ...view() }
     },
 

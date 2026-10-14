@@ -220,3 +220,40 @@ test('an agent that can’t be asked or read says so', async (t) => {
   assert.match(p.selfNote, /can’t be asked/)
   assert.match(p.reviewNote, /no transcript/)
 })
+
+test('two first asks share one read of the file, so neither loses what the other let in', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  fs.writeFileSync(path.join(home, 'postmortems.json'), JSON.stringify({ postmortems: [{ id: 'claude-code:9', phase: 'done', review: { summary: 'Old.' } }] }))
+  const run = async () => ({ ok: true, stdout: cli(FOUND) })
+  const harness = { id: 'claude-code', name: 'Claude Code', headless: async (ref, o) => ({ ok: true, exe: '/bin/claude', args: [], cwd: '/w', input: o.prompt }), readTranscript: async () => ({ ok: true, messages: [{ role: 'user', text: 'hi' }], total: 1 }) }
+  const pms = createPostMortems({ dataDir: home, harnesses: [harness], threads: async () => [thread(1), thread(2)], run, now: () => NOW, readInstructions: async () => '' })
+  const started = await Promise.all([pms.start('claude-code:1'), pms.start('claude-code:2')])
+  assert.deepEqual(started.map((r) => r.ok), [true, true])
+  await pms.settled()
+  assert.deepEqual((await pms.status()).postmortems.map((p) => p.id).sort(), ['claude-code:1', 'claude-code:2', 'claude-code:9'])
+})
+
+test('starts at the same moment hold one post mortem a thread, and no more than the limit', async (t) => {
+  const { pms, runs } = rig(t, { threads: [thread(1), thread(2), thread(3)] })
+  const r = await Promise.all(['claude-code:1', 'claude-code:1', 'claude-code:2', 'claude-code:3'].map((id) => pms.start(id)))
+  assert.deepEqual(r.map((x) => x.ok), [true, true, true, false])
+  await pms.settled()
+  assert.equal(runs.length, RUNNING_MAX * 2, 'two runs for each post mortem held, none twice')
+  assert.deepEqual((await pms.status()).running, [])
+  assert.equal((await pms.start('claude-code:3')).ok, true, 'a refused one leaves no slot taken')
+  await pms.settled()
+})
+
+test('a post mortem keeps the folder’s path, and a transcript missing its start says so', async (t) => {
+  const { pms, runs } = rig(t, {
+    threads: [thread(1)],
+    // An adapter that gives only the newest messages, whatever is asked.
+    harness: { readTranscript: async () => ({ ok: true, messages: [{ role: 'assistant', text: 'the end' }], total: 50 }) },
+  })
+  await pms.start('claude-code:1')
+  await pms.settled()
+  assert.equal((await pms.status()).postmortems[0].projectPath, '/work/web')
+  assert.match(runs.find((r) => !r.ref).input, /\[… 49 messages left out here …\]\nagent: the end/)
+  assert.equal(cleanPostMortem({ id: 'claude-code:1', projectPath: 'x'.repeat(5000) }).projectPath, '')
+})

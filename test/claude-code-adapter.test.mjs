@@ -148,6 +148,20 @@ test('readTranscript finds a thread by its CLI id and returns the newest message
   assert.equal((await a.readTranscript({ cliSessionId: uuid(21) })).ok, false)
 })
 
+test('readTranscript can keep a long conversation’s opening too, and says what is left out', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const records = []
+  for (let i = 0; i < 5; i++) records.push(userRecord(`q${i}`), assistantRecord(text(`a${i}`)))
+  writeTranscript(home, { id: uuid(22), records, mtime: NOW - 1000 })
+  const a = adapterFor(home)
+  const r = await a.readTranscript({ cliSessionId: uuid(22) }, { limit: 3, head: 2 })
+  assert.deepEqual(r.messages.map((m) => m.text ?? `gap ${m.count}`), ['q0', 'a0', 'gap 5', 'a3', 'q4', 'a4'])
+  const whole = await a.readTranscript({ cliSessionId: uuid(22) }, { limit: 6, head: 4 })
+  assert.equal(whole.messages.length, 10, 'ends that meet are the whole of it, with no gap')
+  assert.ok(!whole.messages.some((m) => m.role === 'gap'))
+})
+
 test('readChanges lists what a session touched, relative to its folder', async (t) => {
   const { home, cleanup } = tmpHome()
   t.after(cleanup)

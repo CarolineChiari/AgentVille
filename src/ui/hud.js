@@ -449,7 +449,26 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
       <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
   }
 
+  /**
+   * What a control in the sheet is, to find it again once the sheet is drawn anew: a redraw while
+   * a box is being ticked or a row opened by keyboard would otherwise drop the focus to the page.
+   */
+  const FOCUS_KEYS = ['act', 'set', 'id', 'key', 'pm', 'holiday']
+  const focusKey = (el) => {
+    if (!el || el === sheet || !sheet.contains(el)) return ''
+    const key = FOCUS_KEYS.map((k) => el.dataset?.[k] ?? '')
+    return key.some(Boolean) ? key.join('\u0000') : ''
+  }
+
   function renderSheet() {
+    const was = focusKey(document.activeElement)
+    draw()
+    if (!was) return
+    const again = [...sheet.querySelectorAll('button, input, select')].find((el) => focusKey(el) === was)
+    again?.focus({ preventScroll: true })
+  }
+
+  function draw() {
     // Findings want more room than a settings row.
     sheet.classList.toggle('wide', sheetMode === 'postmortem')
     if (sheetMode === 'tour') {
@@ -599,7 +618,10 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
         renderSheet()
       } else if (act === 'pmWork' || act === 'pmApply') {
         const prompt = workPrompt(p, act === 'pmApply' ? [b.dataset.key] : [])
-        if (prompt) onNewSession(p.project, { prompt })
+        if (!prompt) return
+        // Out of the way: the form opens where this sheet stands, and under it.
+        showSheet(sheetMode)
+        onNewSession(p.project, { prompt, folder: p.projectPath })
       } else if (act === 'pmAgain') village.postMortem(p.id)
       else if (act === 'pmRemove') village.removePostMortem(p.id)
     }

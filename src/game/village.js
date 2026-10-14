@@ -1097,7 +1097,7 @@ export class Village {
   }
 
   _demoPostMortem(t) {
-    const p = cleanPostMortem({ id: t.id, title: t.title, project: t.project, phase: 'running', startedAt: Date.now() })
+    const p = cleanPostMortem({ id: t.id, title: t.title, project: t.project, projectPath: t.projectPath, phase: 'running', startedAt: Date.now() })
     this.pm = { postmortems: [p, ...this.pm.postmortems.filter((x) => x.id !== t.id)], running: [...this.pm.running, t.id] }
     this.onChange()
     setTimeout(() => {

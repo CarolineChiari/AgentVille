@@ -322,8 +322,12 @@ export function createClaudeCodeAdapter(opts = {}) {
     while (cache.size > 6) cache.delete(cache.keys().next().value)
   }
 
-  /** The conversation of one thread, newest `limit` messages. */
-  async function readTranscript(ref, { limit = 300 } = {}) {
+  /**
+   * The conversation of one thread, newest `limit` messages. With `head`, its first `head` messages
+   * too, and a `{ role: 'gap', count }` between where the two don't meet: a post mortem needs the
+   * opening ask of a conversation too long to read whole.
+   */
+  async function readTranscript(ref, { limit = 300, head = 0 } = {}) {
     const found = await locateTranscript(ref)
     if (!found.ok) return found
     const { file, st, key } = found
@@ -333,7 +337,10 @@ export function createClaudeCodeAdapter(opts = {}) {
       remember(convoCache, file, hit)
     }
     const n = Math.max(1, Math.min(2000, Number(limit) || 300))
-    return { ok: true, messages: hit.messages.slice(-n), total: hit.messages.length, updatedAt: st.mtimeMs, sizeBytes: st.size }
+    const h = Math.max(0, Math.min(2000, Math.floor(Number(head)) || 0))
+    const all = hit.messages
+    const messages = !h ? all.slice(-n) : all.length > n + h ? [...all.slice(0, h), { role: 'gap', count: all.length - n - h }, ...all.slice(-n)] : all.slice()
+    return { ok: true, messages, total: all.length, updatedAt: st.mtimeMs, sizeBytes: st.size }
   }
 
   /**

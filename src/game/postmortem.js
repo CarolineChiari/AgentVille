@@ -27,6 +27,8 @@ export const ITEM_MAX = 500
 export const WHERE_MAX = 120
 export const PM_SUMMARY_MAX = 600
 export const NOTE_MAX = 300
+// Longer than any folder's path; one that is isn't kept, and the work-through asks for a folder instead.
+export const PATH_MAX = 1024
 
 /** Post mortems kept. The oldest go first; the space is for working through, not an archive of its own. */
 export const POSTMORTEM_MAX = 50
@@ -67,6 +69,8 @@ export function cleanPostMortem(p) {
     id: p.id,
     title: text(p.title, 120),
     project: text(p.project, 120),
+    // Where the work-through starts: a folder's name can be shared by two repos, its path can't.
+    projectPath: typeof p.projectPath === 'string' && p.projectPath.length <= PATH_MAX ? p.projectPath : '',
     phase,
     startedAt: Number(p.startedAt) || 0,
     finishedAt: Number(p.finishedAt) || 0,

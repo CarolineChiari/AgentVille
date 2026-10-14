@@ -63,8 +63,10 @@ Optional, added only once you can back them for real:
 - `watchPaths()` — the directories whose change means "rescan me" (strings, sync or async). The server
   listens to them with `fs.watch`, read-only, and tells the page over `GET /api/events`, so a stopped
   session shows its `?` in about a second. Without it the page still finds you on its next poll.
-- `readTranscript(ref, { limit })` — the conversation, for the transcript panel. Returns
-  `{ ok, messages, total, ... }` or `{ ok: false, error }`.
+- `readTranscript(ref, { limit, head })` — the conversation, for the transcript panel: the newest
+  `limit` messages. Returns `{ ok, messages, total, ... }` or `{ ok: false, error }`. `head`, which
+  a post mortem asks for, adds the first `head` messages, with `{ role: 'gap', count }` where the
+  two ends don't meet; an adapter that ignores it is still read, from its newest messages.
 - `readChanges(ref, { detail, path })` — what the session changed **on disk, read from its own
   records** — never by running anything in the repo. `detail` adds the entry-by-entry log and
   commits; `path` asks for one file's edits instead, with the text on either side of each hunk.
