@@ -317,10 +317,10 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
-  /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
+  /** Send the foreman round this folder alone. Off while a round is out, or the folder has no sessions. */
   function foremanButton(name) {
     const who = village.foremanRound(name).length
-    const why = isRunning(village.foreman) ? 'The foreman is already on his rounds' : who ? `Send the foreman to check whether ${name}’s ${who} session${who === 1 ? ' has' : 's have'} finished` : `Nobody in ${name} is at work`
+    const why = isRunning(village.foreman) ? 'The foreman is already on his rounds' : who ? `Send the foreman to check where ${name}’s ${who} session${who === 1 ? ' stands' : 's stand'}` : `${name} has no sessions to check`
     return `<button class="btn" data-act="foremanHere" title="${esc(why)}" ${who && !isRunning(village.foreman) ? '' : 'disabled'}>Foreman</button>`
   }
 
@@ -351,15 +351,19 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
             : 'No round yet.'
     const row = (r) => `<li><button class="thread-row foreman-row v-${esc(r.verdict)}" data-act="foremanRow" data-id="${esc(r.id)}" ${r.here ? '' : 'disabled'} title="${esc(r.note || r.summary)}">
         <span class="t">${r.villager ? `<span class="vname">${esc(r.villager)}</span> ` : ''}${esc(r.title || 'Untitled')}</span>
-        <span class="s"><b>${esc(VERDICT_LABEL[r.verdict])}</b>${r.asked ? ' (asked)' : ''} · ${esc(r.summary || r.note || r.project)}</span></button></li>`
-    const groups = VERDICTS.filter((v) => n[v]).map((v) => `<h3>${esc(VERDICT_LABEL[v])} (${n[v]})</h3><ul class="foreman-list">${rows.filter((r) => r.verdict === v).map(row).join('')}</ul>`).join('')
+        <span class="s"><b>${esc(VERDICT_LABEL[r.verdict])}</b>${r.asked ? ' (asked)' : ''} · ${esc(r.summary || r.note || r.project)}</span>
+        ${r.next ? `<span class="s next">Left to do: ${esc(r.next)}</span>` : ''}</button></li>`
+    // The question the round answers, first: which can be closed, and which still want something.
+    const left = rows.length - n.done
+    const closing = rows.length ? `<p class="note">${n.done} can be closed; ${left} ${left === 1 ? 'has' : 'have'} more to do or ${left === 1 ? 'is' : 'are'} still going.</p>` : ''
+    const groups = closing + VERDICTS.filter((v) => n[v]).map((v) => `<h3>${esc(VERDICT_LABEL[v])} (${n[v]})</h3><ul class="foreman-list">${rows.filter((r) => r.verdict === v).map(row).join('')}</ul>`).join('')
     return `<h2>The foreman</h2>
-      <p class="note">Checks, once, whether each session at work has finished what it was given. He reads each transcript; where that doesn’t say, he asks the session itself, in the background, in a copy that is never saved, with nothing it could change files with. It runs your own <code>claude</code> CLI with no window, and uses your Claude plan like any session.</p>
+      <p class="note">Checks, once, every session that isn’t archived, asleep or not: where each stands, and whether it can be closed or has more to do. He reads each transcript; where that doesn’t say, he asks the session itself, in the background, in a copy that is never saved, with nothing it could change files with. It runs your own <code>claude</code> CLI with no window, and uses your Claude plan like any session.</p>
       <p class="note" role="status">${esc(state)}</p>
-      ${f.phase === 'done' ? (rows.length ? groups : '<p class="note">Nobody was at work.</p>') : ''}
+      ${f.phase === 'done' ? (rows.length ? groups : '<p class="note">There were no sessions to check.</p>') : ''}
       <div class="actions">
         <button class="btn primary" data-act="foremanSend" ${running || !who ? 'disabled' : ''}>${running ? 'On his rounds…' : `Check ${who} session${who === 1 ? '' : 's'}`}<kbd>K</kbd></button>
-        ${here && !running && whoHere && !sameRound ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} at work in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
+        ${here && !running && whoHere && !sameRound ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
         ${f.phase === 'done' || f.phase === 'failed' ? '<button class="btn" data-act="foremanClear" title="Take the report down, and the clipboards over the villagers with it">Clear</button>' : ''}
         <button class="btn" data-act="closeSheet">Close</button>
       </div>`

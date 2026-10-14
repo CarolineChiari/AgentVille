@@ -128,7 +128,7 @@ export function demoRepos() {
  * What the demo's foreman comes back with: a verdict read off each villager's status, with a line
  * of the kind a real round writes. Nothing is asked of anyone; the demo has no sessions to ask.
  */
-const DEMO_VERDICT = { working: 'working', waiting: 'you', blocked: 'stuck', done: 'done', celebrating: 'done', idle: 'unfinished' }
+const DEMO_VERDICT = { working: 'working', waiting: 'you', blocked: 'stuck', done: 'done', celebrating: 'done', idle: 'unfinished', sleeping: 'done' }
 const DEMO_SUMMARY = {
   working: 'Working right now.',
   you: 'Asking which of two layouts to keep.',
@@ -136,9 +136,15 @@ const DEMO_SUMMARY = {
   done: 'Finished, and the tests pass.',
   unfinished: 'Stopped with the docs still to update.',
 }
+const DEMO_NEXT = {
+  working: 'Let it finish its turn.',
+  you: 'Pick a layout.',
+  stuck: 'Add the fixture and rerun the tests.',
+  unfinished: 'Update the docs.',
+}
 export function demoForemanReport(threads) {
   return threads.map((t) => {
     const verdict = DEMO_VERDICT[t.status] || 'unfinished'
-    return { id: t.id, title: t.title, project: t.project, verdict, summary: DEMO_SUMMARY[verdict], asked: verdict === 'unfinished', note: '' }
+    return { id: t.id, title: t.title, project: t.project, verdict, summary: DEMO_SUMMARY[verdict], next: DEMO_NEXT[verdict] || '', asked: verdict === 'unfinished', note: '' }
   })
 }

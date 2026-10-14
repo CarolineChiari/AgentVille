@@ -715,12 +715,14 @@ export class Village {
   // ---------- the foreman ----------
 
   /**
-   * Who a round would check: everyone standing in the village who isn't asleep, busiest first; or,
-   * given a folder, only the ones on its plot.
+   * Who a round would check: every session that isn't archived, busiest first; or, given a folder,
+   * only that folder's. Asleep ones too, and those of folders resting or hidden off the map: a
+   * session finished last week is exactly the one to hear can be closed.
    */
   foremanRound(folder = '') {
-    return this.view.live
-      .filter((t) => t.status !== 'sleeping' && (!folder || t.project === folder))
+    const { live, folded, hidden } = this.view
+    return [...live, ...folded, ...hidden]
+      .filter((t) => !folder || t.project === folder)
       .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
       .slice(0, MAX_ROUND)
       .map((t) => t.id)
@@ -764,11 +766,11 @@ export class Village {
     this.world.setVerdicts(verdictsOf(f))
   }
 
-  /** Send the foreman round everyone at work, once; or, given a folder, only that folder's. */
+  /** Send the foreman round every session not archived, once; or, given a folder, only that folder's. */
   async sendForeman(folder = '') {
     if (isRunning(this.foreman)) return
     const ids = this.foremanRound(folder)
-    if (!ids.length) return this.toast(`Nobody is at work${folder ? ` in ${folder}` : ''} for the foreman to check.`)
+    if (!ids.length) return this.toast(`There are no sessions${folder ? ` in ${folder}` : ''} for the foreman to check.`)
     if (this.demo) return this._demoForeman(ids, folder)
     try {
       this._takeForeman(await api.sendForeman('start', ids, folder))
