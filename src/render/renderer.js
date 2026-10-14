@@ -21,7 +21,7 @@ import {
 } from './square.js'
 import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
-import { BADGE_H, BADGE_W, BANNER_H, BANNER_POLE } from './sprites/effects.js'
+import { BADGE_H, BADGE_W, BANNER_H, BANNER_POLE, CLIPBOARD_H, CLIPBOARD_W } from './sprites/effects.js'
 import { MARKER_SCALE, edgePointer } from './spotlight.js'
 import { MARKER_H, MARKER_W } from './sprites/spotlights.js'
 
@@ -1010,6 +1010,25 @@ export class Canvas2dRenderer {
   }
 
   /**
+   * The foreman's clipboards: what his last round made of each thread, held up beside its badge (or
+   * where the badge would be), and the one he carries at his side while he walks the rounds.
+   */
+  _drawClipboards(frame) {
+    for (const v of frame.villagers) {
+      if (!v.verdict) continue
+      const img = this._sprite(`fx.clipboard.${v.verdict}`)
+      const px = v.x * T
+      const py = v.y * T
+      if (v.verdict === 'rounds') {
+        this._blit(img, px + 2, py - 14, v.alpha)
+        continue
+      }
+      const x = v.badge ? px + BADGE_W / 2 - 2 : px - CLIPBOARD_W / 2
+      this._blit(img, x, py - VILLAGER_H - CLIPBOARD_H + (v.badge ? 3 : 0) - hopOf(v, this.reducedMotion), v.alpha)
+    }
+  }
+
+  /**
    * A big bobbing marker over every spotlit villager, above where its badge goes whether or not it
    * has one, so it doesn't jump when a badge comes and goes. The marker is any theme's, drawn in
    * that theme; the pink at its feet and the pointer at the edge of the screen are every theme's.
@@ -1214,6 +1233,7 @@ export class Canvas2dRenderer {
     this._drawGlitter(frame)
     this._drawSparkles(frame)
     this._drawBadges(frame)
+    this._drawClipboards(frame)
     this._drawSpotlights(frame)
     this._drawLabels(frame, ui)
     if (ui.villagerNames) this._drawVillagerNames(frame, ui)

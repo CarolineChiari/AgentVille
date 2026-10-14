@@ -1,6 +1,6 @@
 # Tests on every push, then the desktop app for macOS (.dmg/.zip, Apple silicon and Intel) and
-# Windows (installer and portable .exe). The builds are attached to each run as artifacts. A push
-# to main whose package.json version has no `v<version>` tag yet also publishes them as a GitHub
+# Windows (installer and portable .exe) and Linux (AppImage and .deb). The builds are attached to
+# each run as artifacts. A push to main whose package.json version has no `v<version>` tag yet also publishes them as a GitHub
 # release, tagging that commit: every commit bumps the minor version, so every one is released.
 # Actions are pinned to a commit rather than a tag, which whoever controls the action can move;
 # Dependabot (.github/dependabot.yml) keeps the pins current.
@@ -68,6 +68,9 @@ jobs:
           - os: windows-latest
             name: windows
             targets: --win --x64
+          - os: ubuntu-latest
+            name: linux
+            targets: --linux --x64
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -95,6 +98,8 @@ jobs:
             release/*.dmg
             release/*-mac.zip
             release/*.exe
+            release/*.AppImage
+            release/*.deb
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.new == 'true'

@@ -10,3 +10,4 @@ release
 data/sheets/
 data/shots-profile/
 .claude/scheduled_tasks.lock
+data/foreman/
