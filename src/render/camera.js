@@ -108,6 +108,21 @@ export class Camera {
     this.vy = 0
   }
 
+  /**
+   * Frame the world-pixel box (x0,y0)–(x1,y1) with `pad` CSS pixels of margin: the biggest whole
+   * zoom that fits it, in the part of the screen not under the panels. Whole, because a fractional
+   * zoom would smear the pixel art; so it can undershoot, never clip.
+   */
+  fitBounds(x0, y0, x1, y1, pad = 24) {
+    const availW = (this.width - this.insetLeft - this.insetRight) / this.dpr - pad * 2
+    const availH = this.height / this.dpr - pad * 2
+    const w = Math.max(1, x1 - x0)
+    const h = Math.max(1, y1 - y0)
+    const fit = Math.floor(Math.min(availW / w, availH / h) * this.dpr)
+    this.scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fit))
+    this.flyTo((x0 + x1) / 2, (y0 + y1) / 2)
+  }
+
   /** Move toward unit direction `dir` (from the held keys) for `dt` seconds, easing in and out. */
   steer(dir, boost, dt) {
     const speed = MOVE_SPEED * (boost ? MOVE_BOOST : 1)
