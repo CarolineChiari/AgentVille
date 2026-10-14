@@ -105,6 +105,10 @@ test('the page title counts everyone who needs you, questions and errors alike',
   assert.equal(pageTitle({ waiting: 0, blocked: 0, done: 4 }), APP_TITLE)
   assert.equal(pageTitle({}), APP_TITLE)
   assert.equal(pageTitle(undefined), APP_TITLE)
+  // A running hacker-mode show rides at the end; anything that couldn't travel safely is left off.
+  assert.equal(pageTitle({ waiting: 2 }, 'abc123'), `(2) ${APP_TITLE} · session abc123`)
+  assert.equal(pageTitle({}, 'a b/c'), APP_TITLE)
+  assert.equal(pageTitle({}, 42), APP_TITLE)
 })
 
 // ---------- in the village ----------

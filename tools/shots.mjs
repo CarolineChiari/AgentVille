@@ -65,6 +65,17 @@ const SCENES = [
       camera.scale = 3 * camera.dpr
       camera.flyTo((l.x + l.w / 2) * 16, (l.y - 1) * 16)`,
   },
+  // Hollywood hacker mode, held still in the middle of a trace, with a little typed into its console
+  // (keys sent to the page the way a keyboard would) and Enter pressed once.
+  {
+    name: 'hacker',
+    script: `const { hacker } = window.__agentville
+      hacker.start({ seed: 'readme', at: (1342 + 60) * 1000, frozen: true, fullscreen: false })
+      const press = (key, code) => document.dispatchEvent(new KeyboardEvent('keydown', { key, code, bubbles: true }))
+      for (let i = 0; i < 70; i++) press('x', 'KeyX')
+      press('Enter', 'Enter')
+      for (let i = 0; i < 12; i++) press('x', 'KeyX')`,
+  },
 ]
 
 const BROWSERS = {
