@@ -9,6 +9,7 @@ export const DEFAULTS = {
   issueBoards: true, // pin the repo's open issues on a notice board (reads GitHub through `gh`)
   repoLines: true, // count the lines of code in each repo, for its landmark (reads the files, never runs anything)
   openIn: 'vscode', // 'vscode' | 'app' — where Open sends a Claude Code thread, and its New session default
+  taskIn: 'thread', // 'thread' (where threads open) | 'terminal' | 'background' — where a Claude Code task runs
   notify: false, // a desktop notification when a villager starts needing you; turning it on asks permission
   newHarness: '', // last agent chosen in the new-session form ('' = the first one found)
   newTargets: {}, // harness id → last 'Open in' chosen for it (Claude's falls back to openIn)

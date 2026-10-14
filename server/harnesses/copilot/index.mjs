@@ -317,7 +317,7 @@ export function createCopilotAdapter(opts = {}) {
     return { ok: true, where: ed.label, url: folderUrl(ed.scheme, dir) }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(stateDir, home), ...editors.map((e) => tilde(e.userDir, home))], url: 'https://github.com/features/copilot' }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, watchPaths: () => [stateDir, ...editors.map((e) => path.join(e.userDir, 'globalStorage'))], looked: () => [tilde(stateDir, home), ...editors.map((e) => tilde(e.userDir, home))], url: 'https://github.com/features/copilot' }
 }
 
 export default createCopilotAdapter()
