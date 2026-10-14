@@ -5,10 +5,11 @@ import { ACCENTS, PALETTE as P } from '../render/sprites/palette.js'
 import { formatHour } from '../render/daynight.js'
 import { STATUS_LABEL, needsInputLabel } from '../sim/status.js'
 import { pageTitle } from '../game/notify.js'
-import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.js'
+import { THEMES, THEME_IDS, finishedName, finishedWords, landmarkWords } from '../sim/themes.js'
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
+import { almanac } from '../game/stats.js'
 import { VERDICT_LABEL, isRunning, tally, VERDICTS } from '../game/foreman.js'
 
 const COUNT_KEYS = [
@@ -127,6 +128,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       </div>
       <div class="foot">
         <button data-act="settings">Settings</button>
+        <button data-act="almanac" title="What the village has got done">Almanac</button>
         <button data-act="help">Keys</button>
         <button data-act="foreman" title="Send the foreman to check whether each session has finished (K)">${isRunning(village.foreman) ? 'Foreman (on his rounds…)' : 'Foreman'}</button>
         <span class="spacer"></span>
@@ -318,6 +320,25 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
+  const bars = (rows, label) => {
+    const top = Math.max(1, ...rows.map((r) => r.n))
+    return `<div class="bars">${rows.map((r) => `<div class="bar" title="${esc(label(r))}"><span class="k">${esc(r.name)}</span><span class="fill" style="width:${Math.round((r.n / top) * 100)}%"></span><span class="n">${r.n}</span></div>`).join('')}</div>`
+  }
+
+  function almanacSheet(a) {
+    const words = finishedWords(village.theme)
+    if (!a.finished && !a.sessions) return '<h2>Almanac</h2><p class="note">Nothing to add up yet.</p><div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>'
+    const weekName = (w) => new Date(w.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    const hourRows = a.hours.map((n, h) => ({ name: h % 6 ? '' : String(h).padStart(2, '0'), n }))
+    return `<h2>Almanac</h2>
+      <p class="note">${a.finished} finished ${a.finished === 1 ? words.one : words.many} · ${a.mergedThisMonth} PR${a.mergedThisMonth === 1 ? '' : 's'} merged this month · ${a.sessions} session${a.sessions === 1 ? '' : 's'}</p>
+      <h3>Finished by week</h3>${bars(a.weeks.map((w) => ({ name: weekName(w), n: w.n })), (r) => `${r.n} in the week of ${r.name}`)}
+      <h3>By kind of work</h3>${bars(a.byKind.slice(0, 6).map((r) => ({ name: finishedName(village.theme, r.key), n: r.n })), (r) => `${r.n} ${r.name}`)}
+      <h3>By repo</h3>${bars(a.byRepo.slice(0, 6).map((r) => ({ name: r.key, n: r.n })), (r) => `${r.n} in ${r.name}`)}
+      <h3>When sessions start</h3>${bars(hourRows, (r) => `${r.n}`)}
+      <div class="actions"><button class="btn" data-act="closeSheet">Close</button></div>`
+  }
+
   /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
   function foremanButton(name) {
     const who = village.foremanRound(name).length
@@ -374,6 +395,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <div class="actions">${tourStep ? '<button class="btn" data-act="tourBack">Back</button>' : ''}
           <button class="btn primary" data-act="${last ? 'closeSheet' : 'tourNext'}">${last ? 'Done' : 'Next'}</button>
           ${last ? '' : '<button class="btn" data-act="closeSheet">Skip</button>'}</div>`
+    } else if (sheetMode === 'almanac') {
+      sheet.innerHTML = almanacSheet(almanac(village.threads, village.gardens))
     } else if (sheetMode === 'foreman') {
       sheet.innerHTML = foremanSheet()
     } else if (sheetMode === 'help') {
@@ -461,6 +484,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'update': village.openRelease(); break
       case 'help': showSheet('help'); break
+      case 'almanac': showSheet('almanac'); break
       case 'foreman': showSheet('foreman'); break
       case 'tour': showSheet('tour'); break
       case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
