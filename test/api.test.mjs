@@ -41,7 +41,7 @@ before(async () => {
   const repoStore = { get: async (list) => ({ repos: Object.fromEntries(list.map((p) => [p.name, { lines: 12 }])), updating: false }) }
   const weatherStore = { get: async (place) => (place === 'Lyon' ? { ok: true, place: 'Lyon, France', code: 3 } : { ok: false, error: 'nope' }) }
   const releaseStore = { get: async () => ({ current: '0.39.0', latest: '0.40.0', url: 'https://github.com/me/app/releases/tag/v0.40.0', newer: true }) }
-  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, weatherStore, terminal })
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], opener, prStore, issueStore, repoStore, releaseStore, weatherStore, terminal, background: async () => ({ ok: true, promptPassed: true }) })
   server = http.createServer((req, res) => api(req, res, null))
   await new Promise((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${server.address().port}`
@@ -306,6 +306,25 @@ test('a task goes into the thread when the harness can continue it', async () =>
   assert.equal(terminals.length, before + 1)
 })
 
+test('a background task runs with no terminal and no clipboard', async () => {
+  fakeHarness.continueThread = async (ref, opts) => ({ ok: true, where: 'the background', promptPassed: true, background: { exe: '/bin/x', args: ['--resume', '1'], cwd: '/w', prompt: opts.prompt } })
+  const before = terminals.length
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'go', target: 'background' })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 200)
+  assert.equal(terminals.length, before)
+  const j = await r.json()
+  assert.equal(j.continued, true)
+  assert.equal(j.promptPassed, true)
+})
+
+test('a background task the thread cannot take is refused, never opened in a window', async () => {
+  fakeHarness.continueThread = async () => ({ ok: false, error: 'no CLI' })
+  const r = await post('/api/task', { harness: 'fake', ref: {}, folder: os.tmpdir(), prompt: 'go', target: 'background' })
+  delete fakeHarness.continueThread
+  assert.equal(r.status, 400)
+})
+
 test('a task falls back to a new session in the folder when the thread cannot take it', async () => {
   let seen
   fakeHarness.continueThread = async () => ({ ok: false, error: 'no CLI' })
@@ -365,6 +384,35 @@ test('weather answers for a place, and needs the page\'s Origin', async () => {
   assert.deepEqual(await (await post('/api/weather', { place: 'Lyon' })).json(), { ok: true, place: 'Lyon, France', code: 3 })
   assert.equal((await post('/api/weather', { place: 'x' })).status, 400)
   assert.equal((await post('/api/weather', { place: 'Lyon' }, { 'Content-Type': 'application/json' })).status, 403)
+})
+
+test('GET /api/events streams a changed event from the watcher and only to local hosts', async () => {
+  let fire
+  let unsubscribed = false
+  const watcher = { subscribe: (fn) => ((fire = fn), () => { unsubscribed = true }) }
+  const api = createApiMiddleware({ dataDir: home, harnesses: [fakeHarness], watcher })
+  const srv = http.createServer((req, res) => api(req, res, null))
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+  const url = `http://127.0.0.1:${srv.address().port}/api/events`
+  try {
+    const bad = await new Promise((resolve) => http.get(url, { headers: { Host: 'evil.example' } }, (res) => (res.resume(), resolve(res.statusCode))))
+    assert.equal(bad, 403)
+    const ctl = new AbortController()
+    const r = await fetch(url, { signal: ctl.signal })
+    assert.equal(r.status, 200)
+    assert.match(r.headers.get('content-type'), /text\/event-stream/)
+    const reader = r.body.getReader()
+    await reader.read() // the opening comment
+    fire()
+    const { value } = await reader.read()
+    assert.match(new TextDecoder().decode(value), /event: changed/)
+    ctl.abort()
+    await new Promise((r) => setTimeout(r, 50))
+    assert.equal(unsubscribed, true)
+  } finally {
+    srv.closeAllConnections?.()
+    srv.close()
+  }
 })
 
 test('the foreman refuses a folder that isn’t one, rather than checking everybody', async () => {

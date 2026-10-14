@@ -248,7 +248,7 @@ export function createCursorAdapter(opts = {}) {
     return { ok: true, where: 'Cursor', promptPassed: true, url: ask, urls: [folder, ask] }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(globalDb, home)].filter(Boolean), url: 'https://cursor.com' }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, watchPaths: () => (userDir ? [path.join(userDir, 'globalStorage')] : []), looked: () => [tilde(globalDb, home)].filter(Boolean), url: 'https://cursor.com' }
 }
 
 /** `workspaceIdentifier` → folder. Cursor records `uri.fsPath`, and sometimes only `uri.external`. */

@@ -194,7 +194,7 @@ export function createAntigravityAdapter(opts = {}) {
     return { ok: false, error: 'Unknown place to start a session.' }
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, looked: () => [tilde(gemini, home), tilde(ideUserDir, home)].filter(Boolean), url: 'https://antigravity.google' }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, targets, readTranscript, watchPaths: () => [gemini, ideUserDir && path.join(ideUserDir, 'globalStorage')].filter(Boolean), looked: () => [tilde(gemini, home), tilde(ideUserDir, home)].filter(Boolean), url: 'https://antigravity.google' }
 }
 
 // Steps that are bookkeeping rather than conversation.
