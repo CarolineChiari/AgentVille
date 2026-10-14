@@ -19,8 +19,11 @@
  *           for the group its thread is in, a colour like `accent`, or null when it is in none.
  *           `roomy` is true on a courtyard's top row, with open ground above it;
  *           down the sides the house above opens its door onto the row just above, so nothing tall fits.
- * @property {{ id: string, name: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string, spotlight: { theme: string, id: string }|null }[]} villagers
+ * @property {{ id: string, name: string, x: number, y: number, facing: 'n'|'e'|'s'|'w', anim: string, animTime: number, look: object, status: string, badge: string|null, alpha: number, selected: boolean, hovered: boolean, plot: string, spotlight: { theme: string, id: string }|null, verdict: string|null }[]} villagers
  *           `name` is the villager's own short name (names.js), the same every run.
+ *           `verdict` is what the foreman's last round made of its thread (src/game/foreman.js), held
+ *           up on a clipboard until the report is cleared. The foreman himself is one of these too,
+ *           while he walks his rounds: id `foreman` (src/sim/foreman.js), plot '', verdict `rounds`.
  *           `spotlight` is set while someone is keeping an eye on it: the marker held up over it,
  *           `fx.spotlight.<id>` drawn in `theme`, which may be any theme's, not only its plot's.
  * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers

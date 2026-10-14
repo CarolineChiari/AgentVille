@@ -56,6 +56,13 @@
  * @property {(ref: object, opts: { prompt: string, target?: string }) => Promise<OpenResult>} [continueThread]
  *           Optional: send one more prompt into an existing thread. A harness without it, or one
  *           that refuses, gets the prompt as a fresh session in the thread's folder instead.
+ * @property {(ref: object|null, opts: { prompt: string, schema: object, cwd?: string }) => Promise<HeadlessSpec | { ok: false, error: string }>} [headless]
+ *           Optional: one run with no window, answering in `schema`'s shape, for the foreman. With no
+ *           `ref` it runs fresh in `cwd` with no tools; with a thread's `ref` it asks that thread, in a
+ *           copy that is never saved, so the thread itself is untouched. Only reading tools, either way.
+ *
+ * What to spawn for a headless run: `input` goes to its stdin, never on the command line.
+ * @typedef {{ ok: true, exe: string, args: string[], cwd: string, input: string }} HeadlessSpec
  *
  * One way to start a session. `models` / `efforts`, when present, are `[value, label]` menus the
  * form offers for this target only; '' means the harness's own default.

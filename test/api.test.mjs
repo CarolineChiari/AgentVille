@@ -395,3 +395,13 @@ test('GET /api/events streams a changed event from the watcher and only to local
     srv.close()
   }
 })
+
+test('the foreman refuses a folder that isn’t one, rather than checking everybody', async () => {
+  for (const folder of [5, ['web'], 'x'.repeat(300)]) {
+    const r = await post('/api/foreman', { action: 'start', ids: ['fake:1'], folder })
+    assert.equal(r.status, 400, JSON.stringify(folder).slice(0, 20))
+  }
+  const r = await post('/api/foreman', { action: 'start', ids: ['fake:1'], folder: 'nowhere' })
+  assert.equal(r.status, 200)
+  assert.deepEqual((await r.json()).round, [], 'a folder with nobody in it is a round of nobody')
+})

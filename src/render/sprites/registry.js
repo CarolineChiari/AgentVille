@@ -18,6 +18,8 @@
 //                                        furniture. A variant means something different per piece;
 //                                        see INTERIOR_VARIANTS in interiors.js)
 //         fx.badge.<kind>   fx.z   fx.ring.<color>   fx.shadow.<w>   fx.shadow.<w>x<h>
+//         fx.clipboard.<verdict>        (what the foreman made of a thread, see src/game/foreman.js;
+//                                        `rounds` is the one he carries himself)
 //         fx.spotlight.<id>             (what is held up over a spotlit villager: a marker of its
 //                                        theme's, by id from src/sim/themes.js; see spotlights.js)
 //         fx.banner.<color>             (a group's flag, planted by its houses' doors; color into
@@ -35,7 +37,7 @@
 import { drawVillager } from './villagers.js'
 import { drawBuilding } from './buildings.js'
 import { drawDeco, drawFence, drawStatic, drawTile } from './tiles.js'
-import { drawBadge, drawBanner, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
+import { drawBadge, drawBanner, drawClipboard, drawBird, drawBunting, drawButterfly, drawCrystal, drawPigeon, drawRing, drawShadow, drawZ } from './effects.js'
 import { drawFlower } from './flowers.js'
 import { drawLandmark } from './landmarks.js'
 import { drawSpotlight } from './spotlights.js'
@@ -71,6 +73,7 @@ export function generate(name, frame, p) {
       return drawInterior(a, Number(b || 0))
     case 'fx':
       if (a === 'badge') return drawBadge(b)
+      if (a === 'clipboard') return drawClipboard(b)
       if (a === 'spotlight') return drawSpotlight(b)
       if (a === 'banner') return drawBanner(b, frame)
       if (a === 'z') return drawZ()

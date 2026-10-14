@@ -23,6 +23,7 @@ import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
 import { DRAG_THRESHOLD, heading, isClick, isDrag, isMoveKey, pansCamera } from './ui/move.js'
 import { roomFrame } from './sim/room.js'
+import { FOREMAN_ID } from './sim/foreman.js'
 import { todayOf } from './sim/calendar.js'
 import { fromCode, skyFor } from './sim/weather.js'
 
@@ -85,7 +86,7 @@ const speak = (text) => {
   // A change of text is what is announced, so clear first and set on the next tick.
   setTimeout(() => { live.textContent = text }, 50)
 }
-const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, announce: (fresh) => speak(announcementFor(fresh)), preview })
+const village = new Village({ world, settings, demo, toast, onChange: () => ui.changed(), notify: notices.show, announce: (fresh) => speak(announcementFor(fresh)), speak, preview })
 const transcript = createTranscript(hudRoot, village)
 const roomPanel = createRoomPanel(hudRoot, village, {
   // The conversation reads in its own panel, out in the village: both would want the same edge
@@ -320,6 +321,7 @@ canvas.addEventListener('pointerup', (e) => {
   }
   const hit = renderer.pick(e.clientX, e.clientY, lastFrame)
   if (hit?.building) village.enter(hit.building)
+  else if (hit?.villager === FOREMAN_ID) hud.openSheet('foreman')
   else if (hit?.villager) village.select(hit.villager)
   else if (hit?.flower) village.select(hit.flower)
   else if (hit?.board) village.select(hit.board)
@@ -420,6 +422,8 @@ addEventListener('keydown', (e) => {
       break
     }
     case 'h': case 'H': toggleUi(); break
+    // K opens the foreman's sheet; K again, with it open, sends him (its button says so).
+    case 'k': case 'K': if (hud.sheetMode === 'foreman') village.sendForeman(); else hud.openSheet('foreman'); break
     case ',': hud.showSheet('settings'); break
     case '?': hud.showSheet('help'); break
     case 'Escape':
