@@ -315,24 +315,25 @@ theme, so three villagers you're following can each carry a different one. Spotl
 
 ### The foreman
 
-The foreman checks, once, whether each session at work has finished what it was given. Press `K`
-(or **Foreman** in the sidebar's footer) and send him: he walks in from the square and calls at
-each door in turn while he works. Everyone standing in the village who isn't asleep is on his
-list, the busiest first, up to 24. To check one folder alone, pick it and press **Foreman** in its
-panel (or **Only <folder>** in his sheet): he calls only at its doors, and nobody anywhere else is
-read or asked.
+The foreman checks, once, every session that isn't archived: where each stands, and whether it can
+be closed or has more to do. Press `K` (or **Foreman** in the sidebar's footer) and send him: he
+walks in from the square and calls at each door in turn while he works. Every session not archived
+is on his list, asleep or not, and those of resting or hidden folders too, the busiest first, up to
+100. To check one folder alone, pick it and press **Foreman** in its panel (or **Only <folder>** in
+his sheet): he calls only at its doors, and nobody anywhere else is read or asked.
 
-What the village can already see, he doesn't ask about: a session working right now, waiting on
-you or stuck on an error says so. The rest he reads, the opening ask and the last few turns of
-each transcript, and judges whether it is done, not finished, stuck or waiting on you. Where the
-transcript doesn't say, he asks the session itself, in the background: a copy of it, resumed with
-`--fork-session` and never saved, so the session's own conversation never gets a turn it didn't
-have. It may read its files to check; it has no tool that could change one. He asks at most six
-sessions a round.
+He reads every session, ten to a run: the opening ask and the last few turns of each transcript.
+For each he writes a short status update, what is left to do before it can be closed, and a
+verdict: done (it can be closed), more to do, stuck, or waiting on you. What the village can already
+see, he takes as it is: a session working right now, waiting on you or stuck on an error keeps that
+verdict, and gets his status update. Where the transcript doesn't say, he asks the session itself,
+in the background: a copy of it, resumed with `--fork-session` and never saved, so the session's
+own conversation never gets a turn it didn't have. It may read its files to check; it has no tool
+that could change one. He asks at most six sessions a round.
 
 When he's done, his report is in the sheet, most pressing first, and every villager he checked
-holds up a clipboard beside its badge: a green tick, a red `!`, an amber `?`, dots for not
-finished. Clicking a row flies to its villager. The report is kept in `data/foreman.json` until you
+holds up a clipboard beside its badge: a green tick, a red `!`, an amber `?`, dots for more
+to do. Clicking a row flies to its villager. The report is kept in `data/foreman.json` until you
 **Clear** it.
 
 He runs your own `claude` CLI with no window: `-p` with `--no-session-persistence` (so no new

@@ -11,10 +11,10 @@ export const VERDICTS = ['you', 'stuck', 'unfinished', 'unsure', 'working', 'don
 export const VERDICT_LABEL = {
   you: 'Waiting on you',
   stuck: 'Stuck',
-  unfinished: 'Not finished',
+  unfinished: 'More to do',
   unsure: 'Couldn’t tell',
   working: 'Still working',
-  done: 'Done',
+  done: 'Done, can be closed',
 }
 
 /** What a session asked about itself can answer: it knows, so never `unsure`, and it isn't running. */
@@ -28,8 +28,16 @@ export const isVerdict = (v) => typeof v === 'string' && VERDICTS.includes(v)
 export const PHASES = ['idle', 'reading', 'asking', 'done', 'failed']
 export const isRunning = (s) => s?.phase === 'reading' || s?.phase === 'asking'
 
-/** The most sessions one round looks at: they all go into one prompt, and the busiest are first. */
-export const MAX_ROUND = 24
+/**
+ * The most sessions one round looks at, the busiest first. Every one not archived is meant to be on
+ * it; this only keeps a village of hundreds from becoming a round that costs as much as a day's work.
+ * They are read ten to a prompt (JUDGE_BATCH in server/foreman.mjs), so this is ten runs at most.
+ */
+export const MAX_ROUND = 100
+
+/** How long a row's status update, and its line of what is left, may run. */
+export const SUMMARY_MAX = 320
+export const NEXT_MAX = 240
 
 // A report is read back from data/foreman.json, which a person could edit by hand.
 const ID_RE = /^[a-z][a-z0-9-]{0,30}:[A-Za-z0-9_.:-]{1,120}$/
@@ -48,7 +56,7 @@ const text = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().
 /** One row of a report as kept, or null when it isn't one. */
 export function cleanRow(r) {
   if (!r || typeof r !== 'object' || !isThreadId(r.id) || !isVerdict(r.verdict)) return null
-  return { id: r.id, title: text(r.title, 120), project: text(r.project, 120), verdict: r.verdict, summary: text(r.summary, 240), asked: r.asked === true, note: text(r.note, 240) }
+  return { id: r.id, title: text(r.title, 120), project: text(r.project, 120), verdict: r.verdict, summary: text(r.summary, SUMMARY_MAX), next: text(r.next, NEXT_MAX), asked: r.asked === true, note: text(r.note, 240) }
 }
 
 /** A round's report in reading order: most pressing verdict first, then as the round listed them. */
@@ -76,7 +84,7 @@ export function roundLine(status) {
   const where = status?.folder ? ` in ${status.folder}` : ''
   if (status?.phase === 'failed') return `The foreman couldn’t finish${where}: ${status.error || 'something went wrong.'}`
   const rows = status?.report || []
-  if (!rows.length) return `The foreman found nobody at work${where}.`
+  if (!rows.length) return `The foreman found no sessions to check${where}.`
   const n = tally(rows)
   const parts = VERDICTS.filter((v) => n[v]).map((v) => `${n[v]} ${VERDICT_LABEL[v].toLowerCase()}`)
   return `The foreman checked ${rows.length} session${rows.length === 1 ? '' : 's'}${where}: ${parts.join(', ')}.`
