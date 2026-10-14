@@ -13,6 +13,7 @@ import { BANNER_H, BANNER_POLE, BANNER_W } from '../src/render/sprites/effects.j
 import { KINDS } from '../src/sim/building.js'
 import { FLOWER_KINDS } from '../src/sim/flowers.js'
 import { lookFor } from '../src/sim/villager.js'
+import { VERDICTS } from '../src/game/foreman.js'
 import { FENCES } from '../src/sim/style.js'
 
 const SRC = fileURLToPath(new URL('../src/', import.meta.url))
@@ -151,6 +152,8 @@ test('every flower grows through all three stages', () => {
 test('badges, rings and shadows draw', () => {
   for (const kind of Object.keys(BADGE)) assert.ok(opaque(generate(`fx.badge.${kind}`, 0, {})) > 50)
   assert.ok(opaque(generate('fx.z', 0, {})) > 5)
+  // Every verdict the foreman can write, and the clipboard he carries himself.
+  for (const kind of [...VERDICTS, 'rounds']) assert.ok(opaque(generate(`fx.clipboard.${kind}`, 0, {})) > 60, kind)
   assert.ok(opaque(generate(`fx.ring.${BADGE.waiting}`, 0, {})) > 10)
   const narrow = generate('fx.shadow.10', 0, {})
   assert.deepEqual([narrow.w, narrow.h], [10, 3])

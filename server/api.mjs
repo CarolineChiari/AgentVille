@@ -11,6 +11,8 @@ import { createRepoStore } from './repo.mjs'
 import { createWeatherStore } from './weather.mjs'
 import { openInTerminal } from './terminal.mjs'
 import { listFolders } from './folders.mjs'
+import { createForeman } from './foreman.mjs'
+import { isFolder } from '../src/game/foreman.js'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 
 const MAX_BODY = 4 * 1024 * 1024
@@ -127,6 +129,14 @@ export function createApiMiddleware(opts = {}) {
     return [...projects].map(([name, dir]) => ({ name, path: dir }))
   }
 
+  // The foreman checks only threads the server itself has scanned, never ones the page describes.
+  let lastThreads = []
+  const foreman = opts.foreman ?? createForeman({
+    dataDir: opts.dataDir ?? DEFAULT_DATA_DIR,
+    harnesses,
+    threads: async () => (lastThreads.length ? lastThreads : (await scanAll({ harnesses })).threads),
+  })
+
   // An adapter may hand back several URLs to open in order (folder first, then session), or a
   // terminal window to run a command in.
   const launch = async (result) => {
@@ -154,6 +164,7 @@ export function createApiMiddleware(opts = {}) {
     'GET /api/threads': async () => {
       const [{ threads, warnings }, state] = await Promise.all([scanAll({ harnesses }), store.read()])
       remember(threads)
+      lastThreads = threads
       const archived = new Set(state.archived)
       for (const t of threads) {
         if (!t.archived && (archived.has(t.id) || refStrings(t.ref).some((s) => archived.has(`${t.harness}:${s}`)))) {
@@ -233,6 +244,22 @@ export function createApiMiddleware(opts = {}) {
       if (!dir) return [400, { ok: false, error: 'That folder no longer exists.' }]
       const [status, out] = await startIn(h, dir, { target: body?.target, prompt })
       return [status, { ...out, continued: false }]
+    },
+
+    // How the foreman's round stands, and its last report. Read-only, so a GET like the threads.
+    'GET /api/foreman': async () => [200, await foreman.status()],
+
+    /**
+     * Send the foreman round the villagers in `ids` (only those in `folder`, when one is named), or `clear` its report. POST because a round
+     * runs the person's CLI and spends on their plan: only this page, by its Origin, can ask for one.
+     */
+    'POST /api/foreman': async (body) => {
+      if (body?.action === 'clear') return [200, await foreman.clear()]
+      if (body?.action !== 'start') return [400, { ok: false, error: 'Unknown action.' }]
+      // No folder is everybody; a folder that isn't one is refused, rather than taken for everybody.
+      const folder = body?.folder ?? ''
+      if (folder !== '' && !isFolder(folder)) return [400, { ok: false, error: 'Not a folder.' }]
+      return [200, await foreman.start(body?.ids, { folder })]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

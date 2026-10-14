@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { World } from '../src/sim/world.js'
 import { TILE } from '../src/sim/plot.js'
 import { plotStyle } from '../src/sim/style.js'
+import { FOREMAN_ID } from '../src/sim/foreman.js'
 
 const T = (id, project, status = 'idle', extra = {}) => ({ id, project, createdAt: Number(id.replace(/\D/g, '')) || 0, status, known: true, ...extra })
 
@@ -629,4 +630,41 @@ test('put in a group, a villager moves house to stand with it, and walks there',
   assert.equal(Math.hypot(b.x - b1.x, b.y - b1.y), 3, 'next door to the rest of its group')
   run(w, 20)
   assert.ok(fromStand(w.villager(far), b) < 0.7, 'and it went home to it')
+})
+
+test('the foreman walks in, calls at each door on his list, and walks out when the round is in', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'done'), T('t2', 'a', 'idle'), T('t3', 'b', 'working')])
+  run(w, 25)
+  w.setForeman(['t1', 't3'])
+  const f = w.snapshot().villagers.find((v) => v.id === FOREMAN_ID)
+  assert.ok(f, 'he is in the frame')
+  assert.deepEqual([f.badge, f.verdict, f.plot], [null, 'rounds', ''], 'nobody’s villager: no badge, his own clipboard')
+  assert.ok(!w.villager(FOREMAN_ID), 'never one of the threads’ villagers')
+  // He reaches the first door, then moves on to the second.
+  const near = (id) => {
+    const d = w.buildings.get(id).front
+    return Math.hypot(w.foreman.x - d.x, w.foreman.y - d.y) < 1.5
+  }
+  let seen = new Set()
+  for (let t = 0; t < 90 && seen.size < 2; t += 1 / 30) {
+    w.tick(1 / 30)
+    for (const id of ['t1', 't3']) if (near(id)) seen.add(id)
+  }
+  assert.deepEqual([...seen].sort(), ['t1', 't3'])
+  w.setForeman(null)
+  run(w, 60)
+  assert.equal(w.foreman, null, 'gone back through the arch')
+  assert.ok(!w.snapshot().villagers.some((v) => v.id === FOREMAN_ID))
+})
+
+test('a verdict rides on its villager until it is cleared', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'done'), T('t2', 'a', 'idle')])
+  run(w, 20)
+  w.setVerdicts(new Map([['t1', 'done']]))
+  const by = Object.fromEntries(w.snapshot().villagers.map((v) => [v.id, v.verdict]))
+  assert.deepEqual(by, { t1: 'done', t2: null })
+  w.setVerdicts(new Map())
+  assert.ok(w.snapshot().villagers.every((v) => v.verdict === null))
 })

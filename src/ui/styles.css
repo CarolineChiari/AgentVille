@@ -377,10 +377,22 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   backdrop-filter: blur(10px);
   /* Over the card: the card is added to the page later, so without this it covered a sheet it opened. */
   z-index: 2;
+  /* A long one (the foreman's report, the settings) scrolls rather than running off the bottom. */
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
 }
 .sheet[hidden] { display: none; }
-/* The almanac is taller than Electron's smallest window (480px), so the sheet scrolls rather than lose its Close button. */
-.sheet { max-height: calc(100% - 24px); overflow-y: auto; }
+/* The foreman's report: a row per session, its verdict over a line of what's left. */
+.sheet h3 { margin: 12px 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.foreman-list { list-style: none; margin: 0; padding: 0; }
+.foreman-row { flex-direction: column; align-items: stretch; gap: 1px; }
+.foreman-row .t { width: 100%; }
+.foreman-row .s { white-space: normal; }
+.foreman-row .s b { color: var(--text); font-weight: 600; }
+.foreman-row.v-done .s b { color: var(--done); }
+.foreman-row.v-stuck .s b { color: var(--danger); }
+.foreman-row.v-you .s b { color: var(--accent); }
+.foreman-row:disabled { cursor: default; opacity: 0.6; }
 .sheet h2 { margin: 0 0 10px; font-size: 14px; }
 .sheet label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 13px; }
 /* A select sizes itself to its longest option; without this a wordy one grew out past the sheet. */
@@ -393,7 +405,6 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .sheet td { padding: 3px 0; color: var(--muted); }
 .sheet td:first-child { color: var(--text); font-family: var(--mono); width: 90px; }
 
-.sheet h3 { margin: 12px 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
 .sheet .bars { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
 .sheet .bar { display: flex; align-items: center; gap: 6px; height: 12px; }
 .sheet .bar .k { flex: 0 0 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
