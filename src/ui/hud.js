@@ -9,6 +9,7 @@ import { THEMES, THEME_IDS, finishedWords, landmarkWords } from '../sim/themes.j
 import { HOLIDAYS, activeHoliday, nextHoliday, ticked, todayOf, ymd } from '../sim/calendar.js'
 import { TIER_AT } from '../sim/progress.js'
 import { landmarkSpotOf } from '../sim/shape.js'
+import { VERDICT_LABEL, isRunning, tally, VERDICTS } from '../game/foreman.js'
 
 const COUNT_KEYS = [
   ['working', 'Working'],
@@ -45,6 +46,7 @@ const HELP = [
   ['B', 'Step inside its building (Esc comes back out)'],
   ['G', 'Put it in a group'],
   ['F', 'Next spotlit villager (the big marker over its head)'],
+  ['K', 'The foreman: check whether every session has finished'],
   ['H', 'Hide the panels'],
   [',', 'Settings'],
   ['Esc', 'Deselect'],
@@ -125,10 +127,13 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       <div class="foot">
         <button data-act="settings">Settings</button>
         <button data-act="help">Keys</button>
+        <button data-act="foreman" title="Send the foreman to check whether each session has finished (K)">${isRunning(village.foreman) ? 'Foreman (on his rounds…)' : 'Foreman'}</button>
         <span class="spacer"></span>
         ${release.newer ? `<button class="update" data-act="update" title="${esc(`You are running ${release.current}. Open the release notes.`)}">${esc(release.latest)} available</button>` : ''}
         <span>${village.demo ? 'Demo' : village.harnesses.filter((h) => h.detected).map((h) => esc(h.name)).join(', ') || 'No harness found'}</span>
       </div>`
+    // The foreman's sheet follows his round as it goes; the others only change when you change them.
+    if (sheetMode === 'foreman') renderSheet()
     hint.hidden = Boolean(village.selected || village.selectedPlot)
     hint.textContent = counts.waiting || counts.blocked
       ? 'Press N to visit whoever needs you'
@@ -171,6 +176,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <button class="btn" data-act="copy">Copy path</button>
         <button class="btn" data-act="tasks" title="The ready-made jobs this repo's villagers can be sent">Tasks${village.customTasks(r.name).length ? ` (${village.customTasks(r.name).length})` : ''}</button>
         <button class="btn" data-act="groups" title="Put this repo's sessions in groups: each group's houses stand together and fly its flag">Groups${r.groups.length ? ` (${r.groups.length})` : ''}</button>
+        ${foremanButton(r.name)}
         <button class="btn" data-act="hide">Hide</button>
       </div>
       ${look(r.name)}
@@ -311,6 +317,54 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     </div>`
   }
 
+  /** Send the foreman round this folder alone. Off while a round is out, or nobody here is at work. */
+  function foremanButton(name) {
+    const who = village.foremanRound(name).length
+    const why = isRunning(village.foreman) ? 'The foreman is already on his rounds' : who ? `Send the foreman to check whether ${name}’s ${who} session${who === 1 ? ' has' : 's have'} finished` : `Nobody in ${name} is at work`
+    return `<button class="btn" data-act="foremanHere" title="${esc(why)}" ${who && !isRunning(village.foreman) ? '' : 'disabled'}>Foreman</button>`
+  }
+
+  /** The foreman: what a round does, how the one out is going, and the last report. */
+  function foremanSheet() {
+    const f = village.foreman
+    const running = isRunning(f)
+    const rows = village.foremanReport()
+    const n = tally(rows)
+    const everyone = village.foremanRound()
+    const who = everyone.length
+    // A folder picked on the map can have a round of its own, from here as from its panel: offered
+    // unless it would be the very same round. Compared by id, not by count: both rounds stop at
+    // MAX_ROUND, so a folder of 24 and a village of 40 would count the same.
+    const here = village.selectedPlot
+    const mine = here ? village.foremanRound(here) : []
+    const whoHere = mine.length
+    const sameRound = whoHere === who && mine.every((id) => everyone.includes(id))
+    const where = f.folder ? ` in ${f.folder}` : ''
+    const state = f.phase === 'reading'
+      ? `On his rounds${where}: reading ${f.round.length} session${f.round.length === 1 ? '’s' : 's’'} transcript${f.round.length === 1 ? '' : 's'}…`
+      : f.phase === 'asking'
+        ? `Asking ${f.asking.length} session${f.asking.length === 1 ? '' : 's'} that the transcripts didn’t settle…`
+        : f.phase === 'failed'
+          ? `The last round didn’t finish: ${f.error || 'something went wrong.'}`
+          : f.phase === 'done'
+            ? `Last round${f.folder ? `, of ${f.folder} only,` : ''} ${ago(f.finishedAt)}${f.costUsd ? `, about $${f.costUsd.toFixed(2)} of Claude usage` : ''}.`
+            : 'No round yet.'
+    const row = (r) => `<li><button class="thread-row foreman-row v-${esc(r.verdict)}" data-act="foremanRow" data-id="${esc(r.id)}" ${r.here ? '' : 'disabled'} title="${esc(r.note || r.summary)}">
+        <span class="t">${r.villager ? `<span class="vname">${esc(r.villager)}</span> ` : ''}${esc(r.title || 'Untitled')}</span>
+        <span class="s"><b>${esc(VERDICT_LABEL[r.verdict])}</b>${r.asked ? ' (asked)' : ''} · ${esc(r.summary || r.note || r.project)}</span></button></li>`
+    const groups = VERDICTS.filter((v) => n[v]).map((v) => `<h3>${esc(VERDICT_LABEL[v])} (${n[v]})</h3><ul class="foreman-list">${rows.filter((r) => r.verdict === v).map(row).join('')}</ul>`).join('')
+    return `<h2>The foreman</h2>
+      <p class="note">Checks, once, whether each session at work has finished what it was given. He reads each transcript; where that doesn’t say, he asks the session itself, in the background, in a copy that is never saved, with nothing it could change files with. It runs your own <code>claude</code> CLI with no window, and uses your Claude plan like any session.</p>
+      <p class="note" role="status">${esc(state)}</p>
+      ${f.phase === 'done' ? (rows.length ? groups : '<p class="note">Nobody was at work.</p>') : ''}
+      <div class="actions">
+        <button class="btn primary" data-act="foremanSend" ${running || !who ? 'disabled' : ''}>${running ? 'On his rounds…' : `Check ${who} session${who === 1 ? '' : 's'}`}<kbd>K</kbd></button>
+        ${here && !running && whoHere && !sameRound ? `<button class="btn" data-act="foremanHere" title="${esc(`Check only the ${whoHere} session${whoHere === 1 ? '' : 's'} at work in ${here}`)}">Only ${esc(here)} (${whoHere})</button>` : ''}
+        ${f.phase === 'done' || f.phase === 'failed' ? '<button class="btn" data-act="foremanClear" title="Take the report down, and the clipboards over the villagers with it">Clear</button>' : ''}
+        <button class="btn" data-act="closeSheet">Close</button>
+      </div>`
+  }
+
   function renderSheet() {
     if (sheetMode === 'tour') {
       const step = TOUR[tourStep]
@@ -319,6 +373,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
         <div class="actions">${tourStep ? '<button class="btn" data-act="tourBack">Back</button>' : ''}
           <button class="btn primary" data-act="${last ? 'closeSheet' : 'tourNext'}">${last ? 'Done' : 'Next'}</button>
           ${last ? '' : '<button class="btn" data-act="closeSheet">Skip</button>'}</div>`
+    } else if (sheetMode === 'foreman') {
+      sheet.innerHTML = foremanSheet()
     } else if (sheetMode === 'help') {
       sheet.innerHTML = `<h2>Keys</h2><table>${HELP.map(([k, d]) => `<tr><td>${esc(k)}</td><td>${esc(d)}</td></tr>`).join('')}</table>
         <div class="actions"><button class="btn" data-act="tour">Take the tour</button><button class="btn" data-act="closeSheet">Close</button></div>`
@@ -394,6 +450,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'openRepo': village.openRepo(); break
       case 'copy': village.copyPath(); break
       case 'tasks': onEditTasks(village.selectedPlot); break
+      // The round goes on in the background; the sheet is where it reports.
+      case 'foremanHere': village.sendForeman(village.selectedPlot); openSheet('foreman'); break
       case 'hide': village.hide(); break
       case 'unhide': village.unhide(name); break
       case 'unarchive': village.unarchive(id); break
@@ -402,6 +460,7 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
       case 'settings': showSheet('settings'); break
       case 'update': village.openRelease(); break
       case 'help': showSheet('help'); break
+      case 'foreman': showSheet('foreman'); break
       case 'tour': showSheet('tour'); break
       case 'getHarness': e.preventDefault(); village.openLink(b.dataset.url); break
       case 'status': {
@@ -436,6 +495,16 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
   sheet.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act
     if (act === 'closeSheet') showSheet(sheetMode)
+    else if (act === 'foremanSend') village.sendForeman()
+    else if (act === 'foremanHere') village.sendForeman(village.selectedPlot)
+    else if (act === 'foremanClear') village.clearForeman()
+    else if (act === 'foremanRow') {
+      const id = e.target.closest('[data-id]')?.dataset.id
+      if (id && village.thread(id)) {
+        village.select(id)
+        onFly({ villager: id })
+      }
+    }
     else if (act === 'tour') {
       sheetMode = null // from Keys: swap that sheet for the tour rather than toggling it
       showSheet('tour')
@@ -485,5 +554,8 @@ export function createHud(root, { village, settings, onSettings, onFly, onNewSes
     if (stale && e.target.tagName === 'SELECT') requestAnimationFrame(render)
   })
 
-  return { render, showSheet, get sheetOpen() { return Boolean(sheetMode) }, closeSheet: () => sheetMode && showSheet(sheetMode) }
+  /** Open a sheet, or leave it open: unlike showSheet, never a toggle. */
+  const openSheet = (mode) => sheetMode !== mode && showSheet(mode)
+
+  return { render, showSheet, openSheet, get sheetMode() { return sheetMode }, get sheetOpen() { return Boolean(sheetMode) }, closeSheet: () => sheetMode && showSheet(sheetMode) }
 }

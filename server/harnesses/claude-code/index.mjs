@@ -14,6 +14,7 @@ import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mj
 import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
 import { tilde } from '../../lib/tilde.mjs'
+import { ASK_BUDGET_USD, ASK_TOOLS, JUDGE_BUDGET_USD, headlessArgs } from './headless.mjs'
 
 const NAME = 'Claude Code'
 // Enough of the head to reach the first real prompt past a long run of tool-list attachments.
@@ -426,6 +427,34 @@ export function createClaudeCodeAdapter(opts = {}) {
   }
 
   /**
+   * One run of the CLI with no window, for the foreman (see headless.mjs). With no `ref` it starts
+   * fresh in `cwd` with no tools at all. With a thread's `ref` it asks that thread, in a copy of it
+   * that is never saved, in the thread's own folder, where it may read but not change anything.
+   * Returned as what to spawn; the prompt is `input`, for stdin.
+   * @param {object|null} ref
+   * @param {{ prompt: string, schema: object, cwd?: string }} o
+   */
+  async function headless(ref, { prompt = '', schema, cwd = '' } = {}) {
+    const text = typeof prompt === 'string' ? prompt.trim() : ''
+    if (!text) return { ok: false, error: 'Nothing to ask.' }
+    if (!schema || typeof schema !== 'object') return { ok: false, error: 'No shape to answer in.' }
+    let dir = cwd
+    let resume = ''
+    if (ref) {
+      if (!isCliId(ref.cliSessionId)) return { ok: false, error: 'This thread has no CLI session to ask.' }
+      dir = ref.cwd
+      resume = ref.cliSessionId
+    }
+    if (typeof dir !== 'string' || !path.isAbsolute(dir)) return { ok: false, error: 'No folder to run in.' }
+    const exe = opts.claudePath ?? (await findClaude({ home, env, platform }))
+    if (!exe) return { ok: false, error: "Couldn't find the claude command. The foreman needs Claude Code's CLI." }
+    const args = resume
+      ? headlessArgs({ schema, tools: ASK_TOOLS, resume, budget: ASK_BUDGET_USD })
+      : headlessArgs({ schema, budget: JUDGE_BUDGET_USD })
+    return { ok: true, exe, args, cwd: dir, input: text }
+  }
+
+  /**
    * Where a new session can start on this machine. The terminal needs the CLI and the app needs
    * the app, so each is offered only once it is found. VS Code is always offered: its extension
    * keeps nothing we could look for until it has run once.
@@ -452,7 +481,7 @@ export function createClaudeCodeAdapter(opts = {}) {
     return out
   }
 
-  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, targets, readTranscript, readChanges, paths: { ...cli }, looked: () => [tilde(cli.projects, home), desktopDir ? tilde(path.join(desktopDir, SESSIONS_SUBDIR), home) : ''].filter(Boolean), url: 'https://claude.com/product/claude-code' }
+  return { id: HARNESS_ID, name: NAME, detect, scanThreads, openThread, newSession, continueThread, headless, targets, readTranscript, readChanges, paths: { ...cli }, looked: () => [tilde(cli.projects, home), desktopDir ? tilde(path.join(desktopDir, SESSIONS_SUBDIR), home) : ''].filter(Boolean), url: 'https://claude.com/product/claude-code' }
 }
 
 /** `vscode://file/<path>/?windowId=_blank`: focuses the VS Code window on the folder, or opens a new one. */

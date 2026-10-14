@@ -27,6 +27,37 @@ export function drawBadge(kind) {
   return pc.outline(P.outline)
 }
 
+/** The clipboard the foreman's verdict is written on, held up beside a villager's badge; 9×11. */
+export const CLIPBOARD_W = 9
+export const CLIPBOARD_H = 11
+
+// One 5×5 mark per verdict (src/game/foreman.js), and the foreman's own: lines of a list.
+const CLIP_MARKS = {
+  done: ['....#', '...##', '#.##.', '###..', '.#...'],
+  unfinished: ['.....', '.....', '#.#.#', '.....', '.....'],
+  working: ['..#..', '...#.', '#####', '...#.', '..#..'],
+  stuck: ['..#..', '..#..', '..#..', '.....', '..#..'],
+  you: ['.###.', '...#.', '..#..', '.....', '..#..'],
+  unsure: ['.....', '.#...', '#.#.#', '...#.', '.....'],
+  rounds: ['####.', '.....', '###..', '.....', '####.'],
+}
+
+/**
+ * What the foreman made of a thread, on a clipboard: the marks take the badges' colours, so a
+ * tick is done's green and a `?` is waiting's amber wherever they appear.
+ */
+export function drawClipboard(kind) {
+  const pc = new PixelCanvas(CLIPBOARD_W, CLIPBOARD_H)
+  pc.rect(0, 1, CLIPBOARD_W, CLIPBOARD_H - 1, P.wood)
+  pc.rect(1, 2, CLIPBOARD_W - 2, CLIPBOARD_H - 3, P.paper)
+  pc.hline(3, 5, 0, P.metalDark)
+  pc.hline(2, 6, 1, P.metal)
+  const ink = { done: BADGE.done, unfinished: BADGE.working, working: BADGE.working, stuck: BADGE.blocked, you: shade(BADGE.waiting, -0.25), unsure: P.metalDark }[kind] || P.outline
+  const mark = CLIP_MARKS[kind] || CLIP_MARKS.rounds
+  mark.forEach((row, y) => [...row].forEach((ch, x) => ch === '#' && pc.px(2 + x, 3 + y, ink)))
+  return pc.outline(P.outline)
+}
+
 export function drawZ() {
   const pc = new PixelCanvas(6, 6)
   pc.hline(0, 4, 0, P.white)

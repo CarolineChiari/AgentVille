@@ -71,6 +71,13 @@ Optional, added only once you can back them for real:
   if it refuses), the caller starts a fresh session in the thread's folder instead — so it's fine
   to leave unwritten if the harness has no way to resume a specific session headlessly.
 
+- `headless(ref, { prompt, schema, cwd })` — one run with no window, answering in `schema`'s
+  shape, for the foreman (`server/foreman.mjs`). With no `ref` it runs fresh in `cwd` with no tools
+  at all; with a thread's `ref` it asks that thread in a copy that is never saved, with reading
+  tools only. Returns what to spawn, `{ ok, exe, args, cwd, input }`, the prompt as `input` for
+  stdin. Only Claude Code has this today (`claude-code/headless.mjs`); a harness without it is
+  still read by the foreman, just never asked.
+
 An adapter with only the required functions is still fully useful: no transcript panel, no Built
 list, no "continue" button, but the villager stands on its plot and its status is right.
 
