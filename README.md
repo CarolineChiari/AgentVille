@@ -33,21 +33,24 @@ binds elsewhere.
 
 `npm run app` builds and opens AgentVille in its own window. `npm run dist` packages it for the
 machine you're on into `release/`. Every push to `main` builds the Mac (`.dmg`, Apple silicon
-and Intel) and Windows (installer and portable `.exe`) apps in GitHub Actions; they're on the
+and Intel), Windows (installer and portable `.exe`) and Linux (`.AppImage` and `.deb`) apps in GitHub Actions; they're on the
 run's page under **Artifacts**. Every commit bumps the minor version in `package.json`
 (`npm version --no-git-tag-version minor`), and a push whose version has no `v<version>` tag yet
 publishes the apps as that release and tags the commit.
 
 The app is the same server and page as `npm start`, on port 5275 so it can run alongside
 `npm run dev`. Its `data/` lives in `~/Library/Application Support/AgentVille/` (macOS) or
-`%APPDATA%\AgentVille\` (Windows) instead of the repo.
+`%APPDATA%\AgentVille\` (Windows) or `~/.config/AgentVille/` (Linux) instead of the repo.
 
 The builds aren't signed with a developer certificate yet, so the first launch needs a nudge.
 On macOS, right-click the app and choose **Open** (or run
 `xattr -dr com.apple.quarantine /Applications/AgentVille.app`). On Windows, choose **More info →
 Run anyway** in the SmartScreen prompt.
 
-macOS and Windows are both supported. Opening a thread, starting a new session and revealing
+macOS, Windows and Linux are all supported. On Linux, `chmod +x` the AppImage (or install the
+`.deb`); the app finds Claude Code's files in `~/.claude` and the desktop app's in
+`~/.config/Claude`, and starts a terminal session in `$TERMINAL`, else `x-terminal-emulator`,
+else `gnome-terminal`. Opening a thread, starting a new session and revealing
 a folder go through a deep link handed to the OS opener.
 
 **Open in VS Code** is the default. AgentVille opens the repo folder in VS Code first, then hands
@@ -61,7 +64,7 @@ this way. Switch to the Claude app under Settings → Open threads in.
 | --- | --- |
 | CLI transcripts | `~/.claude/projects/<encoded-cwd>/<session>.jsonl` |
 | Live sessions | `~/.claude/sessions/*.json` |
-| Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows) |
+| Desktop app records | `~/Library/Application Support/Claude/claude-code-sessions/…` (macOS), `%APPDATA%\Claude\claude-code-sessions\…` (Windows), `~/.config/Claude/claude-code-sessions/…` (Linux) |
 
 | Your repos | The files in each git repository a session works in, to count its lines of code for its landmark. A folder that isn't a repository (your home, Documents, Downloads) is never walked. It skips whatever the repo's `.gitignore` does, lock files and anything binary, never follows a link, and stops after 20,000 files or 20 seconds. **Settings → Count the lines of code in each repo** turns it off |
 | Folder names | Only while you browse under **Another folder…** in the new-session form: the names of the folders inside the one you're looking at, so a session can start in a folder no session has been in yet. Nothing inside them is read |
@@ -251,11 +254,11 @@ level, and an optional first prompt. The new villager steps out of the portal a 
 | Open in | Model and effort | First prompt |
 | --- | --- | --- |
 | VS Code | Your defaults (change them in VS Code's menus) | Typed in for you; press Enter to send |
-| Terminal | Any model (Fable, Opus, Opus 1M, Sonnet, Haiku) and effort (low to max) | Sent as the opening message (macOS); on the clipboard (Windows) |
+| Terminal | Any model (Fable, Opus, Opus 1M, Sonnet, Haiku) and effort (low to max) | Sent as the opening message (macOS, Linux); on the clipboard (Windows) |
 | Claude app | Your defaults | On the clipboard |
 
 Only the terminal can take a model or an effort level, because neither the VS Code nor the
-Claude app link has a way to pass them; picking either switches the form to Terminal. On macOS the terminal is started
+Claude app link has a way to pass them; picking either switches the form to Terminal. On macOS and Linux the terminal is started
 from a one-shot script in `data/launch/` that deletes itself as it runs; the prompt is read from
 a separate file, so nothing you type is ever run as a command.
 

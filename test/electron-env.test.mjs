@@ -161,3 +161,9 @@ test('a window mostly on the second display stays there, though a sliver touches
   const b = { x: 1800, y: 50, width: 1000, height: 700 }
   assert.deepEqual(clampBounds(b, [primary, second]), { x: 1920, y: 50, width: 1000, height: 700 })
 })
+
+test('a Linux launcher-started app still finds snap and ~/.local/bin', () => {
+  const dirs = augmentedPath({ PATH: '/usr/bin:/bin' }, { home: '/home/me', platform: 'linux' }).split(':')
+  assert.ok(dirs.includes('/snap/bin'))
+  assert.ok(dirs.includes('/home/me/.local/bin'))
+})
