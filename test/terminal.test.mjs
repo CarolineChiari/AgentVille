@@ -87,7 +87,8 @@ test('on Linux $TERMINAL wins, but only as one word', async () => {
   const find = async (name) => `/usr/bin/${name}`
   const home = '/home/me'
   assert.deepEqual(await findLinuxTerminal({ home, env: { TERMINAL: 'kitty' }, find }), { exe: '/usr/bin/kitty', flag: '-e' })
-  assert.deepEqual(await findLinuxTerminal({ home, env: { TERMINAL: '/opt/t/alacritty' }, find }), { exe: '/opt/t/alacritty', flag: '-e' })
+  assert.deepEqual(await findLinuxTerminal({ home, env: { TERMINAL: '/bin/sh' }, find }), { exe: '/bin/sh', flag: '-e' })
+  assert.equal((await findLinuxTerminal({ home, env: { TERMINAL: '/opt/gone/alacritty' }, find })).exe, '/usr/bin/x-terminal-emulator', 'a stale path falls back')
   assert.equal((await findLinuxTerminal({ home, env: { TERMINAL: 'kitty; rm -rf ~' }, find })).exe, '/usr/bin/x-terminal-emulator')
   assert.equal((await findLinuxTerminal({ home, env: {}, find })).exe, '/usr/bin/x-terminal-emulator')
 })

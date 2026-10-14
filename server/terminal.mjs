@@ -9,6 +9,7 @@
 // copies it to the clipboard instead), and paths that cmd.exe would treat specially are refused.
 import { spawn as nodeSpawn } from 'node:child_process'
 import crypto from 'node:crypto'
+import { constants as fsConstants } from 'node:fs'
 import fsp from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -68,7 +69,9 @@ export const LINUX_TERMINALS = [
 export async function findLinuxTerminal({ home, env, find = findExe }) {
   const own = typeof env.TERMINAL === 'string' ? env.TERMINAL.trim() : ''
   if (/^[\w.+-]+$/.test(own) || (/^\/[^\s'"$`\\]+$/.test(own))) {
-    const exe = own.startsWith('/') ? own : await find(own, { home, env, platform: 'linux' })
+    // A stale or mistyped $TERMINAL falls through to the installed ones rather than ending here:
+    // the spawn error is swallowed, so the session would silently never start.
+    const exe = own.startsWith('/') ? ((await fsp.access(own, fsConstants.X_OK).then(() => true, () => false)) ? own : null) : await find(own, { home, env, platform: 'linux' })
     if (exe) return { exe, flag: own.endsWith('gnome-terminal') ? '--' : '-e' }
   }
   for (const t of LINUX_TERMINALS) {
