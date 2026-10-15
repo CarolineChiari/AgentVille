@@ -11,7 +11,7 @@ import { demoForemanReport, demoGroups, demoIssues, demoRepos, demoThreads } fro
 import { MAX_ROUND, isRunning, roundLine, sortReport, verdictsOf } from './foreman.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
-import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
+import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, prTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
 import { isSpot } from '../sim/shape.js'
@@ -560,8 +560,27 @@ export class Village {
     if (!info) return
     const to = threadId ? this.thread(threadId) : this.idleVillagers(info.project)[0]
     if (!to) return this.toast(`Nobody is free on ${info.project}. Recruit a villager instead.`, 'error')
-    const task = issueTask(info.issue)
+    return this.sendTask(to, issueTask(info.issue))
+  }
+
+  /** Hand a task to a villager; the one thing issues and pull requests share. */
+  sendTask(to, task) {
     return this.sendPrompt(to.id, task.label, task.prompt)
+  }
+
+  /** The prompt an open PR's review becomes, for a new session. */
+  prPrompt(id) {
+    const f = this.flowerInfo.get(id)
+    return f?.pr ? prTask(f.pr).prompt : ''
+  }
+
+  /** Hand an open PR to a villager on its repo to review: the one named, else whoever is free and was last active. */
+  async sendPr(id, threadId = '') {
+    const f = this.flowerInfo.get(id)
+    if (!f?.pr || !f.open) return
+    const to = threadId ? this.thread(threadId) : this.idleVillagers(f.project)[0]
+    if (!to) return this.toast(`Nobody is free on ${f.project}. Recruit a villager instead.`, 'error')
+    return this.sendTask(to, prTask(f.pr))
   }
 
   /** Open PRs on the map, newest first. */
