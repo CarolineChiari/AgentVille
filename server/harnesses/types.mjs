@@ -47,7 +47,7 @@
  * @property {() => string[] | Promise<string[]>} [watchPaths]
  *           Optional: the directories whose change means "rescan me". The server listens to them
  *           (read-only) so the page hears of a stopped session in about a second, not on its next poll.
- * @property {(ref: object, opts?: { limit?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
+ * @property {(ref: object, opts?: { limit?: number, head?: number }) => Promise<{ ok: boolean, messages?: object[], error?: string }>} [readTranscript]
  *           Optional: the conversation, for the transcript panel.
  * @property {(ref: object, opts?: { detail?: boolean, path?: string }) => Promise<ChangesResult>} [readChanges]
  *           Optional: what the session changed on disk, read from its own records — never by
