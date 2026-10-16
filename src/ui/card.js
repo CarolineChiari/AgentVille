@@ -557,7 +557,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       const id = village.selected
       const bd = id && village.board(id)
       if (bd) {
-        const key = `board|${bd.filter}|${bd.total}|${bd.viewer}|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
+        const key = `board|${bd.filter}|${bd.total}|${bd.viewer}|${bd.labels.join()}|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           if (id !== shownId) issuesShown = ISSUE_CARD_MAX
           fillBoard(bd)

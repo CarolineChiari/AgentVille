@@ -243,15 +243,17 @@ const LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
  * Open issues per repo: `{ repos: { [project]: { slug, issues } }, viewer, updating, available, warnings }`.
  * `viewer` is who `gh` is signed in as, asked once and kept in memory, for "assigned to me"; '' until known.
  */
-export function createIssueStore({ ttlMs = ISSUE_TTL_MS, gh = runGh, ...opts }) {
+export function createIssueStore({ ttlMs = ISSUE_TTL_MS, gh = runGh, now = Date.now, ...opts }) {
   const store = createGhStore({
-    ...opts, gh, ttlMs, file: 'issues.json', key: 'issues', normalize: normalizeIssue,
+    ...opts, gh, now, ttlMs, file: 'issues.json', key: 'issues', normalize: normalizeIssue,
     argv: (slug) => ['issue', 'list', '--repo', slug, '--state', 'open', '--limit', String(ISSUE_LIMIT), '--json', ISSUE_FIELDS],
   })
   let viewer = '' // not saved: it is whoever gh is signed in as now
   let asking = null
+  let triedAt = -Infinity // a failed or odd answer waits out the TTL like any other failure, or the page would poll gh for ever
   let missing = false // no gh at all: the store has stopped trying, and so does this
   const ask = () => (asking ||= store.queue(async () => {
+    triedAt = now()
     try {
       const login = (await gh(['api', 'user', '--jq', '.login'])).trim()
       if (LOGIN.test(login)) viewer = login
@@ -267,7 +269,7 @@ export function createIssueStore({ ttlMs = ISSUE_TTL_MS, gh = runGh, ...opts }) 
     async get(projects) {
       const out = await store.get(projects)
       // Only worth asking once there is an issue to be assigned.
-      if (!viewer && !missing && out.available && Object.values(out.repos).some((r) => r.issues.length)) ask()
+      if (!viewer && !missing && now() - triedAt > ttlMs && out.available && Object.values(out.repos).some((r) => r.issues.length)) ask()
       // Still asking: say so, and the page looks again soon.
       return { ...out, viewer, updating: out.updating || asking !== null }
     },

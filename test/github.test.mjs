@@ -276,3 +276,31 @@ test('the issue store says who gh is signed in as, asked once, and ignores anyth
   }
   assert.equal((await odd.get([{ name: 'app', path: repo }])).viewer, '')
 })
+
+test('a failed viewer lookup waits out the TTL instead of being asked on every poll', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  let clock = 1000
+  let asked = 0
+  const gh = async (args) => {
+    if (args[0] !== 'api') return JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])
+    asked++
+    throw new Error('not logged in')
+  }
+  const store = createIssueStore({ dataDir: home, gh, now: () => clock, ttlMs: 60_000 })
+  const look = async () => {
+    const out = await store.get([{ name: 'app', path: repo }])
+    await store.settle()
+    return out
+  }
+  await look() // fetches the issues
+  await look() // asks who you are, and fails
+  const after = await look()
+  assert.equal(asked, 1)
+  assert.equal(after.updating, false, 'nothing left to wait for')
+  clock += 61_000
+  await look()
+  assert.equal(asked, 2, 'asked again once the TTL has passed')
+})

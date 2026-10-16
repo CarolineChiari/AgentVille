@@ -416,7 +416,7 @@ export class Village {
     }
     this._dressForeman()
     const sel = this.selected
-    if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel) && !(String(sel).startsWith('board:') && this.boardAll.has(String(sel).slice('board:'.length)))) this.selected = null
+    if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
     // A building you were standing in that is no longer standing — archived, finished, gone from
     // the scan — puts you back out in the village rather than in a room that isn't there.
     if (this.focused && !this.world.villager(this.focused)) this.focused = null
@@ -488,8 +488,8 @@ export class Village {
         for (const issue of list) this.issueInfo.set(id(issue), { issue, slug, project })
         const shown = filterIssues(list, this.state.boardFilters?.[project], this.issues.viewer)
         this.boardAll.set(project, { slug, all: list.map((i) => ({ id: id(i) })) })
-        // A filter that lets nothing through takes the board off the map, not the filter off the card.
-        if (shown.length) boards.set(project, shown.map((i) => ({ id: id(i) })))
+        // A filter that lets nothing through leaves the board standing bare, so it can still be opened and changed back.
+        boards.set(project, shown.map((i) => ({ id: id(i) })))
       }
     }
     this.boards = boards
@@ -515,7 +515,8 @@ export class Village {
   /** Repos whose notice board is on the map, the one with the newest issue first. */
   boardsOnMap() {
     const newest = (p) => this.issueInfo.get(this.boards.get(p)[0].id)?.issue.createdAt || 0
-    return [...this.boards.keys()].filter((p) => this.world.plots.has(p)).sort((a, b) => newest(b) - newest(a))
+    // A board its filter has emptied is on the map to be clicked, but `I` has nothing to show there.
+    return [...this.boards.keys()].filter((p) => this.world.plots.has(p) && this.boards.get(p).length).sort((a, b) => newest(b) - newest(a))
   }
 
   /** Every open issue pinned on a board you can see. */
