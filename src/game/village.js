@@ -11,6 +11,7 @@ import { demoForemanReport, demoGroups, demoIssues, demoRepos, demoThreads } fro
 import { MAX_ROUND, isRunning, roundLine, sortReport, verdictsOf } from './foreman.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
+import { cleanFilter, filterIssues, labelsOf } from './boardfilter.js'
 import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
 import { finishedName, isLook, landmarkWords, markerFor, subthemeFor, themeOf } from '../sim/themes.js'
@@ -99,7 +100,7 @@ function demoChanges(t, path = '') {
 
 const emptyState = () => ({
   version: 1, archived: [], archivedAt: {}, kept: [], plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
-  spots: {}, progress: {}, grades: {}, spotlights: {}, settings: null, updatedAt: 0,
+  spots: {}, progress: {}, grades: {}, spotlights: {}, boardFilters: {}, settings: null, updatedAt: 0,
 })
 
 /** The real weather is asked for this often; it changes slowly, and the server caches it for the same hour. */
@@ -139,7 +140,8 @@ export class Village {
     this._prIndex = -1
     this.issues = { repos: {}, available: true, warnings: [] }
     this.issueInfo = new Map() // 'issue:<slug>#<n>' → { issue, slug, project }
-    this.boards = new Map() // repo → its open issues' ids, newest first
+    this.boards = new Map() // repo → its open issues' ids that its filter lets through, newest first
+    this.boardAll = new Map() // repo → { slug, all }: the same, unfiltered
     this._boardIndex = -1
     this.flowerInfo = new Map() // thread id → { kind, color, work, finishedAt }
     this.counted = { repos: {}, updating: false } // each repo's lines of code, as the server counted them
@@ -414,7 +416,7 @@ export class Village {
     }
     this._dressForeman()
     const sel = this.selected
-    if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel)) this.selected = null
+    if (sel && !this.world.villager(sel) && !this.world.flower(sel) && !this.world.board(sel) && !(String(sel).startsWith('board:') && this.boardAll.has(String(sel).slice('board:'.length)))) this.selected = null
     // A building you were standing in that is no longer standing — archived, finished, gone from
     // the scan — puts you back out in the village rather than in a room that isn't there.
     if (this.focused && !this.world.villager(this.focused)) this.focused = null
@@ -469,20 +471,45 @@ export class Village {
     this.gardens = gardens
   }
 
-  /** Each repo's open issues, newest first, for its notice board. Hidden repos put theirs away too. */
+  /**
+   * Each repo's open issues, newest first, for its notice board. Hidden repos put theirs away too.
+   * The map, the counts and I follow the repo's filter; boardAll keeps the whole list for the card.
+   */
   _pinBoards() {
     const off = new Set(this.state.hiddenProjects)
     const boards = new Map()
     this.issueInfo = new Map()
+    this.boardAll = new Map()
     if (this.settings.issueBoards) {
       for (const [project, { slug, issues }] of Object.entries(this.issues.repos || {})) {
         if (off.has(project) || !Array.isArray(issues) || !issues.length) continue
         const list = [...issues].sort((a, b) => b.createdAt - a.createdAt || b.number - a.number)
-        for (const issue of list) this.issueInfo.set(`issue:${slug}#${issue.number}`, { issue, slug, project })
-        boards.set(project, list.map((i) => ({ id: `issue:${slug}#${i.number}` })))
+        const id = (i) => `issue:${slug}#${i.number}`
+        for (const issue of list) this.issueInfo.set(id(issue), { issue, slug, project })
+        const shown = filterIssues(list, this.state.boardFilters?.[project], this.issues.viewer)
+        this.boardAll.set(project, { slug, all: list.map((i) => ({ id: id(i) })) })
+        // A filter that lets nothing through takes the board off the map, not the filter off the card.
+        if (shown.length) boards.set(project, shown.map((i) => ({ id: id(i) })))
       }
     }
     this.boards = boards
+  }
+
+  /** A repo's notice-board filter, as boardfilter.js keeps it: '' for all. */
+  boardFilter(project) {
+    return cleanFilter(this.state.boardFilters?.[project])
+  }
+
+  /** Choose which of a repo's issues its board shows. Saved with the village; the issues themselves are untouched. */
+  setBoardFilter(project, filter) {
+    const next = cleanFilter(filter)
+    if (this.boardFilter(project) === next) return
+    const filters = { ...this.state.boardFilters }
+    if (next) filters[project] = next
+    else delete filters[project]
+    this.state.boardFilters = filters
+    this.apply()
+    this.queueSave()
   }
 
   /** Repos whose notice board is on the map, the one with the newest issue first. */
@@ -512,10 +539,16 @@ export class Village {
   board(id) {
     if (typeof id !== 'string' || !id.startsWith('board:')) return null
     const project = id.slice('board:'.length)
-    const notes = this.boards.get(project)
-    if (!notes) return null
-    const issues = notes.map((n) => ({ id: n.id, ...this.issueInfo.get(n.id).issue }))
-    return { id, project, slug: this.issueInfo.get(notes[0].id).slug, issues, candidates: this.idleVillagers(project) }
+    const entry = this.boardAll.get(project)
+    if (!entry) return null
+    const shown = new Set((this.boards.get(project) || []).map((n) => n.id))
+    const issues = entry.all.filter((n) => shown.has(n.id)).map((n) => ({ id: n.id, ...this.issueInfo.get(n.id).issue }))
+    const everyIssue = entry.all.map((n) => this.issueInfo.get(n.id).issue)
+    return {
+      id, project, slug: entry.slug, issues, total: entry.all.length,
+      filter: this.boardFilter(project), labels: labelsOf(everyIssue), viewer: this.issues.viewer || '',
+      candidates: this.idleVillagers(project),
+    }
   }
 
   /** Villagers on a repo who could take on a job now, most recently active first. */
@@ -538,8 +571,7 @@ export class Village {
 
   /** The repo's whole issue list on GitHub, for when the board can't show them all. */
   async openIssuesPage(project) {
-    const notes = this.boards.get(project)
-    const slug = notes && this.issueInfo.get(notes[0].id)?.slug
+    const slug = this.boardAll.get(project)?.slug
     if (!slug || this.demo) return
     try {
       await api.openUrl(`https://github.com/${slug}/issues`)

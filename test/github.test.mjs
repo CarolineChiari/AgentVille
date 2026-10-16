@@ -246,3 +246,33 @@ test('a release nobody can read leaves the notice off, and a missing gh stops th
   assert.equal(after.available, false)
   assert.equal(calls, 1)
 })
+
+test('the issue store says who gh is signed in as, asked once, and ignores anything that is not a login', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  const calls = []
+  const gh = async (args) => {
+    calls.push(args)
+    return args[0] === 'api' ? 'octo-cat\n' : JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])
+  }
+  const store = createIssueStore({ dataDir: home, gh })
+  await store.get([{ name: 'app', path: repo }])
+  await store.settle()
+  const first = await store.get([{ name: 'app', path: repo }])
+  assert.equal(first.viewer, '')
+  assert.equal(first.updating, true, 'the page is told to look again')
+  await store.settle()
+  assert.equal((await store.get([{ name: 'app', path: repo }])).viewer, 'octo-cat')
+  await store.get([{ name: 'app', path: repo }])
+  assert.equal(calls.filter((a) => a[0] === 'api').length, 1)
+  assert.deepEqual(calls.find((a) => a[0] === 'api'), ['api', 'user', '--jq', '.login'])
+
+  const odd = createIssueStore({ dataDir: home + '/2', gh: async (a) => (a[0] === 'api' ? '{"x":1}; rm -rf' : JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])) })
+  for (let i = 0; i < 2; i++) {
+    await odd.get([{ name: 'app', path: repo }])
+    await odd.settle()
+  }
+  assert.equal((await odd.get([{ name: 'app', path: repo }])).viewer, '')
+})
