@@ -66,9 +66,10 @@ export function createMinimap(root, camera) {
     g.fillStyle = P.ash
     g.fillRect(lay.ox + (GATE_CELL[0] - lay.x0) * px, lay.oy + (GATE_CELL[1] - lay.y0) * px, px - 1, px - 1)
     for (const v of frame.villagers) {
-      if (!DOTS.includes(v.status)) continue
+      // By badge, not status: a villager walking off to the gate keeps its status but has no badge.
+      if (!DOTS.includes(v.badge)) continue
       const m = toMap(lay, v.x * TILE_PX, v.y * TILE_PX)
-      g.fillStyle = BADGE[v.badge] ?? BADGE[v.status]
+      g.fillStyle = BADGE[v.badge]
       g.fillRect(Math.round(m.x) - 1, Math.round(m.y) - 1, 3, 3)
     }
     // The part of the screen not under the panels, as the camera sees it.

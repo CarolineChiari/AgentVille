@@ -449,6 +449,10 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   padding: 5px 12px;
 }
 
+/* Inside a building the map is stale and would steer the outdoor camera; the transcript panel
+   holds the same corner and the canvas would sit over its messages. */
+body.inside #hud > .minimap,
+#hud:has(> .transcript:not([hidden])) > .minimap { display: none; }
 /* Above the hint pill, which holds the bottom-left corner. */
 .minimap {
   position: absolute;
