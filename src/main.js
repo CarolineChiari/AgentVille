@@ -21,6 +21,7 @@ import { createNewSession } from './ui/newsession.js'
 import { createTaskEditor } from './ui/taskeditor.js'
 import { createGroupEditor } from './ui/groupeditor.js'
 import { createTip } from './ui/tip.js'
+import { createMinimap } from './ui/minimap.js'
 import { createHacker } from './ui/hacker.js'
 import { SHOW_CHANNEL, comboOf } from './sim/hacker.js'
 import { FAKE_REPOS } from './sim/hacker-text.js'
@@ -112,6 +113,7 @@ const newSession = createNewSession(hudRoot, village, { onRemember: () => saveSe
 const taskEditor = createTaskEditor(hudRoot, village)
 const groupEditor = createGroupEditor(hudRoot, village)
 const tip = createTip(hudRoot, village)
+const minimap = createMinimap(hudRoot, camera)
 // Hollywood hacker mode: a show over the village. It may name villagers, whose names are made up,
 // and made-up repos, never the real ones: people film their screen with this up.
 const hacker = createHacker(hudRoot, {
@@ -571,6 +573,7 @@ function loop(now) {
       insetTop: ROOM_BAR_PX * camera.dpr,
     })
   }
+  if (!village.focused) minimap.update(lastFrame)
   const sel = village.selected
   const board = sel && world.board(sel)
   const v = sel && (world.villager(sel) || world.flower(sel) || board)
