@@ -67,7 +67,8 @@ option, optgroup { background-color: var(--bg); color: var(--text); }
 /* H hides the panels, not the HUD: the card, transcript, room bar, dialogs and toasts are how a
    click on the map does anything, so hiding them would leave the village looking but dead. */
 body.hud-hidden #hud > .side,
-body.hud-hidden #hud > .hint { display: none; }
+body.hud-hidden #hud > .hint,
+body.hud-hidden #hud > .minimap { display: none; }
 .panels-back {
   display: none;
   position: absolute;
@@ -446,6 +447,23 @@ p.tasks.note { display: block; margin: 8px 0 0; }
   border: 1px solid var(--panel-border);
   border-radius: 999px;
   padding: 5px 12px;
+}
+
+/* Above the hint pill, which holds the bottom-left corner. */
+.minimap {
+  position: absolute;
+  left: 12px;
+  bottom: 52px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 4px;
+  line-height: 0;
+  backdrop-filter: blur(10px);
+}
+.minimap canvas { width: 168px; height: 120px; cursor: pointer; touch-action: none; }
+@media (max-width: 720px) {
+  .minimap { display: none; }
 }
 
 @media (max-width: 720px) {
