@@ -749,14 +749,16 @@ export class Canvas2dRenderer {
       const rad = 11 * s
       const pulse = 0.22 + 0.14 * Math.sin(frame.time * 2.4 + (hashString(f.id) % 100) / 16)
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad)
-      g.addColorStop(0, rgba(P.glitterGlow, pulse))
-      g.addColorStop(1, rgba(P.glitterGlow, 0))
+      const glow = f.checks === 'fail' ? P.failGlow : P.glitterGlow
+      g.addColorStop(0, rgba(glow, pulse))
+      g.addColorStop(1, rgba(glow, 0))
       ctx.fillStyle = g
       ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2)
     }
     ctx.globalCompositeOperation = 'source-over'
     for (const f of frame.flowers) {
-      if (!f.open) continue
+      // A pending bud only glows; the sparkles are for ones that are passing or have no checks.
+      if (!f.open || f.checks === 'pending' || f.checks === 'fail') continue
       const seed = hashString(f.id)
       for (let k = 0; k < 4; k++) {
         const phase = ((seed >>> (k * 7)) % 100) / 100

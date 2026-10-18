@@ -15,7 +15,7 @@ export const PR_TTL_MS = 10 * 60 * 1000
 /** Enough to fill a big field (a 2×2 plot's holds nearly a thousand flowers), few enough to be quick. */
 export const PR_LIMIT = 500
 const GH_TIMEOUT_MS = 30_000
-const FIELDS = 'number,title,labels,state,isDraft,createdAt,mergedAt,author,url,additions,deletions,headRefName'
+const FIELDS = 'number,title,labels,state,isDraft,createdAt,mergedAt,author,url,additions,deletions,headRefName,statusCheckRollup,reviewDecision'
 /** Issues are opened and closed about as often as PRs; one clock for both is simpler. */
 export const ISSUE_TTL_MS = PR_TTL_MS
 /** Six notes fit on a board and the card lists a page; two hundred counts a backlog honestly without a slow fetch. */
@@ -68,6 +68,26 @@ export async function githubRepoOf(dir) {
   }
 }
 
+/**
+ * The checks on a PR boiled down to one word and a count of the ones failing. The rollup mixes two
+ * shapes: a check run (`status` + `conclusion`) and a commit status (`state`). It can be long, so
+ * only this summary is kept in data/prs.json.
+ */
+export function summarizeChecks(rollup) {
+  if (!Array.isArray(rollup) || !rollup.length) return { checks: '', failing: 0 }
+  let failing = 0
+  let pending = 0
+  for (const c of rollup) {
+    const status = String(c?.status || '').toUpperCase()
+    const word = String((status && status !== 'COMPLETED' ? '' : c?.conclusion) || c?.state || '').toUpperCase()
+    if (['FAILURE', 'ERROR', 'TIMED_OUT', 'CANCELLED', 'STARTUP_FAILURE', 'ACTION_REQUIRED'].includes(word)) failing++
+    else if (!word || word === 'PENDING' || word === 'EXPECTED') pending++
+  }
+  return { checks: failing ? 'fail' : pending ? 'pending' : 'pass', failing }
+}
+
+const REVIEW_DECISIONS = ['APPROVED', 'CHANGES_REQUESTED', 'REVIEW_REQUIRED']
+
 /** Keep only what the page shows, typed. `gh` output is trusted to be JSON, not to be well-formed. */
 export function normalizePr(p) {
   const n = Number(p?.number)
@@ -76,6 +96,8 @@ export function normalizePr(p) {
   // Closed without merging is work that didn't land: no flower for it.
   if (state !== 'MERGED' && state !== 'OPEN') return null
   const url = typeof p.url === 'string' && /^https:\/\/github\.com\//.test(p.url) ? p.url : ''
+  const { checks, failing } = summarizeChecks(p.statusCheckRollup)
+  const decision = String(p.reviewDecision || '').toUpperCase()
   return {
     number: n,
     title: String(p.title || '').slice(0, 300),
@@ -89,6 +111,9 @@ export function normalizePr(p) {
     additions: Number(p.additions) || 0,
     deletions: Number(p.deletions) || 0,
     branch: String(p.headRefName || ''),
+    checks,
+    failing,
+    reviewDecision: REVIEW_DECISIONS.includes(decision) ? decision : '',
   }
 }
 
