@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote } from '../server/github.mjs'
+import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote, summarizeChecks } from '../server/github.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 test('GitHub remotes in every common form', () => {
@@ -48,6 +48,19 @@ test('closed-unmerged PRs are dropped and fields are typed', () => {
   assert.deepEqual(p.labels, ['bug'])
   assert.equal(p.deletions, 2)
   assert.equal(p.mergedAt, Date.parse('2026-01-02T00:00:00Z'))
+})
+
+test('checks are boiled down to one word and a failing count', () => {
+  const run = (status, conclusion) => ({ __typename: 'CheckRun', status, conclusion })
+  assert.deepEqual(summarizeChecks(undefined), { checks: '', failing: 0 })
+  assert.deepEqual(summarizeChecks([]), { checks: '', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'SUCCESS'), { state: 'SUCCESS' }, run('COMPLETED', 'SKIPPED')]), { checks: 'pass', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'SUCCESS'), run('IN_PROGRESS', '')]), { checks: 'pending', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'FAILURE'), run('IN_PROGRESS', ''), { state: 'ERROR' }]), { checks: 'fail', failing: 2 })
+  const p = normalizePr({ number: 1, state: 'OPEN', statusCheckRollup: [run('COMPLETED', 'FAILURE')], reviewDecision: 'CHANGES_REQUESTED' })
+  assert.equal(p.checks, 'fail')
+  assert.equal(p.reviewDecision, 'CHANGES_REQUESTED')
+  assert.equal(normalizePr({ number: 2, state: 'OPEN', reviewDecision: 'bogus' }).reviewDecision, '')
 })
 
 test('the store answers from cache at once, refreshes stale repos in the background, and persists', async (t) => {

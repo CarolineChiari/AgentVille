@@ -457,7 +457,7 @@ export class Village {
           const info = { ...f, finishedAt, open, pr, slug, project, threadId: threadForPr.get(`${project}#${pr.number}`) || null }
           this.flowerInfo.set(id, info)
           prKeys.add(`${project}#${pr.number}`)
-          add(project, { id, kind: f.kind, color: f.color, white: f.white, open, finishedAt })
+          add(project, { id, kind: f.kind, color: f.color, white: f.white, open, checks: open ? pr.checks || '' : '', finishedAt })
         }
       }
     }

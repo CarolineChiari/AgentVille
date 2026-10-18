@@ -434,6 +434,17 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     g.drawImage(sprites.get(`flower.${f.kind}.2`, 0, themed({ color }, f.theme)), 3, 8)
   }
 
+  /** *2 failing · Changes requested*, or '' when GitHub has said nothing. */
+  function checksWords(pr) {
+    const parts = []
+    if (pr.checks === 'fail') parts.push(`${pr.failing || 1} failing`)
+    else if (pr.checks === 'pending') parts.push('running')
+    else if (pr.checks === 'pass') parts.push('passing')
+    const review = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', REVIEW_REQUIRED: 'Review required' }[pr.reviewDecision]
+    if (review) parts.push(review)
+    return parts.join(' · ')
+  }
+
   /** A pull request: what it was, who wrote it, and a way to it. Open ones are asking for you. */
   function fillPr(f) {
     const pr = f.pr
@@ -447,6 +458,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       pr.author && ['Author', pr.author],
       pr.branch && ['Branch', pr.branch],
       f.open ? ['Opened', ago(pr.createdAt)] : ['Merged', ago(pr.mergedAt)],
+      f.open && checksWords(pr) && ['Checks', checksWords(pr)],
       ['Changes', `+${pr.additions} −${pr.deletions}`],
       ['Labels', pr.labels.length ? pr.labels.join(', ') : `none (white ${words.one})`],
     ].filter(Boolean)
@@ -562,7 +574,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${checksWords(f.pr)}|${f.theme}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id
