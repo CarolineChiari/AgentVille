@@ -574,7 +574,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${checksWords(f.pr)}|${f.theme}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id
