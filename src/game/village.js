@@ -483,9 +483,15 @@ export class Village {
    */
   _settleTaken() {
     const record = this.state.takenIssues || {}
-    const known = new Set([...this.issueInfo.values()].map((i) => i.slug))
+    // Loaded means the fetch answered, even with no open issues: closing the last one must clear its record.
+    const off = new Set(this.state.hiddenProjects)
+    const known = new Set()
+    if (this.settings.issueBoards) {
+      for (const [project, r] of Object.entries(this.issues.repos || {})) if (!off.has(project) && Array.isArray(r?.issues)) known.add(r.slug)
+    }
     const open = new Set(this.issueInfo.keys())
-    const live = new Set(this.view.live.map((t) => t.id))
+    // A dormant repo's threads are folded, not gone; only archived ones (and vanished ones) end a hand-off.
+    const live = new Set([...this.view.live, ...this.view.folded, ...this.view.hidden].map((t) => t.id))
     const settled = pruneTaken(record, open, live)
     for (const [id, r] of Object.entries(record)) if (!known.has(id.slice(6).split('#')[0])) settled[id] = r
     if (Object.keys(settled).length === Object.keys(record).length) return false
@@ -1317,7 +1323,8 @@ export class Village {
       if (!r.continued && t.group) this._expect(t.project, t.group.id)
       this.toast(r.continued ? `“${task.label}” sent to ${t.villager}, “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
-      return r.continued
+      // Only a hand-off that reached the thread: the prompt went in, or is on the clipboard to paste.
+      return Boolean(r.continued && (r.promptPassed || copied))
     } catch (err) {
       this.toast(err.message, 'error')
     }
