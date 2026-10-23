@@ -5,6 +5,7 @@ import { cleanTasks } from '../src/game/tasks.js'
 import { cleanNames } from '../src/game/names.js'
 import { cleanGroupMap, cleanGroupOf } from '../src/game/groups.js'
 import { cleanSpotlights } from '../src/game/spotlight.js'
+import { cleanFilterMap } from '../src/game/boardfilter.js'
 
 export const STATE_VERSION = 1
 const FILE = 'village.json'
@@ -28,6 +29,7 @@ export function emptyState() {
     progress: {},
     grades: {},
     spotlights: {},
+    boardFilters: {},
     settings: null,
     updatedAt: 0,
   }
@@ -159,6 +161,8 @@ export function normalizeState(raw) {
     grades: gradeMap(s.grades),
     // Thread id → when its spotlight goes out and what it shows. Ones already out are dropped on the next write.
     spotlights: cleanSpotlights(s.spotlights),
+    // Repo name → which of its notice board's issues show: see src/game/boardfilter.js.
+    boardFilters: cleanFilterMap(s.boardFilters),
     settings: s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : null,
     updatedAt: typeof s.updatedAt === 'number' && Number.isFinite(s.updatedAt) ? s.updatedAt : 0,
   }

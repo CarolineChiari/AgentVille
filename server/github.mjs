@@ -223,7 +223,10 @@ function createGhStore({ dataDir, file: name, key, argv, normalize, gh = runGh, 
     return { repos, updating: inFlight.size > 0, available, warnings }
   }
 
-  return { get, refresh, settle: () => lane, file }
+  /** Run a job in the same lane as the refreshes, so gh never has two processes going. */
+  const queue = (job) => (lane = lane.then(job).catch(() => {}))
+
+  return { get, refresh, queue, settle: () => lane, file }
 }
 
 /** Every PR, merged or open, per repo: `{ repos: { [project]: { slug, prs } }, updating, available, warnings }`. */
@@ -233,12 +236,45 @@ export const createPrStore = ({ ttlMs = PR_TTL_MS, ...opts }) =>
     argv: (slug) => ['pr', 'list', '--repo', slug, '--state', 'all', '--limit', String(PR_LIMIT), '--json', FIELDS],
   })
 
-/** Open issues per repo: `{ repos: { [project]: { slug, issues } }, updating, available, warnings }`. */
-export const createIssueStore = ({ ttlMs = ISSUE_TTL_MS, ...opts }) =>
-  createGhStore({
-    ...opts, ttlMs, file: 'issues.json', key: 'issues', normalize: normalizeIssue,
+/** A GitHub login: letters, digits and hyphens. Anything else from `gh` is not one. */
+const LOGIN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
+
+/**
+ * Open issues per repo: `{ repos: { [project]: { slug, issues } }, viewer, updating, available, warnings }`.
+ * `viewer` is who `gh` is signed in as, asked once and kept in memory, for "assigned to me"; '' until known.
+ */
+export function createIssueStore({ ttlMs = ISSUE_TTL_MS, gh = runGh, now = Date.now, ...opts }) {
+  const store = createGhStore({
+    ...opts, gh, now, ttlMs, file: 'issues.json', key: 'issues', normalize: normalizeIssue,
     argv: (slug) => ['issue', 'list', '--repo', slug, '--state', 'open', '--limit', String(ISSUE_LIMIT), '--json', ISSUE_FIELDS],
   })
+  let viewer = '' // not saved: it is whoever gh is signed in as now
+  let asking = null
+  let triedAt = -Infinity // a failed or odd answer waits out the TTL like any other failure, or the page would poll gh for ever
+  let missing = false // no gh at all: the store has stopped trying, and so does this
+  const ask = () => (asking ||= store.queue(async () => {
+    triedAt = now()
+    try {
+      const login = (await gh(['api', 'user', '--jq', '.login'])).trim()
+      if (LOGIN.test(login)) viewer = login
+    } catch (err) {
+      if (err.code === 'ENOENT') missing = true
+      // Not signed in: "mine" matches nothing, and the next look asks again.
+    } finally {
+      asking = null
+    }
+  }))
+  return {
+    ...store,
+    async get(projects) {
+      const out = await store.get(projects)
+      // Only worth asking once there is an issue to be assigned.
+      if (!viewer && !missing && now() - triedAt > ttlMs && out.available && Object.values(out.repos).some((r) => r.issues.length)) ask()
+      // Still asking: say so, and the page looks again soon.
+      return { ...out, viewer, updating: out.updating || asking !== null }
+    },
+  }
+}
 
 /**
  * The newest published AgentVille release, asked for once a day through the same `gh`, kept in
@@ -310,5 +346,8 @@ export function createReleaseStore({ dataDir, repo = RELEASE_REPO, version = app
     }
   }
 
-  return { get, refresh, settle: () => lane, file }
+  /** Run a job in the same lane as the refreshes, so gh never has two processes going. */
+  const queue = (job) => (lane = lane.then(job).catch(() => {}))
+
+  return { get, refresh, queue, settle: () => lane, file }
 }
