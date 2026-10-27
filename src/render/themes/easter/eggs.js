@@ -88,17 +88,17 @@ const CROPS = {
     const cy = Math.round(egg(pc, 6 + r, 4, c))
     if (!bud) for (let y = cy - 2; y <= cy + 2; y++) for (let x = CX - 1; x <= CX + 1; x++) if ((x + y) & 1) pc.px(x, y, P.linen)
   },
-  // Performance is a chick, quick: a yellow puff with a beak.
+  // Performance is a chick, quick: a puff in the PR's colour with a beak.
   perf(pc, c, r, bud) {
-    const body = bud ? P.linen : P.eggYellow
+    const body = c // the pull request's colour, undyed cream while it is open
     pc.ellipse(CX + 0.5, BASE - 3, 2.6, 2.4, body)
     pc.ellipse(CX + 1.5, BASE - 6, 1.6, 1.6, body)
     pc.px(CX + 3, BASE - 6, P.daffodil)
     pc.px(CX + 2, BASE - 7, P.outline)
     pc.px(CX - 2, BASE - 4, shade(body, -0.2))
+    pc.px(CX - 1, BASE - 5, shade(body, 0.3))
     pc.vline(CX, BASE - 1, BASE, P.daffodil)
     pc.vline(CX + 2, BASE - 1, BASE, P.daffodil)
-    if (!bud) pc.px(CX - 1, BASE - 4, shade(c, -0.1))
   },
   // A review is an egg with a ribbon tied round it.
   review(pc, c, r, bud) {
