@@ -334,6 +334,38 @@ export const THEMES = {
       },
     },
   },
+  'independence-day': {
+    label: 'Independence Day',
+    spotlights: [{ id: 'flag', label: 'Stars and stripes' }, { id: 'firework', label: 'Firework' }, { id: 'bell', label: 'Liberty bell' }, { id: 'melon', label: 'Watermelon' }, { id: 'sparkler', label: 'Sparkler' }],
+    dims: {
+      // Flagpoles with a rope strung between, hay bales for the picnic, rails hung with bunting, and a white picket.
+      fence: ['flagposts', 'haystack', 'bunting', 'picket'],
+      yard: ['confetti', 'lawn', 'shingle', 'sidewalk'],
+      wall: ['clapboard', 'redbarn', 'logs', 'fieldstone', 'brick'],
+      // Paint for the roofs, doors and awnings: Old Glory red, navy, sky blue and gold, in four
+      // families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'main-street', label: 'Main street parade', blurb: 'Brick fronts and white clapboard, a flagpole at every door and a banner across the street', fence: ['flagposts', 'bunting'], yard: ['sidewalk', 'confetti'], wall: ['brick', 'clapboard'], roofs: [0] },
+      { id: 'picnic-park', label: 'Picnic park', blurb: 'Red barn pavilions on a mown lawn, hay bales to sit on and watermelon on the grass', fence: ['haystack', 'picket'], yard: ['lawn', 'confetti'], wall: ['redbarn', 'logs'], roofs: [1] },
+      { id: 'lakeside', label: 'Lakeside fireworks', blurb: 'Log cabins and stone boathouses on the shingle, bunting along the water and rockets waiting', fence: ['bunting', 'flagposts'], yard: ['shingle', 'lawn'], wall: ['logs', 'fieldstone'], roofs: [2] },
+      { id: 'porch-town', label: 'Small-town porches', blurb: 'White clapboard with a flag on every porch rail, apple pie on the sill and a picket fence', fence: ['picket', 'bunting'], yard: ['lawn', 'sidewalk'], wall: ['clapboard', 'brick'], roofs: [3] },
+    ],
+    auto: ['main-street', 'picnic-park', 'lakeside', 'porch-town'],
+    // Finished work is a flag, a firework or a picnic thing, each kind of work its own. An open PR's
+    // is not lit yet. The glyph is a black star (the four-pointed ✦ is the elves'), which none of
+    // the village's ✿, the site's ⚐, Halloween's ☻, the harbour's ❂, the farm's ♣, Thanksgiving's ❧,
+    // New Year's ✶ or the open issues' ⚑ is.
+    finished: {
+      one: 'flag', many: 'flags', place: 'flag bed', glyph: '\u2605', grow: 'Fly flags and light fireworks for pull requests',
+      names: {
+        fix: 'Flag', feature: 'Rocket', refactor: 'Pinwheel', docs: 'Scroll', test: 'Sparkler bunch',
+        ui: 'Bunting', infra: 'Barbecue grill', data: 'Star', perf: 'Roman candle', review: 'Liberty bell',
+        research: 'Popsicle', misc: 'Lemonade',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

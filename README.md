@@ -159,7 +159,8 @@ pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-trea
 Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
 cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a market garden on the
 farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving; a rooftop
-party, a midnight square, a cosy cabin or a ballroom on New Year's Eve. A
+party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
+fireworks or small-town porches on the Fourth of July. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -309,7 +310,8 @@ Every theme brings five markers of its own: the village's pink arrow, star, hear
 crown; the site's cone, hard hat, crane hook, warning sign and beacon; the elves' leaf, moon,
 lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat and candle; the
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
-sunflower and milk churn; and Thanksgiving's maple leaf, acorn, pie, corn cob and turkey. A spotlight
+sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; and Independence Day's flag, firework,
+liberty bell, watermelon and sparkler. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
