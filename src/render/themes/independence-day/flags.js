@@ -36,12 +36,13 @@ const CROPS = {
     pc.px(CX, cy - r - 1, P.flagBlue)
   },
   // A new feature is a rocket on its stick, the cone in the PR's colour, a spark up top.
-  feature(pc, c, cy, r) {
+  feature(pc, c, cy, r, lit) {
     pc.vline(CX, cy + 1, BASE, P.barnTimber)
     pc.rect(CX - 1, cy - r, 3, r + 2, c)
     pc.px(CX - 1, cy - r, shade(c, 0.3))
     pc.px(CX, cy - r - 1, c)
     pc.hline(CX - 1, CX + 1, cy + 2, P.flagWhite)
+    if (!lit) return
     pc.px(CX, cy - r - 3, P.starGold)
     pc.px(CX - 1, cy - r - 2, P.flagWhite)
     pc.px(CX + 1, cy - r - 2, P.flagWhite)
@@ -66,11 +67,12 @@ const CROPS = {
     pc.px(CX + 1, cy - r - 1, c)
   },
   // Tests are a bunch of sparklers, fanned out, a spark of the PR's colour at each tip.
-  test(pc, c, cy, r) {
+  test(pc, c, cy, r, lit) {
     pc.hline(CX - 1, CX + 1, BASE - 1, P.flagRedDark)
     for (const dx of [-3, 0, 3]) {
       pc.line(CX, BASE - 1, CX + dx, cy - r + 1, P.outline)
       pc.px(CX + dx, cy - r, c)
+      if (!lit) continue
       pc.px(CX + dx, cy - r - 1, P.starGold)
       pc.px(CX + dx + (dx < 0 ? -1 : 1), cy - r, P.flagWhite)
     }
@@ -109,9 +111,10 @@ const CROPS = {
     pc.px(CX - 1, cy - 1, shade(c, 0.3))
   },
   // Performance is a roman candle: a short tube, fire already leaving it in a string of balls.
-  perf(pc, c, cy, r) {
+  perf(pc, c, cy, r, lit) {
     pc.rect(CX - 1, BASE - 4, 3, 5, P.flagRedDark)
     pc.hline(CX - 1, CX + 1, BASE - 4, P.flagWhite)
+    if (!lit) return
     pc.px(CX, BASE - 6, c)
     pc.px(CX + 1, BASE - 8, shade(c, 0.25))
     pc.px(CX - 1, BASE - 10, c)
@@ -175,7 +178,7 @@ export function drawFinished(kind, stage, color) {
   const unripe = stage < 2
   const c = unripe ? P.ash : color
   const draw = CROPS[k.work] || CROPS.misc
-  draw(pc, c, cy, r)
+  draw(pc, c, cy, r, !unripe)
   if (unripe) pc.px(CX, cy, color)
   return pc.outline(P.outline)
 }

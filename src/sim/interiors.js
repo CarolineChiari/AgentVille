@@ -538,7 +538,7 @@ export const INTERIORS = {
         { kind: 'crate', x: 2, y: 2, variant: 0 },
         { kind: 'table', x: 9, y: 2 },
         { kind: 'crate', x: 16, y: 2, variant: 1 },
-        { kind: 'lamp', x: 15, y: 3, variant: 2 },
+        { kind: 'lamp', x: 15, y: 3, variant: 1 },
       ],
     }),
     room('parade-hall', 'Parade hall', 'Brass on the wall, the drum in the corner and a brick stove at the back', {
