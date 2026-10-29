@@ -355,7 +355,7 @@ export const THEMES = {
     ],
     auto: ['colour-lanes', 'flower-holi', 'bonfire-square', 'courtyard-homes'],
     // Everybody is in white, splashed with colour (see the 'gulal' top).
-    outfit: { top: 'gulal' },
+    outfit: { hat: 'none', top: 'gulal' },
     // Finished work is a pot of gulal, each kind of work its own shape of pot. An open PR's pot is
     // still covered with a cloth. The glyph is a sixteen-pointed asterisk, a splash, which none of
     // the village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the harbour's ❂, the farm's ♣,
