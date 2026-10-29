@@ -225,6 +225,30 @@ on the vine.
 **Landmark**: the village's own.
 **Rooms**: a family kitchen, a harvest barn, a pie pantry and a woodland cabin.
 
+## Holi · `holi`
+
+A village on the day of colours: clouds of gulal powder over the lanes, splashes on every wall,
+marigold garlands from the posts and a pichkari leaning by many a door. Everybody is in a white
+tunic splashed with colour.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Colour lanes | `colour-lanes` | Walls and roads splashed pink, green, yellow and blue, with clouds of gulal in the air |
+| Flower Holi | `flower-holi` | Petals underfoot, garlands of marigold and rose strung from every post |
+| Bonfire square | `bonfire-square` | A stack of logs ready for the Holika Dahan fire, lit at night |
+| Courtyard homes | `courtyard-homes` | Flat rooftops and open courtyards, with colour on every wall and balcony |
+
+**Built from** — fences: splashed whitewash walls, marigold garlands, bamboo, stacked logs ·
+ground: powder-dusted stone, petals, terracotta flags, swept ash · walls: whitewash, pink, yellow
+and blue limewash, sandstone · four families of paint.
+**Buildings**: a flat-roofed family home, a lane house, a colour shop, a gate hall and the bonfire stack.
+**Finished work**: a **pot of gulal** at the **colour stall** (✺), one shape of pot per kind of
+work: a matka for a bug fix, a tall urn for a feature, a trio of cups for tests, a surahi for
+performance. An open pull request's pot is still covered with a cloth; white powder is an
+unlabeled PR.
+**Landmark**: the village's own.
+**Rooms**: a colour room, a bonfire hall, a garland workshop and a courtyard room.
+
 ## New Year's Eve · `new-years-eve`
 
 A village counting down to midnight: bunting across the street, party lights on every roof, a
