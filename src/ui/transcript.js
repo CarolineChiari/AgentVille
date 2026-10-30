@@ -2,6 +2,7 @@
 // itself while anything is moving, and keeps you at the bottom only if you were already there.
 import { esc, ago, openLabel, agentName } from './dom.js'
 import { STATUS_LABEL } from '../sim/status.js'
+import { splitMatches, toMarkdown } from './transcript-search.js'
 
 // While the conversation is moving, the panel should read as live. A poll that finds nothing new
 // costs the server a stat and a cache hit, so this is cheap even on a big transcript.
@@ -71,7 +72,16 @@ export function createTranscript(root, village) {
   head.className = 't-head'
   const list = document.createElement('div')
   list.className = 't-list'
-  panel.append(head, list)
+  const find = document.createElement('div')
+  find.className = 't-find'
+  find.innerHTML = `<input type="search" placeholder="Search this thread" aria-label="Search this thread" autocomplete="off" spellcheck="false">
+    <span class="t-count" aria-live="polite"></span>
+    <button class="btn" data-act="prev" title="Previous match (Shift+Enter)" aria-label="Previous match">↑</button>
+    <button class="btn" data-act="next" title="Next match (Enter)" aria-label="Next match">↓</button>
+    <button class="btn" data-act="copy" title="Copy the conversation as Markdown">Copy</button>`
+  const box = find.querySelector('input')
+  const count = find.querySelector('.t-count')
+  panel.append(head, find, list)
   root.appendChild(panel)
   let id = null
   let timer = null
@@ -81,6 +91,9 @@ export function createTranscript(root, village) {
   let loadingMore = false
   let delay = FAST_MS
   let reads = 0 // only the newest read may draw: two can be in flight and finish out of order
+  let msgs = [] // what the list shows, for copying
+  let at = -1 // the match you are on, among the marks in the list
+  let marks = []
   const opened = new Set() // reasoning you have unfolded, remembered so a refresh doesn't shut it
 
   panel.addEventListener('click', (e) => {
@@ -88,6 +101,9 @@ export function createTranscript(root, village) {
     if (!b) return
     if (b.dataset.act === 'close') close()
     else if (b.dataset.act === 'open') village.open(id)
+    else if (b.dataset.act === 'next') jump(1)
+    else if (b.dataset.act === 'prev') jump(-1)
+    else if (b.dataset.act === 'copy') copy(b)
     else if (b.dataset.act === 'more') {
       limit += PAGE
       loadingMore = true
@@ -95,6 +111,80 @@ export function createTranscript(root, village) {
       load()
     }
   })
+
+  box.addEventListener('input', () => highlight(true))
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      jump(e.shiftKey ? -1 : 1)
+    } else if (e.key === 'Escape' && box.value) {
+      e.stopPropagation()
+      box.value = ''
+      highlight(true)
+    }
+  })
+
+  /** Wrap every match in the list in a <mark>; `fresh` starts again from the first one. */
+  function highlight(fresh) {
+    const q = box.value.trim()
+    marks = []
+    if (q) {
+      const walker = document.createTreeWalker(list, NodeFilter.SHOW_TEXT)
+      const nodes = []
+      while (walker.nextNode()) nodes.push(walker.currentNode)
+      for (const n of nodes) {
+        const runs = splitMatches(n.nodeValue, q)
+        if (runs.length === 1 && !runs[0].hit) continue
+        const frag = document.createDocumentFragment()
+        for (const r of runs) {
+          if (!r.hit) frag.append(r.text)
+          else {
+            const mk = document.createElement('mark')
+            mk.textContent = r.text
+            marks.push(mk)
+            frag.append(mk)
+          }
+        }
+        n.replaceWith(frag)
+      }
+    }
+    if (fresh) at = -1
+    // A refresh redraws the list; stay on the same match number if it is still there.
+    if (q && marks.length) {
+      const first = at < 0
+      at = Math.min(Math.max(at, 0), marks.length - 1)
+      if (first || fresh) reveal()
+      else marks[at].classList.add('cur')
+    } else at = -1
+    count.textContent = !q ? '' : marks.length ? `${at + 1} of ${marks.length}` : 'No matches'
+  }
+
+  /** Bring the current match into view, unfolding whatever it is inside. */
+  function reveal() {
+    marks.forEach((m) => m.classList.remove('cur'))
+    const m = marks[at]
+    if (!m) return
+    m.classList.add('cur')
+    for (let d = m.closest('details'); d; d = d.parentElement?.closest('details')) d.open = true
+    m.scrollIntoView({ block: 'center' })
+  }
+
+  function jump(by) {
+    if (!marks.length) return
+    at = (at + by + marks.length) % marks.length
+    reveal()
+    count.textContent = `${at + 1} of ${marks.length}`
+  }
+
+  async function copy(btn) {
+    try {
+      await navigator.clipboard.writeText(toMarkdown(msgs, agentName(village.thread(id))))
+      btn.textContent = 'Copied'
+    } catch {
+      btn.textContent = 'Couldn’t copy'
+    }
+    setTimeout(() => (btn.textContent = 'Copy'), 1500)
+  }
 
   // `toggle` doesn't bubble, so it is heard on the way down.
   panel.addEventListener(
@@ -123,7 +213,10 @@ export function createTranscript(root, village) {
     if (m.role === 'tool') {
       // A command is shown as it was written; for everything else the one line says it all.
       const line = `<span class="tn">${esc(m.name)}</span>${m.code ? '' : ` ${esc(m.detail || '')}`}`
-      return `<div class="m tool"><span class="line">${line}</span>${m.code ? `<pre>${esc(m.code)}</pre>` : ''}</div>`
+      // The one line is clipped to the panel; unfolding it shows the whole of what the harness kept.
+      const more = m.code ? '' : m.detail ? `<div class="full">${esc(m.detail)}</div>` : ''
+      if (!more) return `<div class="m tool"><span class="line">${line}</span>${m.code ? `<pre>${esc(m.code)}</pre>` : ''}</div>`
+      return `<details class="m tool" data-key="${esc(key)}"${opened.has(key) ? ' open' : ''}><summary class="line">${line}</summary>${more}</details>`
     }
     return `<div class="m ${m.role}"><div class="who">${m.role === 'user' ? 'You' : esc(who)}<span>${m.at ? ago(m.at) : ''}</span></div><div class="body">${formatText(m.text)}</div></div>`
   }
@@ -161,6 +254,8 @@ export function createTranscript(root, village) {
       const prevTop = list.scrollTop
       lastList = listHtml
       list.innerHTML = listHtml
+      msgs = r.ok ? r.messages : []
+      highlight(false)
       // Stay pinned to the newest message if you were reading there; after "show earlier", keep the
       // message you were looking at in place; otherwise don't move under you.
       if (loadingMore) list.scrollTop = prevTop + (list.scrollHeight - prevHeight)
@@ -197,6 +292,11 @@ export function createTranscript(root, village) {
     lastHead = header(village.thread(id))
     head.innerHTML = lastHead
     lastList = ''
+    msgs = []
+    box.value = ''
+    marks = []
+    at = -1
+    count.textContent = ''
     list.innerHTML = '<p class="t-empty">Reading…</p>'
     load()
   }
