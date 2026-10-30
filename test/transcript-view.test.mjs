@@ -57,3 +57,7 @@ test('the conversation copies as readable Markdown', () => {
   assert.ok(md.includes('````\necho ```x```\n````'), 'the fence outgrows the backticks inside')
   assert.ok(md.includes('- `Read` a.js') && md.endsWith('**Claude:**\n\ndone'))
 })
+
+test('a search keeps the query as typed, so İ still finds itself', () => {
+  assert.equal(splitMatches('İ', 'İ').filter((r) => r.hit).length, 1)
+})

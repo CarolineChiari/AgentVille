@@ -124,28 +124,52 @@ export function createTranscript(root, village) {
     }
   })
 
-  /** Wrap every match in the list in a <mark>; `fresh` starts again from the first one. */
+  /**
+   * Wrap every match in the list in <mark>s; `fresh` starts again from the first one. Each message
+   * is searched as one run of text, so a phrase that crosses inline code or bold is still found,
+   * and the marks of such a match are one hit.
+   */
   function highlight(fresh) {
+    // The last search's marks go first, or the text they split would hide the next query's matches.
+    for (const mk of list.querySelectorAll('mark')) mk.replaceWith(mk.textContent)
+    list.normalize()
     const q = box.value.trim()
     marks = []
     if (q) {
-      const walker = document.createTreeWalker(list, NodeFilter.SHOW_TEXT)
-      const nodes = []
-      while (walker.nextNode()) nodes.push(walker.currentNode)
-      for (const n of nodes) {
-        const runs = splitMatches(n.nodeValue, q)
+      for (const msg of list.querySelectorAll('.m')) {
+        const nodes = []
+        const walker = document.createTreeWalker(msg, NodeFilter.SHOW_TEXT, {
+          // An unfolded tool call repeats its summary in `.full`; one call is one hit.
+          acceptNode: (n) => (n.parentElement.closest('.full') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+        })
+        while (walker.nextNode()) nodes.push(walker.currentNode)
+        const whole = nodes.map((n) => n.nodeValue).join('')
+        const runs = splitMatches(whole, q)
         if (runs.length === 1 && !runs[0].hit) continue
-        const frag = document.createDocumentFragment()
+        const found = []
+        let pos = 0
         for (const r of runs) {
-          if (!r.hit) frag.append(r.text)
-          else {
+          if (r.hit) found.push([pos, pos + r.text.length])
+          pos += r.text.length
+        }
+        // Walk the nodes from the last match back, so cutting one never moves the offsets still to do.
+        let start = 0
+        const spans = nodes.map((n) => [n, start, (start += n.nodeValue.length)])
+        const group = found.map(() => [])
+        for (const [n, from, to] of spans.reverse()) {
+          for (let i = found.length - 1; i >= 0; i--) {
+            const lo = Math.max(found[i][0], from)
+            const hi = Math.min(found[i][1], to)
+            if (lo >= hi) continue
+            const mid = n.splitText(lo - from)
+            mid.splitText(hi - lo)
             const mk = document.createElement('mark')
-            mk.textContent = r.text
-            marks.push(mk)
-            frag.append(mk)
+            mid.replaceWith(mk)
+            mk.append(mid)
+            group[i].unshift(mk)
           }
         }
-        n.replaceWith(frag)
+        marks.push(...group)
       }
     }
     if (fresh) at = -1
@@ -154,19 +178,19 @@ export function createTranscript(root, village) {
       const first = at < 0
       at = Math.min(Math.max(at, 0), marks.length - 1)
       if (first || fresh) reveal()
-      else marks[at].classList.add('cur')
+      else marks[at].forEach((m) => m.classList.add('cur'))
     } else at = -1
     count.textContent = !q ? '' : marks.length ? `${at + 1} of ${marks.length}` : 'No matches'
   }
 
   /** Bring the current match into view, unfolding whatever it is inside. */
   function reveal() {
-    marks.forEach((m) => m.classList.remove('cur'))
-    const m = marks[at]
-    if (!m) return
-    m.classList.add('cur')
-    for (let d = m.closest('details'); d; d = d.parentElement?.closest('details')) d.open = true
-    m.scrollIntoView({ block: 'center' })
+    list.querySelectorAll('mark.cur').forEach((m) => m.classList.remove('cur'))
+    const group = marks[at]
+    if (!group) return
+    group.forEach((m) => m.classList.add('cur'))
+    for (let d = group[0].closest('details'); d; d = d.parentElement?.closest('details')) d.open = true
+    group[0].scrollIntoView({ block: 'center' })
   }
 
   function jump(by) {

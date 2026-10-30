@@ -7,10 +7,10 @@
  */
 export function splitMatches(text, query) {
   const s = String(text)
-  const q = String(query || '').toLowerCase()
+  const q = String(query || '')
   if (!q) return [{ text: s, hit: false }]
-  // Lowercasing can change a string's length (İ becomes two code units), which would put every
-  // later match in the wrong place, so search the original with a pattern rather than a copy.
+  // The pattern keeps the query as typed and lets the `i` flag fold case: lowercasing it first
+  // would change some characters (İ becomes i + a combining dot) so that it no longer matched itself.
   const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
   const out = []
   let at = 0
