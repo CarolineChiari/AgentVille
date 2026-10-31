@@ -6,7 +6,7 @@ import { PALETTE as P } from '../src/render/sprites/palette.js'
 
 /** What the themes hand out: nobody picks work gear for themselves, whichever theme it belongs to. */
 const WORK_GEAR = {
-  hat: Object.values(THEMES).map((t) => t.outfit?.hat).filter(Boolean),
+  hat: Object.values(THEMES).map((t) => t.outfit?.hat).filter((h) => h && h !== 'none'),
   top: Object.values(THEMES).map((t) => t.outfit?.top).filter(Boolean),
 }
 

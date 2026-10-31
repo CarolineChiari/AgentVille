@@ -1,4 +1,4 @@
-// Inside a festival village's buildings: the courtyard room, the souk stall, the sweets kitchen and
+// Inside a festival village's buildings: the tiled courtyard, the souk stall, the sweets kitchen and
 // the garden pavilion (the rooms are in src/sim/interiors.js). A room still says what it always says
 // about the work — the board, the files, the commits — so what is drawn here is what the room is
 // made of and the few things in it that give the season away: the lantern on the sill, the dates in

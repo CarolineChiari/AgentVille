@@ -32,3 +32,32 @@ test('the panel hurries while the conversation moves and backs off once it stops
   assert.equal(d, 30_000, 'backs off to the slow poll and stays there')
   assert.equal(nextDelay(d, { changed: true }), 2000, 'and picks up again the moment something changes')
 })
+
+import { splitMatches, toMarkdown } from '../src/ui/transcript-search.js'
+
+test('a search cuts text into runs that join back to it, ignoring case', () => {
+  const runs = splitMatches('Fix the Fix. fix?', 'fix')
+  assert.equal(runs.filter((r) => r.hit).length, 3)
+  assert.equal(runs.map((r) => r.text).join(''), 'Fix the Fix. fix?')
+  assert.deepEqual(splitMatches('abc', ''), [{ text: 'abc', hit: false }])
+  assert.equal(splitMatches('a.b a+b', 'a.b').filter((r) => r.hit).length, 1, 'the query is text, not a pattern')
+})
+
+test('the conversation copies as readable Markdown', () => {
+  const md = toMarkdown(
+    [
+      { role: 'user', text: 'run it' },
+      { role: 'tool', name: 'Bash', code: 'echo ```x```' },
+      { role: 'tool', name: 'Read', detail: 'a.js' },
+      { role: 'assistant', text: 'done' },
+    ],
+    'Claude',
+  )
+  assert.ok(md.startsWith('**You:**\n\nrun it'))
+  assert.ok(md.includes('````\necho ```x```\n````'), 'the fence outgrows the backticks inside')
+  assert.ok(md.includes('- `Read` a.js') && md.endsWith('**Claude:**\n\ndone'))
+})
+
+test('a search keeps the query as typed, so İ still finds itself', () => {
+  assert.equal(splitMatches('İ', 'İ').filter((r) => r.hit).length, 1)
+})

@@ -19,7 +19,7 @@ export const HATS = ['none', 'straw', 'cap', 'beanie', 'bow', 'hardhat', 'circle
  */
 const EVERYDAY_HATS = 5
 /** What a villager wears over its shirt, by `look.top`. After 'vest', a theme's work gear. */
-export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest', 'hivis', 'cloak', 'cape', 'oilskin', 'dungarees']
+export const TOPS = ['plain', 'stripes', 'overalls', 'apron', 'vest', 'hivis', 'cloak', 'cape', 'oilskin', 'dungarees', 'gulal']
 /** One more thing about a villager, by `look.extra`. */
 export const EXTRAS = ['none', 'glasses', 'beard', 'scarf', 'satchel']
 
