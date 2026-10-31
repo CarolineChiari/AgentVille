@@ -945,6 +945,69 @@ export const PALETTE = {
   holiBedLight: '#93604b',
   holiBedDeep: '#4d2c22',
 
+  // ---------- the Eid theme (src/render/themes/eid/) ----------
+  // Paint and cloth for the festival: teal, gold, deep blue, rose, cream, walnut, plum and palm
+  // green. A plot's buildings share a family of three (PAINT_FAMILIES in eid/buildings.js).
+  eidPaint: ['#1f7a6b', '#c8962e', '#2b5a8a', '#b04a62', '#f3ead2', '#6f4a2e', '#5c3a7a', '#3f8f4a'],
+  // Walls: whitewash, warm sandstone, glazed tilework in blue, sun-dried clay and a carved wooden
+  // screen. (The screen's wood is the farm's timber.)
+  eidWhitewash: '#f1ece0',
+  eidWhitewashDark: '#cfc6b2',
+  eidWhitewashLight: '#faf6ec',
+  eidSandstone: '#d4b68a',
+  eidSandstoneDark: '#b4936a',
+  eidSandstoneLight: '#e6cfa6',
+  glazeBlue: '#2f6fa8',
+  glazeBlueDark: '#1f4f80',
+  glazeTeal: '#2a9a96',
+  glazeWhite: '#e9f1ee',
+  clay: '#c58a5c',
+  clayDark: '#a06a42',
+  clayLight: '#dba577',
+  // The lanterns (fanous): brass frames and the coloured glass in them, and the candle inside.
+  eidBrass: '#c79a3a',
+  eidBrassDark: '#8e6a22',
+  eidBrassLight: '#ecc96a',
+  glowCandle: '#ffe9a0',
+  // Sweets and dates: ma'amoul dusted with sugar, dates, pistachio and honey syrup.
+  sugarDust: '#f6efe0',
+  dateBrown: '#6b3a24',
+  pistachio: '#9fb56a',
+  honey: '#dea03b',
+  palmGreen: '#4f8f45',
+  palmGreenDark: '#366b34',
+  // Ground by yard tone: pale desert sand, a garden lawn, terracotta courtyard pavers and blue
+  // mosaic. Each is base, shade, light and deepest; then the same in a dry patch and in a lush
+  // one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  eidGround: [
+    ['#dcc592', '#c3aa75', '#ecd8ab', '#a48c5c'],
+    ['#7da651', '#678e40', '#92bb66', '#527530'],
+    ['#c27a52', '#a8643f', '#d68f66', '#8a4f2f'],
+    ['#4d86b0', '#3b6e96', '#68a0c6', '#2c5578'],
+  ],
+  eidGroundSunny: [
+    ['#e4cb8a', '#cbb06d', '#f2dea1', '#ac9352'],
+    ['#8dab4c', '#76943b', '#a3c161', '#5e7c2b'],
+    ['#cc8250', '#b26b3a', '#e09762', '#945529'],
+    ['#5990ae', '#467a97', '#73aac4', '#35607a'],
+  ],
+  eidGroundLush: [
+    ['#d2c08d', '#b9a570', '#e2d3a5', '#9a8757'],
+    ['#6f9f55', '#5a8745', '#85b46b', '#46702f'],
+    ['#b87454', '#9e5e40', '#cc8a69', '#80492f'],
+    ['#437fa8', '#336890', '#5d99be', '#255070'],
+  ],
+  // The lane round a plot: pale beaten sand, paler than the ground so the plots read.
+  eidLane: '#e8d9b4',
+  eidLaneDark: '#cdbb92',
+  eidLaneLight: '#f5ead0',
+  eidLaneEdge: '#a8946a',
+  // The lantern bed: dark, watered soil so the glowing lanterns stand out from the plot's ground.
+  patchSoilNight: '#3d3a52',
+  patchSoilNightDark: '#2e2c42',
+  patchSoilNightLight: '#53506c',
+  patchSoilNightDeep: '#222036',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
