@@ -16,7 +16,8 @@ no account, and it never writes to Claude Code's files. Everything it writes goe
 The one thing that touches the network is the PR gardens and issue boards, which ask GitHub
 through your own `gh` login — and, while either is on, a once-a-day look at whether a newer
 AgentVille has been released. Turn them off in Settings and nothing leaves the machine. The
-foreman, sent only when you send him, runs your own `claude` CLI.
+foreman, sent only when you send him, and a post mortem, held only when you hold one, run your own
+`claude` CLI.
 
 ## Run it
 
@@ -341,6 +342,32 @@ villager walks in for him), `--setting-sources user` (so no repo's own settings 
 `--strict-mcp-config`, Sonnet, and a spending cap per run. It uses your Claude plan or API key like
 any session; the sheet says what the last round came to. If the CLI isn't signed in, the round
 stops and says so: run `claude` once in a terminal to sign in.
+
+### Post mortems
+
+**Archive** puts a session away at once. **Post mortem**, beside it on the card, lays it to rest and
+looks back on it first: the session is archived, and two go over it in the background.
+
+- The session itself is asked what it learned, the foreman's way: a copy of it, resumed with
+  `--fork-session` and never saved, with reading tools only, so its own conversation never gets a
+  turn it didn't have.
+- A reviewer that wasn't in it reads its transcript cold (who said what, and every tool call, up
+  to about thirty thousand tokens: a longer one keeps its opening and its end), with the project's
+  `CLAUDE.md` beside it.
+
+Both answer the same questions: what changes to the instructions (`CLAUDE.md`, a skill, the first
+prompt) would have made it go better, worded to paste in; the lessons the next session in the
+project should know; candid feedback for you on what made the work harder (an unclear ask, missing
+context, a permission prompt left waiting) and what would have helped; and what went well.
+
+**Post mortems** in the sidebar's footer is where they wait to be worked through. Each finding has a
+box to tick off once it's dealt with. **Make it** beside a change to the instructions, or **Work
+through these** for every open change and lesson, opens a new session in the project with them as
+its first prompt, asking it to check each against the instructions as they stand and to show you the
+changes before committing; you can edit the prompt first. A post mortem can also be held of a session
+already archived, from its card, and held **Again**. A session still working can't be laid to rest:
+its copy would be asked mid-turn. At most two are under way at once; each run is capped at $2. They
+are kept in `data/postmortems.json`, the latest fifty, until you **Remove** them.
 
 ### The gardens
 

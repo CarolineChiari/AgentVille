@@ -27,7 +27,7 @@ const NEW_GROUP = ':new'
 /** The spotlight picker's choice while one is lit: leaves it as it is. No span id has a colon. */
 const KEEP_SPOTLIGHT = ':keep'
 
-export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {} } = {}) {
+export function createCard(root, village, { onTranscript = () => {}, onEditTasks = () => {}, onEditGroups = () => {}, onRecruit = () => {}, onPostMortem = () => {}, onSeePostMortem = () => {} } = {}) {
   const card = document.createElement('div')
   card.className = 'card'
   card.hidden = true
@@ -152,8 +152,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     if (act === 'open') village.open()
     else if (act === 'viewed') village.viewed()
     else if (act === 'archive') village.archive()
+    else if (act === 'postMortem') onPostMortem(village.selected)
+    else if (act === 'seePostMortem') onSeePostMortem(village.selected)
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
+    else if (act === 'sendPr') village.sendPr(village.selected, card.querySelector('select[data-f="to"]')?.value || '')
+    else if (act === 'recruitPr') {
+      const f = village.flower(village.selected)
+      if (f) onRecruit(f.project, village.prPrompt(village.selected))
+    }
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'threadPr') village.openThreadPr(village.selected, b.dataset.key)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
@@ -202,6 +209,16 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     }
   })
 
+  /**
+   * Archive, and look back on it: the session's own word and a reviewer's on what to learn from it.
+   * Once one is held, the button goes to it instead.
+   */
+  function postMortemButton(t) {
+    if (village.postMortemOf(t.id)) return '<button class="btn" data-act="seePostMortem" title="What its post mortem found">Post mortem ▸</button>'
+    if (t.running) return '<button class="btn danger" disabled title="It’s still working: hold its post mortem once it stops">Post mortem</button>'
+    return '<button class="btn danger" data-act="postMortem" title="Archive it, and ask it and a reviewer what to learn from it: lessons, changes to the instructions, and feedback for you">Post mortem</button>'
+  }
+
   function fill(t) {
     const statusColor = { waiting: BADGE.waiting, blocked: BADGE.blocked, working: BADGE.working, done: BADGE.done, celebrating: BADGE.party }[t.status]
     const meta = [
@@ -235,6 +252,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         ${t.unread && !t.needsInput ? '<button class="btn" data-act="viewed" title="Mark it reviewed until it does something new">Reviewed<kbd>V</kbd></button>' : ''}
         <button class="btn" data-act="tasks" aria-expanded="${tasksOpen}">Tasks ${tasksOpen ? '▴' : '▾'}</button>
         <button class="btn danger" data-act="archive">Archive<kbd>⌫</kbd></button>
+        ${postMortemButton(t)}
       </div>
       ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>
@@ -421,6 +439,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn primary" data-act="open" ${t.canOpen ? '' : 'disabled'}>${esc(openLabel(t, village.settings.openIn))}<kbd>↵</kbd></button>
         <button class="btn" data-act="transcript">Transcript<kbd>T</kbd></button>
         ${restorable ? '<button class="btn" data-act="restore" title="Bring the villager back">Restore</button>' : `<span class="note">Archived in ${esc(t.harnessName || 'Claude')}</span>`}
+        ${postMortemButton(t)}
       </div>
       ${prList(t)}
       <div class="built"><h4>Built</h4>${builtSection()}</div>`
@@ -445,6 +464,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       ['Changes', `+${pr.additions} −${pr.deletions}`],
       ['Labels', pr.labels.length ? pr.labels.join(', ') : `none (white ${words.one})`],
     ].filter(Boolean)
+    // An open PR can be handed to a free villager on its repo to review, or to a new recruit.
+    const free = f.open ? village.idleVillagers(f.project) : []
+    if (!free.some((t) => t.id === handTo)) handTo = free[0]?.id || ''
+    const who = free.length > 1
+      ? `<label class="hand-to">Send to <select data-f="to">${free.map((t) => `<option value="${esc(t.id)}" ${t.id === handTo ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>`
+      : ''
+    const review = f.open
+      ? `<button class="btn" data-act="sendPr" title="${free.length ? 'Hand this PR to a villager already on this repo to review' : 'Nobody here is free'}" ${free.length ? '' : 'disabled'}>Send</button><button class="btn" data-act="recruitPr" title="Start a new session on this repo to review this PR">Recruit</button>`
+      : ''
     card.innerHTML = `
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
@@ -455,8 +483,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      ${who}
       <div class="actions">
         <button class="btn primary" data-act="openPr" ${pr.url ? '' : 'disabled'}>Open PR<kbd>↵</kbd></button>
+        ${review}
         ${f.threadId ? `<button class="btn" data-act="transcript" data-id="${esc(f.threadId)}">Transcript</button><button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
       </div>`
     const g = card.querySelector('canvas.avatar').getContext('2d')
@@ -569,7 +599,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}|${village.idleVillagers(f.project).map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id
@@ -586,7 +616,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
       if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus')) return
       if (id !== shownId || key !== shownKey) {

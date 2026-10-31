@@ -3,7 +3,7 @@
 Every Claude Code session on this machine is a villager in a pixel-art village. Each repo is a
 plot; each session is one villager and one building. The server reads Claude Code's own files
 read-only; everything this project writes goes in `data/` (`village.json`, `prs.json`, `issues.json`,
-`repos.json`, `release.json`, `foreman.json`).
+`repos.json`, `release.json`, `foreman.json`, `postmortems.json`).
 
 ## Layout
 
@@ -66,11 +66,11 @@ read-only; everything this project writes goes in `data/` (`village.json`, `prs.
 - ESM only. `.mjs` under `server/`, `.js` under `src/`. No semicolons, single quotes, 2-space indent.
 - No runtime dependencies without discussion. Dev dependencies are Vite, Electron and electron-builder.
 - Never write outside `data/` (the desktop app's `data/` is under its userData directory). Never write to a harness's files. A repo is
-  only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The network is reached from three
-  places only. `server/github.mjs`, only through the user's own `gh` CLI. `server/weather.mjs`, only once the user
+  only ever read, never run: `server/repo.mjs` counts its lines from its files, not through git. The network is reached in three ways
+  only. `server/github.mjs`, only through the user's own `gh` CLI. `server/weather.mjs`, only once the user
   has typed a place in Settings, and sending nothing but that place name to Open-Meteo; with no place set, the village's
-  weather is made up (`src/sim/weather.js`) and nothing leaves the machine. `server/foreman.mjs`, only when the user
-  sends the foreman, only through their own `claude` CLI, headless, with the flags in
+  weather is made up (`src/sim/weather.js`) and nothing leaves the machine. `server/foreman.mjs` and `server/postmortem.mjs`, only when
+  the user sends the foreman or holds a post mortem, only through their own `claude` CLI, headless, with the flags in
   `server/harnesses/claude-code/headless.mjs`: nothing saved, no repo settings or hooks, no MCP, reading tools at most, a
   thread asked only in a fork of it. Keep it that way. Never execute anything from
   inside another application's bundle; opening a thread goes through a URL the OS resolves.
