@@ -300,6 +300,38 @@ export const THEMES = {
       },
     },
   },
+  eid: {
+    label: 'Eid',
+    spotlights: [{ id: 'crescent', label: 'Crescent and star' }, { id: 'fanous', label: 'Fanous lantern' }, { id: 'dates', label: 'Dates' }, { id: 'maamoul', label: "Ma'amoul" }, { id: 'palm', label: 'Palm' }],
+    dims: {
+      // Lantern posts, a low whitewashed wall banded in tile, a carved lattice screen, and a
+      // string-light garland of crescents and stars.
+      fence: ['lanterns', 'lowwall', 'lattice', 'garland'],
+      yard: ['sand', 'garden', 'courtyard', 'mosaic'],
+      wall: ['whitewash', 'sandstone', 'tilework', 'clay', 'screen'],
+      // Paint for the roofs, doors and awnings: teal, gold, deep blue and rose, in four families
+      // of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'lantern-souk', label: 'Lantern souk', blurb: 'Arcaded stalls of lanterns, sweets and textiles under strings of lights', fence: ['lanterns', 'garland'], yard: ['sand', 'courtyard'], wall: ['sandstone', 'screen'], roofs: [1] },
+      { id: 'courtyard-homes', label: 'Courtyard homes', blurb: 'Whitewashed walls round tiled courtyards, a fountain and a lamp in every one', fence: ['lowwall', 'lattice'], yard: ['mosaic', 'courtyard'], wall: ['whitewash', 'tilework'], roofs: [0] },
+      { id: 'night-garden', label: 'Night garden', blurb: 'Palms and string lights over lawn, a crescent hung above the square', fence: ['garland', 'lanterns'], yard: ['garden'], wall: ['whitewash', 'clay'], roofs: [2] },
+      { id: 'sweets-street', label: 'Sweets street', blurb: "Bakeries of ma'amoul and kahk, trays of dates and families visiting", fence: ['lattice', 'lowwall'], yard: ['courtyard', 'sand'], wall: ['clay', 'sandstone'], roofs: [3] },
+    ],
+    auto: ['lantern-souk', 'courtyard-homes', 'night-garden', 'sweets-street'],
+    // Finished work is a fanous, the festival lantern, each kind of work its own shape. An open
+    // PR's is not lit yet. The glyph is a white sun with rays, which none of the other themes'
+    // glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ or the open issues' ⚑) is.
+    finished: {
+      one: 'lantern', many: 'lanterns', place: 'lantern bed', glyph: '\u263c', grow: 'Light lanterns for pull requests',
+      names: {
+        fix: 'Round fanous', feature: 'Tall fanous', refactor: 'Hexagonal fanous', docs: 'Paper lantern', test: 'Candle lantern',
+        ui: 'Star lantern', infra: 'Brass lantern', data: 'Lattice lantern', perf: 'Teardrop lantern', review: 'Hanging lantern',
+        research: 'Glass lantern', misc: 'Small fanous',
+      },
+    },
+  },
   'new-years-eve': {
     label: "New Year's Eve",
     spotlights: [{ id: 'firework', label: 'Firework' }, { id: 'party-hat', label: 'Party hat' }, { id: 'champagne', label: 'Champagne flute' }, { id: 'clock', label: 'Midnight clock' }, { id: 'disco', label: 'Disco ball' }],

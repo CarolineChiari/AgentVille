@@ -270,3 +270,24 @@ npm run sheet -- <id> --only plots --scale 2 --out docs/themes/<id>.png
 
 The full-window shots come from the demo village through `npm run shots`; see
 [`docs/screenshots/`](../screenshots).
+
+## Eid · `eid`
+
+A village for the festival: fanous lanterns on every post, crescent-and-star garlands, tiled
+courtyards and trays of dates and sweets. Religious symbols stay on the buildings and fences, not on
+the villagers. The calendar doesn't dress the village for it yet: Eid follows the lunar calendar, so
+it is chosen in **Settings → Theme**.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Lantern souk | `lantern-souk` | Arcaded stalls of lanterns, sweets and textiles under strings of lights |
+| Courtyard homes | `courtyard-homes` | Whitewashed walls round tiled courtyards, a fountain and a lamp in every one |
+| Night garden | `night-garden` | Palms and string lights over lawn, a crescent hung above the square |
+| Sweets street | `sweets-street` | Bakeries of ma'amoul and kahk, trays of dates and families visiting |
+
+**Built from** — fences: lantern posts, a tiled low wall, a carved lattice, a garland ·
+ground: sand, garden lawn, courtyard pavers, mosaic · walls: whitewash, sandstone, tilework, clay,
+carved screen · four families of paint.
+**Finished work**: a **lantern** in the **lantern bed** (☼), one silhouette per kind of work; an
+open PR's is not lit yet.
+**Rooms**: a courtyard room, a souk stall, a sweets kitchen and a garden pavilion.
