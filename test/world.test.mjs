@@ -200,15 +200,16 @@ test('idle villagers spread over the whole yard, garden included', () => {
 
 const notes = (n, repo = 'a') => Array.from({ length: n }, (_, i) => ({ id: `issue:me/${repo}#${i + 1}` }))
 
-test('a plot with open issues gets one notice board; one without gets none', () => {
+test('a plot listed with a board gets one, even a bare one; one not listed gets none', () => {
   const w = new World()
   w.setRoster([T('t1', 'a'), T('t2', 'b')], undefined, new Map(), new Map([['a', notes(3)], ['b', []], ['nowhere', notes(2)]]))
   const snap = w.snapshot({ selected: 'board:a' })
-  assert.deepEqual(snap.boards.map((b) => b.id), ['board:a'], 'no board for an empty list, and none for a repo without a plot')
-  assert.equal(snap.boards[0].count, 3)
-  assert.equal(snap.boards[0].selected, true)
+  assert.deepEqual(snap.boards.map((b) => b.id).sort(), ['board:a', 'board:b'], 'none for a repo without a plot')
+  assert.equal(snap.boards.find((b) => b.id === 'board:a').count, 3)
+  assert.equal(snap.boards.find((b) => b.id === 'board:a').selected, true)
   assert.equal(w.board('board:a').plot, 'a')
-  assert.equal(w.board('board:b'), null)
+  assert.equal(w.board('board:b').count, 0, 'a filter that hides every note leaves the board bare, not gone')
+  assert.equal(w.board('board:c'), null)
 })
 
 test('a board stands on the walkway, blocks its tile, and never moves as the plot grows', () => {
@@ -233,11 +234,11 @@ test('a board stands on the walkway, blocks its tile, and never moves as the plo
   assert.equal(w.board('board:a').count, 9)
 })
 
-test('closing the last issue takes the board down and frees its tile', () => {
+test('a board that is no longer listed comes down and frees its tile', () => {
   const w = new World()
   w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', notes(2)]]))
   const { tx, ty } = w.board('board:a')
-  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map([['a', []]]))
+  w.setRoster([T('t1', 'a')], undefined, new Map(), new Map())
   assert.equal(w.board('board:a'), null)
   assert.ok(!w.nav.isBlocked(tx, ty))
 })

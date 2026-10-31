@@ -300,6 +300,39 @@ export const THEMES = {
       },
     },
   },
+  easter: {
+    label: 'Easter and spring',
+    spotlights: [{ id: 'egg', label: 'Painted egg' }, { id: 'tulip', label: 'Tulip' }, { id: 'chick', label: 'Chick' }, { id: 'lamb', label: 'Lamb' }, { id: 'bunny', label: 'Bunny' }],
+    dims: {
+      // Tulips in a bed, a clipped hedge starred with blossom, a rail hung with painted eggs, and a white picket.
+      fence: ['tulips', 'hedge', 'eggrail', 'picket'],
+      yard: ['blossom', 'meadow', 'earth', 'flagstone'],
+      wall: ['clapboard', 'skyboard', 'logs', 'fieldstone', 'brick'],
+      // Paint for the roofs, doors and awnings: lilac, butter, mint and rose, in four families of
+      // three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'egg-hunt-garden', label: 'Egg hunt garden', blurb: 'Eggs tucked in the grass and hedges, a basket by the gate', fence: ['hedge', 'eggrail'], yard: ['blossom', 'meadow'], wall: ['clapboard', 'skyboard'], roofs: [0] },
+      { id: 'pastel-cottages', label: 'Pastel cottages', blurb: 'Houses in soft pastel paint with spring wreaths on the doors', fence: ['picket', 'hedge'], yard: ['meadow', 'blossom'], wall: ['skyboard', 'clapboard'], roofs: [1] },
+      { id: 'tulip-farm', label: 'Tulip farm', blurb: 'Rows of tulips and a windmill turning above them', fence: ['tulips', 'picket'], yard: ['earth', 'meadow'], wall: ['brick', 'clapboard'], roofs: [3] },
+      { id: 'spring-market', label: 'Spring market', blurb: 'Stalls of flowers, eggs and hot cross buns under striped awnings', fence: ['eggrail', 'picket'], yard: ['flagstone', 'meadow'], wall: ['clapboard', 'brick'], roofs: [2] },
+      { id: 'chapel-green', label: 'Chapel green', blurb: 'A small chapel on a green, lilies by the door and a sunrise to come', fence: ['picket', 'hedge'], yard: ['flagstone', 'blossom'], wall: ['fieldstone', 'logs'], roofs: [0] },
+    ],
+    auto: ['egg-hunt-garden', 'pastel-cottages', 'tulip-farm', 'spring-market', 'chapel-green'],
+    // Finished work is a painted egg, or a spring flower for some kinds of work. An open PR's is
+    // still undyed. The glyph is a flower with a stem, which none of the village's ✿, the site's ⚐,
+    // the elves' ✦, Halloween's ☻, the harbour's ❂, the farm's ♣, Thanksgiving's ❧, New Year's
+    // ✶ or the open issues' ⚑ is.
+    finished: {
+      one: 'egg', many: 'eggs', place: 'egg basket', glyph: '\u2698', grow: 'Hide eggs for pull requests',
+      names: {
+        fix: 'Striped egg', feature: 'Tulip', refactor: 'Zigzag egg', docs: 'Hyacinth', test: 'Clutch of eggs',
+        ui: 'Polka-dot egg', infra: 'Egg in a nest', data: 'Checkered egg', perf: 'Chick', review: 'Ribboned egg',
+        research: 'Crocus', misc: 'Speckled egg',
+      },
+    },
+  },
   'new-years-eve': {
     label: "New Year's Eve",
     spotlights: [{ id: 'firework', label: 'Firework' }, { id: 'party-hat', label: 'Party hat' }, { id: 'champagne', label: 'Champagne flute' }, { id: 'clock', label: 'Midnight clock' }, { id: 'disco', label: 'Disco ball' }],
@@ -331,6 +364,38 @@ export const THEMES = {
         fix: 'Sparkler', feature: 'Roman candle', refactor: 'Party popper', docs: 'Party horn', test: 'Sparkler bunch',
         ui: 'Pinwheel', infra: 'Confetti cannon', data: 'Noisemaker', perf: 'Rocket', review: 'Firework fountain',
         research: 'Wishing lantern', misc: 'Party hat',
+      },
+    },
+  },
+  'independence-day': {
+    label: 'Independence Day',
+    spotlights: [{ id: 'flag', label: 'Stars and stripes' }, { id: 'firework', label: 'Firework' }, { id: 'bell', label: 'Liberty bell' }, { id: 'melon', label: 'Watermelon' }, { id: 'sparkler', label: 'Sparkler' }],
+    dims: {
+      // Flagpoles with a rope strung between, hay bales for the picnic, rails hung with bunting, and a white picket.
+      fence: ['flagposts', 'haystack', 'bunting', 'picket'],
+      yard: ['confetti', 'lawn', 'shingle', 'sidewalk'],
+      wall: ['clapboard', 'redbarn', 'logs', 'fieldstone', 'brick'],
+      // Paint for the roofs, doors and awnings: Old Glory red, navy, sky blue and gold, in four
+      // families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'main-street', label: 'Main street parade', blurb: 'Brick fronts and white clapboard, a flagpole at every door and a banner across the street', fence: ['flagposts', 'bunting'], yard: ['sidewalk', 'confetti'], wall: ['brick', 'clapboard'], roofs: [0] },
+      { id: 'picnic-park', label: 'Picnic park', blurb: 'Red barn pavilions on a mown lawn, hay bales to sit on and watermelon on the grass', fence: ['haystack', 'picket'], yard: ['lawn', 'confetti'], wall: ['redbarn', 'logs'], roofs: [1] },
+      { id: 'lakeside', label: 'Lakeside fireworks', blurb: 'Log cabins and stone boathouses on the shingle, bunting along the water and rockets waiting', fence: ['bunting', 'flagposts'], yard: ['shingle', 'lawn'], wall: ['logs', 'fieldstone'], roofs: [2] },
+      { id: 'porch-town', label: 'Small-town porches', blurb: 'White clapboard with a flag on every porch rail, apple pie on the sill and a picket fence', fence: ['picket', 'bunting'], yard: ['lawn', 'sidewalk'], wall: ['clapboard', 'brick'], roofs: [3] },
+    ],
+    auto: ['main-street', 'picnic-park', 'lakeside', 'porch-town'],
+    // Finished work is a flag, a firework or a picnic thing, each kind of work its own. An open PR's
+    // is not lit yet. The glyph is a black star (the four-pointed ✦ is the elves'), which none of
+    // the village's ✿, the site's ⚐, Halloween's ☻, the harbour's ❂, the farm's ♣, Thanksgiving's ❧,
+    // New Year's ✶ or the open issues' ⚑ is.
+    finished: {
+      one: 'flag', many: 'flags', place: 'flag bed', glyph: '\u2605', grow: 'Fly flags and light fireworks for pull requests',
+      names: {
+        fix: 'Flag', feature: 'Rocket', refactor: 'Pinwheel', docs: 'Scroll', test: 'Sparkler bunch',
+        ui: 'Bunting', infra: 'Barbecue grill', data: 'Star', perf: 'Roman candle', review: 'Liberty bell',
+        research: 'Popsicle', misc: 'Lemonade',
       },
     },
   },

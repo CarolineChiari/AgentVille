@@ -179,8 +179,8 @@ export class World {
    * @param {Map<string, { id: string, kind: number, color: number, white?: boolean, open?: boolean }[]>} [gardens]
    *        finished work per repo, oldest first; each becomes a flower in that plot's garden, and an
    *        `open` one (a PR not merged yet) waits as a bud
-   * @param {Map<string, { id: string }[]>} [boards] open issues per repo, newest first; a plot with any
-   *        gets a notice board. A repo with no plot gets no board: issues alone don't claim land.
+   * @param {Map<string, { id: string }[]>} [boards] open issues per repo, newest first; a plot listed
+   *        gets a notice board, bare if its list is empty (a filter can hide every note). A repo with no plot gets no board: issues alone don't claim land.
    * @param {Map<string, number>} [tiers] how far each repo's work has raised its landmark (see
    *        progress.js); a repo not in it has a tier-0 one. A tier higher than last time is built
    *        up in front of you, and its plot celebrates.
@@ -234,7 +234,7 @@ export class World {
         // so does an open PR's bud the moment it merges.
         const justMerged = prev && prev.open && !f.open
         const born = prev && !justMerged ? prev.born : this.first ? null : this.time
-        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, white: Boolean(f.white), open: Boolean(f.open), plot: name, born, ...plot.flowerSpot(i) })
+        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, white: Boolean(f.white), open: Boolean(f.open), checks: f.checks || '', plot: name, born, ...plot.flowerSpot(i) })
       })
     }
     this.flowers = flowers
@@ -243,7 +243,7 @@ export class World {
     const nextBoards = new Map()
     for (const [name, notes] of boards) {
       const plot = this.plots.get(name)
-      if (!plot || !notes.length) continue
+      if (!plot) continue // a bare board stays: its filter may have emptied it
       const { x: tx, y: ty } = plot.boardTile
       const id = `board:${name}`
       // Anchored like a static: (x, y) is the bottom centre of its tile.
