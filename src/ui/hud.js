@@ -50,7 +50,7 @@ const HELP = [
   ['G', 'Put it in a group'],
   ['F', 'Next spotlit villager (the big marker over its head)'],
   ['K', 'The foreman: check whether every session has finished'],
-  ['H', 'Hide the panels'],
+  ['H', 'Hide the panels, and the minimap'],
   [',', 'Settings'],
   ['Esc', 'Deselect'],
   ['W A S D', 'Move around; hold Shift to hurry'],

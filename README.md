@@ -158,7 +158,8 @@ greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the el
 pumpkin patch, a haunted manor, a graveyard, a witch's hollow or a trick-or-treat lane on
 Halloween night; a fishing harbour, beach huts, a lighthouse point, a boatyard or cliffside
 cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a market garden on the
-farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving; a rooftop
+farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving; an egg hunt garden,
+pastel cottages, a tulip farm, a spring market or a chapel green at Easter; a rooftop
 party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
 fireworks or small-town porches on the Fourth of July. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
