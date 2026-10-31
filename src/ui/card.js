@@ -5,6 +5,7 @@ import { sprites } from '../render/sprites/registry.js'
 import { ACCENTS, BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
 import { NAME_MAX } from '../game/names.js'
+import { FILTER_MINE, FILTER_UNASSIGNED, filterLabel, labelFilter } from '../game/boardfilter.js'
 import { GROUP_NAME_MAX, sameName } from '../game/groups.js'
 import { SPOTLIGHT_SPANS, timeLeft } from '../game/spotlight.js'
 
@@ -121,6 +122,14 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   card.addEventListener('change', (e) => {
     if (e.target.matches('select[data-f="to"]')) handTo = e.target.value
+    else if (e.target.matches('select[data-f="boardFilter"]')) {
+      e.target.blur()
+      const bd = village.board(village.selected)
+      if (bd) {
+        issuesShown = ISSUE_CARD_MAX
+        village.setBoardFilter(bd.project, e.target.value)
+      }
+    }
     else if (e.target.matches('select[data-f="spotlight"]')) {
       e.target.blur()
       if (e.target.value !== KEEP_SPOTLIGHT) village.spotlight(village.selected, e.target.value)
@@ -147,6 +156,11 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'seePostMortem') onSeePostMortem(village.selected)
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
+    else if (act === 'sendPr') village.sendPr(village.selected, card.querySelector('select[data-f="to"]')?.value || '')
+    else if (act === 'recruitPr') {
+      const f = village.flower(village.selected)
+      if (f) onRecruit(f.project, village.prPrompt(village.selected))
+    }
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'threadPr') village.openThreadPr(village.selected, b.dataset.key)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
@@ -450,6 +464,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       ['Changes', `+${pr.additions} −${pr.deletions}`],
       ['Labels', pr.labels.length ? pr.labels.join(', ') : `none (white ${words.one})`],
     ].filter(Boolean)
+    // An open PR can be handed to a free villager on its repo to review, or to a new recruit.
+    const free = f.open ? village.idleVillagers(f.project) : []
+    if (!free.some((t) => t.id === handTo)) handTo = free[0]?.id || ''
+    const who = free.length > 1
+      ? `<label class="hand-to">Send to <select data-f="to">${free.map((t) => `<option value="${esc(t.id)}" ${t.id === handTo ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>`
+      : ''
+    const review = f.open
+      ? `<button class="btn" data-act="sendPr" title="${free.length ? 'Hand this PR to a villager already on this repo to review' : 'Nobody here is free'}" ${free.length ? '' : 'disabled'}>Send</button><button class="btn" data-act="recruitPr" title="Start a new session on this repo to review this PR">Recruit</button>`
+      : ''
     card.innerHTML = `
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
@@ -460,8 +483,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      ${who}
       <div class="actions">
         <button class="btn primary" data-act="openPr" ${pr.url ? '' : 'disabled'}>Open PR<kbd>↵</kbd></button>
+        ${review}
         ${f.threadId ? `<button class="btn" data-act="transcript" data-id="${esc(f.threadId)}">Transcript</button><button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
       </div>`
     const g = card.querySelector('canvas.avatar').getContext('2d')
@@ -475,6 +500,16 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   function fillBoard(b) {
     const n = b.issues.length
     const free = b.candidates
+    const labels = filterLabel(b.filter) && !b.labels.includes(filterLabel(b.filter)) ? [...b.labels, filterLabel(b.filter)] : b.labels
+    const pick = (value, text) => `<option value="${esc(value)}" ${value === b.filter ? 'selected' : ''}>${esc(text)}</option>`
+    const filter = b.total > 1 || b.filter
+      ? `<label class="hand-to">Show <select data-f="boardFilter">
+          ${pick('', 'All')}
+          ${pick(FILTER_MINE, b.viewer ? `Assigned to me (${b.viewer})` : 'Assigned to me')}
+          ${pick(FILTER_UNASSIGNED, 'Unassigned')}
+          ${labels.map((l) => pick(labelFilter(l), `Label: ${l}`)).join('')}
+        </select></label>`
+      : ''
     if (!free.some((t) => t.id === handTo)) handTo = free[0]?.id || ''
     const who = free.length > 1
       ? `<label class="hand-to">Send to <select data-f="to">${free.map((t) => `<option value="${esc(t.id)}" ${t.id === handTo ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>`
@@ -499,11 +534,13 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <canvas class="avatar" width="16" height="24"></canvas>
         <div style="min-width:0;flex:1">
           <b title="${esc(b.slug)}">${esc(b.project)}</b>
-          <span class="status"><span style="color:${P.pin}">⚑</span> ${n} open issue${n === 1 ? '' : 's'}</span>
+          <span class="status"><span style="color:${P.pin}">⚑</span> ${n} open issue${n === 1 ? '' : 's'}${b.filter ? ` of ${b.total}` : ''}</span>
         </div>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
+      ${filter}
       ${who}
+      ${n ? '' : `<p class="note">${b.filter === FILTER_MINE && !b.viewer ? 'GitHub hasn’t said who you are yet.' : 'No issue matches this filter.'}</p>`}
       <ul class="issues">${b.issues.slice(0, issuesShown).map(row).join('')}</ul>
       ${n > issuesShown
         ? `<button class="btn link" data-act="moreIssues">Load ${Math.min(ISSUE_CARD_STEP, n - issuesShown)} more · ${n - issuesShown} left</button>`
@@ -550,7 +587,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       const id = village.selected
       const bd = id && village.board(id)
       if (bd) {
-        const key = `board|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
+        const key = `board|${bd.filter}|${bd.total}|${bd.viewer}|${bd.labels.join()}|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           if (id !== shownId) issuesShown = ISSUE_CARD_MAX
           fillBoard(bd)
@@ -562,7 +599,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}|${village.idleVillagers(f.project).map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id
