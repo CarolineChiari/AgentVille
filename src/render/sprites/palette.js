@@ -173,6 +173,7 @@ export const PALETTE = {
   // Drawn straight onto the canvas by the renderer rather than into a sprite.
   highlight: '#ffffff', // under a hovered flower
   glitterGlow: '#ffe278', // the pulse under an open PR's bud
+  failGlow: '#ff5a4a', // the same pulse when the PR's checks are failing
   labelInk: '#1c1624', // the halo round a plot's name
   // The arrow over a spotlit villager: a pink no status badge, flower or accent reads as, so it only ever means "this one".
   spotlight: '#ff4fc8',
