@@ -225,6 +225,30 @@ on the vine.
 **Landmark**: the village's own.
 **Rooms**: a family kitchen, a harvest barn, a pie pantry and a woodland cabin.
 
+## Holi · `holi`
+
+A village on the day of colours: clouds of gulal powder over the lanes, splashes on every wall,
+marigold garlands from the posts and a pichkari leaning by many a door. Everybody is in a white
+tunic splashed with colour.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Colour lanes | `colour-lanes` | Walls and roads splashed pink, green, yellow and blue, with clouds of gulal in the air |
+| Flower Holi | `flower-holi` | Petals underfoot, garlands of marigold and rose strung from every post |
+| Bonfire square | `bonfire-square` | A stack of logs ready for the Holika Dahan fire, lit at night |
+| Courtyard homes | `courtyard-homes` | Flat rooftops and open courtyards, with colour on every wall and balcony |
+
+**Built from** — fences: splashed whitewash walls, marigold garlands, bamboo, stacked logs ·
+ground: powder-dusted stone, petals, terracotta flags, swept ash · walls: whitewash, pink, yellow
+and blue limewash, sandstone · four families of paint.
+**Buildings**: a flat-roofed family home, a lane house, a colour shop, a gate hall and the bonfire stack.
+**Finished work**: a **pot of gulal** at the **colour stall** (✺), one shape of pot per kind of
+work: a matka for a bug fix, a tall urn for a feature, a trio of cups for tests, a surahi for
+performance. An open pull request's pot is still covered with a cloth; white powder is an
+unlabeled PR.
+**Landmark**: the village's own.
+**Rooms**: a colour room, a bonfire hall, a garland workshop and a courtyard room.
+
 ## New Year's Eve · `new-years-eve`
 
 A village counting down to midnight: bunting across the street, party lights on every roof, a
@@ -249,6 +273,29 @@ rocket for performance, a fountain for a review, a wishing lantern for research,
 odds and ends. An open pull request's is not lit yet.
 **Landmark**: the village's own.
 **Rooms**: a rooftop lounge, a clock room, a ballroom and a cabin nook.
+
+## Independence Day · `independence-day`
+
+The Fourth of July: flagpoles and bunting on every porch, a parade down main street, picnic
+blankets and watermelon, fireworks waiting by the lake.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Main street parade | `main-street` | Brick fronts and white clapboard, a flagpole at every door and a banner across the street |
+| Picnic park | `picnic-park` | Red barn pavilions on a mown lawn, hay bales to sit on and watermelon on the grass |
+| Lakeside fireworks | `lakeside` | Log cabins and stone boathouses on the shingle, bunting along the water and rockets waiting |
+| Small-town porches | `porch-town` | White clapboard with a flag on every porch rail, apple pie on the sill and a picket fence |
+
+**Built from** — fences: flag posts on a rope, hay bales, bunting rails, white pickets ·
+ground: confetti-strewn lawn, mown park lawn, lakeside shingle, sidewalk slabs · walls: clapboard,
+red barn, logs, fieldstone, brick · four families of red, white and blue paint.
+**Buildings**: a porch house, a log cabin, a shop with a striped awning, a party barn and a long picnic table under bunting.
+**Finished work**: a **flag** in the **flag bed** (★) — a flag on a pole for a bug fix, a rocket
+for a feature, a pinwheel for a refactor, a scroll for docs, sparklers for tests, bunting for design,
+a barbecue grill for infrastructure, a star for data, a roman candle for performance, a liberty bell
+for a review. An open pull request's is not lit yet: the same shape in grey.
+**Landmark**: the village's own.
+**Rooms**: a porch parlour, a picnic pavilion, a parade hall and a lake cabin.
 
 ## Making one
 

@@ -173,6 +173,7 @@ export const PALETTE = {
   // Drawn straight onto the canvas by the renderer rather than into a sprite.
   highlight: '#ffffff', // under a hovered flower
   glitterGlow: '#ffe278', // the pulse under an open PR's bud
+  failGlow: '#ff5a4a', // the same pulse when the PR's checks are failing
   labelInk: '#1c1624', // the halo round a plot's name
   // The arrow over a spotlit villager: a pink no status badge, flower or accent reads as, so it only ever means "this one".
   spotlight: '#ff4fc8',
@@ -694,6 +695,67 @@ export const PALETTE = {
   patchSoilLight: '#775540',
   patchSoilDeep: '#3b271c',
 
+  // ---------- the Easter theme (src/render/themes/easter/) ----------
+  // Paint and cloth for the houses and the egg basket: lilac, butter yellow, mint and rose, cream,
+  // sky, peach, and a deeper violet for doors. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in easter/buildings.js).
+  springPaint: ['#b9a2dc', '#f2dc7a', '#9fd8b8', '#f0a6b8', '#fbf3e0', '#8fc3e8', '#f6b98f', '#7f6fb0'],
+  // Pastel board siding in sky blue, the one wall that isn't the village's or another theme's.
+  board: '#a9cde8',
+  boardDark: '#86aecd',
+  boardLight: '#c6e0f3',
+  // Daffodils, and the twigs a nest is made of; blossom is the village's.
+  daffodil: '#f6d54a',
+  twig: '#8a6a45',
+  springLeaf: ['#8fcf7a', '#6fb85f', '#f9d6e0'],
+  // Dyes: rose, butter, coral, lilac, mint and peach, for eggs and what lies about the grass.
+  eggRose: '#e8798f',
+  eggRoseLight: '#f6a9ba',
+  eggYellow: '#f7e07a',
+  eggCoral: '#f08a6a',
+  eggLilac: '#b79be0',
+  eggMint: '#8fd9b6',
+  eggMintDark: '#62b58f',
+  eggPeach: '#f7b88f',
+  eggPeachLight: '#fcd8bd',
+  eggPeachDark: '#d98f66',
+  // Hot cross buns, and their icing cross.
+  bun: '#c98a4a',
+  bunDark: '#a0642e',
+  bunLight: '#e2ad6e',
+  icing: '#f6efe2',
+  // Ground by yard tone: blossom-strewn grass, a fresh meadow, turned spring earth and pale
+  // flagstones. Each is base, shade, light and deepest; then the same in a dry patch and in a
+  // lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  springGround: [
+    ['#9fd18a', '#86bb73', '#b6e2a2', '#6ba15b'],
+    ['#c3da7f', '#aac566', '#d6eb98', '#8ea84f'],
+    ['#a7835f', '#8f6e4d', '#be9a75', '#745639'],
+    ['#c9c4d6', '#b0aac0', '#ded9ea', '#938ca6'],
+  ],
+  springGroundSunny: [
+    ['#a9d884', '#90c26d', '#bfe99c', '#74a954'],
+    ['#cde075', '#b4cb5c', '#e0f08e', '#98b146'],
+    ['#b18c58', '#997748', '#c7a46f', '#7c5e33'],
+    ['#d1c9d0', '#b8aeba', '#e5deea', '#9b90a0'],
+  ],
+  springGroundLush: [
+    ['#92c97f', '#7ab367', '#a8da96', '#609a50'],
+    ['#b8d476', '#9fbe5c', '#cbe48c', '#84a046'],
+    ['#9e7c5a', '#876848', '#b39069', '#6c4f33'],
+    ['#bfbbcf', '#a6a2b7', '#d3cfe3', '#8a869d'],
+  ],
+  // The lane round a plot: pale pink-cream gravel, lighter than the grass so the plots read.
+  springLane: '#ead9c4',
+  springLaneDark: '#cfbca4',
+  springLaneLight: '#f6ead9',
+  springLaneEdge: '#b49f86',
+  // The egg bed: dark loam under straw, darker than the plot's ground so the eggs stand out.
+  eggBed: '#6a5240',
+  eggBedDark: '#54402f',
+  eggBedLight: '#826652',
+  eggBedDeep: '#40301f',
+
   // ---------- the New Year's Eve theme (src/render/themes/new-years-eve/) ----------
   // Paint and cloth for the party: magenta, gold, teal, violet, champagne, coral, midnight blue and
   // silver. A plot's buildings share a family of three (PAINT_FAMILIES in new-years-eve/buildings.js).
@@ -755,6 +817,133 @@ export const PALETTE = {
   nyeBedDark: '#1f1633',
   nyeBedLight: '#3a2d5c',
   nyeBedDeep: '#150e26',
+
+  // ---------- the Independence Day theme (src/render/themes/independence-day/) ----------
+  // Paint for the roofs, doors and awnings: Old Glory red, navy, sky blue, gold, white, deep navy,
+  // brick and straw. A plot's buildings share a family of three (PAINT_FAMILIES in
+  // independence-day/buildings.js).
+  paradePaint: ['#b22234', '#3c3b6e', '#4f7fb8', '#e0b03a', '#f6f2e8', '#2b2a52', '#8f2431', '#c9b27a'],
+  // White clapboard, the porch rail, and the red barn: the walls that aren't the village's.
+  porchWhite: '#f1efe8',
+  porchWhiteDark: '#cfcabd',
+  porchWhiteLight: '#fbfaf6',
+  barnRed: '#a8322e',
+  barnRedDark: '#7e2322',
+  barnRedLight: '#c4504a',
+  // The flag: its red, its blue, its white and the gold of its stars and of a sparkler.
+  flagRed: '#c0262f',
+  flagRedDark: '#8e1b24',
+  flagBlue: '#2f4a96',
+  flagBlueDark: '#223670',
+  flagBlueLight: '#5b7bc4',
+  flagWhite: '#f6f3ea',
+  starGold: '#f2c53d',
+  // A slice of watermelon on the picnic blanket.
+  melonRind: '#2f7a3a',
+  melonRindLight: '#7bbf5a',
+  melonFlesh: '#e0414f',
+  melonSeed: '#2a1d1d',
+  // Ground by yard tone: a lawn trodden with confetti, a mown park lawn, lakeside shingle and
+  // sidewalk slabs. Each is base, shade, light and deepest; then the same in a dry patch and in a
+  // lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  paradeGround: [
+    ['#6fa04a', '#5b8a3a', '#86b862', '#477030'],
+    ['#7dbb55', '#6aa844', '#93cf6c', '#538f36'],
+    ['#b3a58a', '#9a8d73', '#c9bca2', '#80745c'],
+    ['#b9b8b0', '#9f9e96', '#d0cfc7', '#85847d'],
+  ],
+  paradeGroundSunny: [
+    ['#7ba84a', '#669437', '#94c25f', '#4f7a2c'],
+    ['#8cc552', '#76b240', '#a3d968', '#5c9a33'],
+    ['#bdae88', '#a49670', '#d3c59f', '#897c58'],
+    ['#c3c1b0', '#a9a794', '#d9d7c6', '#8e8c7a'],
+  ],
+  paradeGroundLush: [
+    ['#62984a', '#4f8338', '#77ad60', '#3d6a2f'],
+    ['#6fb257', '#5d9e45', '#85c56e', '#49863a'],
+    ['#a99f8a', '#908673', '#bfb5a2', '#766d5c'],
+    ['#adb2ae', '#939894', '#c3c8c4', '#7a7f7b'],
+  ],
+  // The street round a plot: pale worn concrete, lighter than the ground so the plots read.
+  paradeLane: '#c9c6bd',
+  paradeLaneDark: '#aeaba2',
+  paradeLaneLight: '#dedbd2',
+  paradeLaneEdge: '#8d8a81',
+  // The flag bed: dark mulch under straw, darker than the plot's ground so the flags stand out.
+  lawnSoil: '#5a4632',
+  lawnSoilDark: '#473726',
+  lawnSoilLight: '#6e5740',
+  lawnSoilDeep: '#392b1e',
+
+  // ---------- the Holi theme (src/render/themes/holi/) ----------
+  // Paint and cloth for the houses: magenta, green, marigold, blue, white, saffron, violet and
+  // terracotta. A plot's buildings share a family of three (PAINT_FAMILIES in holi/buildings.js).
+  holiPaint: ['#d6336c', '#2fa35a', '#f2a81d', '#2f6fd0', '#f7f2e6', '#ef7d22', '#7d3fb4', '#b9633f'],
+  // Gulal, the coloured powder: pink, green, yellow, blue, orange and violet. It is thrown over
+  // walls and lanes, heaped in pots and worn on the white of a villager's tunic.
+  holiGulal: ['#ff4f9a', '#3fc46a', '#ffd23a', '#3f8cff', '#ff7a2e', '#9a5cf0'],
+  // Walls: whitewash, and limewash tinted pink, yellow and blue, and warm sandstone.
+  holiWhite: '#f4efe3',
+  holiWhiteDark: '#d6cdb9',
+  holiWhiteLight: '#fffaf0',
+  holiPink: '#f3a9c4',
+  holiPinkDark: '#d68aa8',
+  holiPinkLight: '#fcc9dc',
+  holiYellow: '#f4d56b',
+  holiYellowDark: '#d4b247',
+  holiYellowLight: '#fbe699',
+  holiBlue: '#8db4ea',
+  holiBlueDark: '#6b93cb',
+  holiBlueLight: '#b2cdf4',
+  holiSandstone: '#d9a779',
+  holiSandstoneDark: '#b88557',
+  holiSandstoneLight: '#ecc39a',
+  // Marigold garlands and rose petals, and the green they are strung on.
+  marigold: '#f59a1a',
+  marigoldDark: '#c9700e',
+  marigoldLight: '#ffc247',
+  roseRed: '#d9264f',
+  roseRedDark: '#a31a3a',
+  // Bamboo poles, for fences and the pichkari's barrel.
+  bamboo: '#b9b25a',
+  bambooDark: '#8f8a3e',
+  bambooLight: '#d6d07c',
+  // Terracotta, for the pots gulal and water stand in.
+  matka: '#c4673a',
+  matkaDark: '#9c4a27',
+  matkaLight: '#e08a5c',
+  // Ground by yard tone: powder-dusted stone, petal-strewn earth, terracotta courtyard flags and
+  // the swept ash of the bonfire square. Each is base, shade, light and deepest; then the same in
+  // a dry patch and in a lush one, one for one (see src/render/ground.js). Only the ground is
+  // drawn in these.
+  holiGround: [
+    ['#d8cdc2', '#c0b3a6', '#e9dfd5', '#a89a8d'],
+    ['#c7a68f', '#ae8a74', '#dcc0aa', '#8f6f5c'],
+    ['#c98b63', '#ae7249', '#dca47c', '#8c5a37'],
+    ['#8d7b6c', '#75645a', '#a6958a', '#5a4b43'],
+  ],
+  holiGroundSunny: [
+    ['#dbd1c6', '#c4b8ac', '#ebe1d8', '#aea195'],
+    ['#cbac97', '#b4927e', '#dec4b0', '#977967'],
+    ['#cd936e', '#b47c56', '#deaa85', '#946645'],
+    ['#958476', '#7f6f66', '#ac9c92', '#665850'],
+  ],
+  holiGroundLush: [
+    ['#c9bfb4', '#b3a69a', '#d9cfc6', '#9c8f83'],
+    ['#b99a85', '#a2806c', '#cdb39e', '#856756'],
+    ['#bb815c', '#a26a44', '#cd9973', '#825433'],
+    ['#837264', '#6d5d54', '#9a8b80', '#54463e'],
+  ],
+  // The lane round a plot: pale lime-dusted earth, lighter than the ground so the plots read.
+  holiLane: '#e3d3c1',
+  holiLaneDark: '#c9b6a1',
+  holiLaneLight: '#f1e6d8',
+  holiLaneEdge: '#a58f7a',
+  // The field finished work stands in: dark soil strewn with petals.
+  holiBed: '#7a4a3a',
+  holiBedDark: '#633a2d',
+  holiBedLight: '#93604b',
+  holiBedDeep: '#4d2c22',
 
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.

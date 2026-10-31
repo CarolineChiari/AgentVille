@@ -70,6 +70,9 @@ function colours(look) {
   const oil = P.oilskin[(look.vest || 0) % P.oilskin.length]
   // And for dungarees: denim, or the market garden's brown duck.
   const denim = P.denim[(look.vest || 0) % P.denim.length]
+  // And for a Holi tunic: white, splashed with three of the gulal colours, picked by the shirt so
+  // that two villagers beside each other are splashed differently.
+  const splash = [0, 2, 4].map((d) => P.holiGulal[(look.shirt + d) % P.holiGulal.length])
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -86,6 +89,7 @@ function colours(look) {
     cape, capeS: shade(cape, -0.25), capeL: shade(cape, 0.2),
     oil, oilS: shade(oil, -0.24), oilL: shade(oil, 0.22),
     denim, denimS: shade(denim, -0.24), denimL: shade(denim, 0.2),
+    splash,
   }
 }
 
@@ -605,6 +609,26 @@ function topFront(pc, c, look, dy, back) {
     }
     pc.hline(5, 10, 17 + dy, c.denimS)
   }
+  if (t === 'gulal') {
+    // A white tunic splashed with powder: the white over the chest and down to the hip, shaded on
+    // the shadow side, with three splashes and a handprint's worth of colour on it. The villager's
+    // own shirt shows at the neck, which keeps its colour.
+    pc.rect(5, 12 + dy, 6, 6, P.holiWhite)
+    pc.hline(5, 10, 12 + dy, P.holiWhiteLight)
+    pc.vline(10, 12 + dy, 17 + dy, P.holiWhiteDark)
+    pc.hline(5, 10, 17 + dy, P.holiWhiteDark)
+    if (!back) {
+      pc.px(7, 12 + dy, c.shirt)
+      pc.px(8, 12 + dy, c.shirtS)
+    }
+    const [a, b, d] = c.splash
+    pc.rect(5, 13 + dy, 2, 2, a)
+    pc.px(7, 14 + dy, a)
+    pc.rect(8, 15 + dy, 2, 2, b)
+    pc.px(10, 14 + dy, b)
+    pc.px(6, 16 + dy, d)
+    pc.px(9, 13 + dy, d)
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -664,6 +688,18 @@ function topSide(pc, c, look, dy) {
     pc.px(8, 14 + dy, P.gilt)
     pc.rect(6, 17 + dy, 4, 2, c.denim)
     pc.hline(6, 9, 17 + dy, c.denimS)
+  }
+  if (t === 'gulal') {
+    // Side on, the white tunic with a splash on the chest and one at the hem.
+    pc.rect(6, 12 + dy, 4, 6, P.holiWhite)
+    pc.hline(6, 9, 12 + dy, P.holiWhiteLight)
+    pc.vline(9, 12 + dy, 17 + dy, P.holiWhiteDark)
+    pc.hline(6, 9, 17 + dy, P.holiWhiteDark)
+    const [a, b, d] = c.splash
+    pc.rect(6, 13 + dy, 2, 2, a)
+    pc.px(8, 15 + dy, b)
+    pc.px(7, 16 + dy, d)
+    pc.px(9, 14 + dy, b)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote } from '../server/github.mjs'
+import { createIssueStore, createPrStore, createReleaseStore, githubRepoOf, ISSUE_FIELDS, ISSUE_LIMIT, normalizeIssue, normalizePr, parseGithubRemote, summarizeChecks } from '../server/github.mjs'
 import { tmpHome } from './helpers/fixtures.mjs'
 
 test('GitHub remotes in every common form', () => {
@@ -48,6 +48,19 @@ test('closed-unmerged PRs are dropped and fields are typed', () => {
   assert.deepEqual(p.labels, ['bug'])
   assert.equal(p.deletions, 2)
   assert.equal(p.mergedAt, Date.parse('2026-01-02T00:00:00Z'))
+})
+
+test('checks are boiled down to one word and a failing count', () => {
+  const run = (status, conclusion) => ({ __typename: 'CheckRun', status, conclusion })
+  assert.deepEqual(summarizeChecks(undefined), { checks: '', failing: 0 })
+  assert.deepEqual(summarizeChecks([]), { checks: '', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'SUCCESS'), { state: 'SUCCESS' }, run('COMPLETED', 'SKIPPED')]), { checks: 'pass', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'SUCCESS'), run('IN_PROGRESS', '')]), { checks: 'pending', failing: 0 })
+  assert.deepEqual(summarizeChecks([run('COMPLETED', 'FAILURE'), run('IN_PROGRESS', ''), { state: 'ERROR' }]), { checks: 'fail', failing: 2 })
+  const p = normalizePr({ number: 1, state: 'OPEN', statusCheckRollup: [run('COMPLETED', 'FAILURE')], reviewDecision: 'CHANGES_REQUESTED' })
+  assert.equal(p.checks, 'fail')
+  assert.equal(p.reviewDecision, 'CHANGES_REQUESTED')
+  assert.equal(normalizePr({ number: 2, state: 'OPEN', reviewDecision: 'bogus' }).reviewDecision, '')
 })
 
 test('the store answers from cache at once, refreshes stale repos in the background, and persists', async (t) => {
@@ -245,4 +258,62 @@ test('a release nobody can read leaves the notice off, and a missing gh stops th
   await none.settle()
   assert.equal(after.available, false)
   assert.equal(calls, 1)
+})
+
+test('the issue store says who gh is signed in as, asked once, and ignores anything that is not a login', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  const calls = []
+  const gh = async (args) => {
+    calls.push(args)
+    return args[0] === 'api' ? 'octo-cat\n' : JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])
+  }
+  const store = createIssueStore({ dataDir: home, gh })
+  await store.get([{ name: 'app', path: repo }])
+  await store.settle()
+  const first = await store.get([{ name: 'app', path: repo }])
+  assert.equal(first.viewer, '')
+  assert.equal(first.updating, true, 'the page is told to look again')
+  await store.settle()
+  assert.equal((await store.get([{ name: 'app', path: repo }])).viewer, 'octo-cat')
+  await store.get([{ name: 'app', path: repo }])
+  assert.equal(calls.filter((a) => a[0] === 'api').length, 1)
+  assert.deepEqual(calls.find((a) => a[0] === 'api'), ['api', 'user', '--jq', '.login'])
+
+  const odd = createIssueStore({ dataDir: home + '/2', gh: async (a) => (a[0] === 'api' ? '{"x":1}; rm -rf' : JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])) })
+  for (let i = 0; i < 2; i++) {
+    await odd.get([{ name: 'app', path: repo }])
+    await odd.settle()
+  }
+  assert.equal((await odd.get([{ name: 'app', path: repo }])).viewer, '')
+})
+
+test('a failed viewer lookup waits out the TTL instead of being asked on every poll', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = path.join(home, 'app')
+  fakeRepo(repo, 'https://github.com/me/app.git')
+  let clock = 1000
+  let asked = 0
+  const gh = async (args) => {
+    if (args[0] !== 'api') return JSON.stringify([{ number: 1, state: 'OPEN', title: 'a' }])
+    asked++
+    throw new Error('not logged in')
+  }
+  const store = createIssueStore({ dataDir: home, gh, now: () => clock, ttlMs: 60_000 })
+  const look = async () => {
+    const out = await store.get([{ name: 'app', path: repo }])
+    await store.settle()
+    return out
+  }
+  await look() // fetches the issues
+  await look() // asks who you are, and fails
+  const after = await look()
+  assert.equal(asked, 1)
+  assert.equal(after.updating, false, 'nothing left to wait for')
+  clock += 61_000
+  await look()
+  assert.equal(asked, 2, 'asked again once the TTL has passed')
 })

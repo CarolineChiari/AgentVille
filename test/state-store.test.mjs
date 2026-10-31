@@ -130,3 +130,9 @@ test('threads restored by hand are kept as ids, anything else is dropped', () =>
   assert.deepEqual(normalizeState({ kept: ['a', 'a', 3, null, 'b'] }).kept, ['a', 'b'])
   assert.deepEqual(normalizeState({}).kept, [])
 })
+
+test('taken issues keep a thread id and a time, and drop the rest', () => {
+  const s = normalizeState({ takenIssues: { 'issue:me/app#1': { threadId: 't', at: 5 }, b: { threadId: '' }, c: 'x', __proto__: { threadId: 'z' } } })
+  assert.deepEqual(s.takenIssues, { 'issue:me/app#1': { threadId: 't', at: 5 } })
+  assert.deepEqual(normalizeState({ takenIssues: [1] }).takenIssues, {})
+})
