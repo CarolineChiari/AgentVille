@@ -695,6 +695,67 @@ export const PALETTE = {
   patchSoilLight: '#775540',
   patchSoilDeep: '#3b271c',
 
+  // ---------- the Easter theme (src/render/themes/easter/) ----------
+  // Paint and cloth for the houses and the egg basket: lilac, butter yellow, mint and rose, cream,
+  // sky, peach, and a deeper violet for doors. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in easter/buildings.js).
+  springPaint: ['#b9a2dc', '#f2dc7a', '#9fd8b8', '#f0a6b8', '#fbf3e0', '#8fc3e8', '#f6b98f', '#7f6fb0'],
+  // Pastel board siding in sky blue, the one wall that isn't the village's or another theme's.
+  board: '#a9cde8',
+  boardDark: '#86aecd',
+  boardLight: '#c6e0f3',
+  // Daffodils, and the twigs a nest is made of; blossom is the village's.
+  daffodil: '#f6d54a',
+  twig: '#8a6a45',
+  springLeaf: ['#8fcf7a', '#6fb85f', '#f9d6e0'],
+  // Dyes: rose, butter, coral, lilac, mint and peach, for eggs and what lies about the grass.
+  eggRose: '#e8798f',
+  eggRoseLight: '#f6a9ba',
+  eggYellow: '#f7e07a',
+  eggCoral: '#f08a6a',
+  eggLilac: '#b79be0',
+  eggMint: '#8fd9b6',
+  eggMintDark: '#62b58f',
+  eggPeach: '#f7b88f',
+  eggPeachLight: '#fcd8bd',
+  eggPeachDark: '#d98f66',
+  // Hot cross buns, and their icing cross.
+  bun: '#c98a4a',
+  bunDark: '#a0642e',
+  bunLight: '#e2ad6e',
+  icing: '#f6efe2',
+  // Ground by yard tone: blossom-strewn grass, a fresh meadow, turned spring earth and pale
+  // flagstones. Each is base, shade, light and deepest; then the same in a dry patch and in a
+  // lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  springGround: [
+    ['#9fd18a', '#86bb73', '#b6e2a2', '#6ba15b'],
+    ['#c3da7f', '#aac566', '#d6eb98', '#8ea84f'],
+    ['#a7835f', '#8f6e4d', '#be9a75', '#745639'],
+    ['#c9c4d6', '#b0aac0', '#ded9ea', '#938ca6'],
+  ],
+  springGroundSunny: [
+    ['#a9d884', '#90c26d', '#bfe99c', '#74a954'],
+    ['#cde075', '#b4cb5c', '#e0f08e', '#98b146'],
+    ['#b18c58', '#997748', '#c7a46f', '#7c5e33'],
+    ['#d1c9d0', '#b8aeba', '#e5deea', '#9b90a0'],
+  ],
+  springGroundLush: [
+    ['#92c97f', '#7ab367', '#a8da96', '#609a50'],
+    ['#b8d476', '#9fbe5c', '#cbe48c', '#84a046'],
+    ['#9e7c5a', '#876848', '#b39069', '#6c4f33'],
+    ['#bfbbcf', '#a6a2b7', '#d3cfe3', '#8a869d'],
+  ],
+  // The lane round a plot: pale pink-cream gravel, lighter than the grass so the plots read.
+  springLane: '#ead9c4',
+  springLaneDark: '#cfbca4',
+  springLaneLight: '#f6ead9',
+  springLaneEdge: '#b49f86',
+  // The egg bed: dark loam under straw, darker than the plot's ground so the eggs stand out.
+  eggBed: '#6a5240',
+  eggBedDark: '#54402f',
+  eggBedLight: '#826652',
+  eggBedDeep: '#40301f',
+
   // ---------- the New Year's Eve theme (src/render/themes/new-years-eve/) ----------
   // Paint and cloth for the party: magenta, gold, teal, violet, champagne, coral, midnight blue and
   // silver. A plot's buildings share a family of three (PAINT_FAMILIES in new-years-eve/buildings.js).
