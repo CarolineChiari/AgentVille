@@ -250,6 +250,29 @@ odds and ends. An open pull request's is not lit yet.
 **Landmark**: the village's own.
 **Rooms**: a rooftop lounge, a clock room, a ballroom and a cabin nook.
 
+## Independence Day · `independence-day`
+
+The Fourth of July: flagpoles and bunting on every porch, a parade down main street, picnic
+blankets and watermelon, fireworks waiting by the lake.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Main street parade | `main-street` | Brick fronts and white clapboard, a flagpole at every door and a banner across the street |
+| Picnic park | `picnic-park` | Red barn pavilions on a mown lawn, hay bales to sit on and watermelon on the grass |
+| Lakeside fireworks | `lakeside` | Log cabins and stone boathouses on the shingle, bunting along the water and rockets waiting |
+| Small-town porches | `porch-town` | White clapboard with a flag on every porch rail, apple pie on the sill and a picket fence |
+
+**Built from** — fences: flag posts on a rope, hay bales, bunting rails, white pickets ·
+ground: confetti-strewn lawn, mown park lawn, lakeside shingle, sidewalk slabs · walls: clapboard,
+red barn, logs, fieldstone, brick · four families of red, white and blue paint.
+**Buildings**: a porch house, a log cabin, a shop with a striped awning, a party barn and a long picnic table under bunting.
+**Finished work**: a **flag** in the **flag bed** (★) — a flag on a pole for a bug fix, a rocket
+for a feature, a pinwheel for a refactor, a scroll for docs, sparklers for tests, bunting for design,
+a barbecue grill for infrastructure, a star for data, a roman candle for performance, a liberty bell
+for a review. An open pull request's is not lit yet: the same shape in grey.
+**Landmark**: the village's own.
+**Rooms**: a porch parlour, a picnic pavilion, a parade hall and a lake cabin.
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).

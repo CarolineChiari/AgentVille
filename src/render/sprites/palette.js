@@ -818,6 +818,63 @@ export const PALETTE = {
   nyeBedLight: '#3a2d5c',
   nyeBedDeep: '#150e26',
 
+  // ---------- the Independence Day theme (src/render/themes/independence-day/) ----------
+  // Paint for the roofs, doors and awnings: Old Glory red, navy, sky blue, gold, white, deep navy,
+  // brick and straw. A plot's buildings share a family of three (PAINT_FAMILIES in
+  // independence-day/buildings.js).
+  paradePaint: ['#b22234', '#3c3b6e', '#4f7fb8', '#e0b03a', '#f6f2e8', '#2b2a52', '#8f2431', '#c9b27a'],
+  // White clapboard, the porch rail, and the red barn: the walls that aren't the village's.
+  porchWhite: '#f1efe8',
+  porchWhiteDark: '#cfcabd',
+  porchWhiteLight: '#fbfaf6',
+  barnRed: '#a8322e',
+  barnRedDark: '#7e2322',
+  barnRedLight: '#c4504a',
+  // The flag: its red, its blue, its white and the gold of its stars and of a sparkler.
+  flagRed: '#c0262f',
+  flagRedDark: '#8e1b24',
+  flagBlue: '#2f4a96',
+  flagBlueDark: '#223670',
+  flagBlueLight: '#5b7bc4',
+  flagWhite: '#f6f3ea',
+  starGold: '#f2c53d',
+  // A slice of watermelon on the picnic blanket.
+  melonRind: '#2f7a3a',
+  melonRindLight: '#7bbf5a',
+  melonFlesh: '#e0414f',
+  melonSeed: '#2a1d1d',
+  // Ground by yard tone: a lawn trodden with confetti, a mown park lawn, lakeside shingle and
+  // sidewalk slabs. Each is base, shade, light and deepest; then the same in a dry patch and in a
+  // lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  paradeGround: [
+    ['#6fa04a', '#5b8a3a', '#86b862', '#477030'],
+    ['#7dbb55', '#6aa844', '#93cf6c', '#538f36'],
+    ['#b3a58a', '#9a8d73', '#c9bca2', '#80745c'],
+    ['#b9b8b0', '#9f9e96', '#d0cfc7', '#85847d'],
+  ],
+  paradeGroundSunny: [
+    ['#7ba84a', '#669437', '#94c25f', '#4f7a2c'],
+    ['#8cc552', '#76b240', '#a3d968', '#5c9a33'],
+    ['#bdae88', '#a49670', '#d3c59f', '#897c58'],
+    ['#c3c1b0', '#a9a794', '#d9d7c6', '#8e8c7a'],
+  ],
+  paradeGroundLush: [
+    ['#62984a', '#4f8338', '#77ad60', '#3d6a2f'],
+    ['#6fb257', '#5d9e45', '#85c56e', '#49863a'],
+    ['#a99f8a', '#908673', '#bfb5a2', '#766d5c'],
+    ['#adb2ae', '#939894', '#c3c8c4', '#7a7f7b'],
+  ],
+  // The street round a plot: pale worn concrete, lighter than the ground so the plots read.
+  paradeLane: '#c9c6bd',
+  paradeLaneDark: '#aeaba2',
+  paradeLaneLight: '#dedbd2',
+  paradeLaneEdge: '#8d8a81',
+  // The flag bed: dark mulch under straw, darker than the plot's ground so the flags stand out.
+  lawnSoil: '#5a4632',
+  lawnSoilDark: '#473726',
+  lawnSoilLight: '#6e5740',
+  lawnSoilDeep: '#392b1e',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

@@ -50,6 +50,8 @@ export const HOLIDAYS = [
   { id: 'halloween', label: 'Halloween', theme: 'halloween', on: (y) => dayOf(y, 10, 31), lead: 7, tail: 1, def: true },
   // The fourth Thursday of November, with the week before it for the cooking.
   { id: 'thanksgiving', label: 'Thanksgiving', theme: 'thanksgiving', on: (y) => nthWeekday(y, 11, 4, 4), lead: 6, tail: 1, def: true },
+  // The Fourth of July, with the week before it to hang the bunting and a day after for the sparklers.
+  { id: 'independence-day', label: 'Independence Day', theme: 'independence-day', on: (y) => dayOf(y, 7, 4), lead: 6, tail: 1, def: true },
   // The last week of the year, through New Year's Day, which is in the next year's window.
   { id: 'new-years-eve', label: "New Year's Eve", theme: 'new-years-eve', on: (y) => dayOf(y, 12, 31), lead: 5, tail: 1, def: true },
 ]
