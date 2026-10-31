@@ -148,3 +148,30 @@ export function demoForemanReport(threads) {
     return { id: t.id, title: t.title, project: t.project, verdict, summary: DEMO_SUMMARY[verdict], next: DEMO_NEXT[verdict] || '', asked: verdict === 'unfinished', note: '' }
   })
 }
+
+/**
+ * What the demo's post mortem comes back with: the kind of thing both sides write, about a session
+ * that never ran. Nobody is asked and nothing is read.
+ */
+export function demoPostMortem(t) {
+  return {
+    costUsd: 0.31,
+    self: {
+      summary: `Set out to ${String(t.title || 'do the work').toLowerCase()}; got there, after one wrong turn with the test runner.`,
+      instructions: [
+        { where: 'CLAUDE.md', change: 'Run one test file with `node --test test/<module>.test.mjs`; the whole suite takes a minute.' },
+        { where: 'CLAUDE.md', change: 'Fixtures live in test/helpers/; build on them rather than writing new ones.' },
+      ],
+      lessons: ['The scheduler caches its config at start: a change to it needs a restart to show.'],
+      forYou: ['The ask named the file but not the behaviour wanted; one example of the expected output would have saved a round of questions.'],
+      wentWell: ['Writing the failing test first pinned down what “done” meant.'],
+    },
+    review: {
+      summary: 'Finished what was asked, with tests; about a third of the conversation went on finding how to run them.',
+      instructions: [{ where: 'CLAUDE.md', change: 'Say which commands are safe to run without asking: the test suite and the linter.' }],
+      lessons: ['Read the existing tests for a module before writing new ones: the style is set there.'],
+      forYou: ['Two permission prompts sat unanswered for an hour; allowing the test command would let it carry on.'],
+      wentWell: [],
+    },
+  }
+}

@@ -13,6 +13,7 @@ import { openInTerminal } from './terminal.mjs'
 import { runInBackground } from './background.mjs'
 import { listFolders } from './folders.mjs'
 import { createForeman } from './foreman.mjs'
+import { createPostMortems } from './postmortem.mjs'
 import { isFolder } from '../src/game/foreman.js'
 import { FILE_URL_SCHEMES, fileUrl } from './harnesses/vscode-family.mjs'
 import { createWatcher } from './watch.mjs'
@@ -145,11 +146,10 @@ export function createApiMiddleware(opts = {}) {
 
   // The foreman checks only threads the server itself has scanned, never ones the page describes.
   let lastThreads = []
-  const foreman = opts.foreman ?? createForeman({
-    dataDir: opts.dataDir ?? DEFAULT_DATA_DIR,
-    harnesses,
-    threads: async () => (lastThreads.length ? lastThreads : (await scanAll({ harnesses })).threads),
-  })
+  const scanned = async () => (lastThreads.length ? lastThreads : (await scanAll({ harnesses })).threads)
+  const foreman = opts.foreman ?? createForeman({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR, harnesses, threads: scanned })
+  // The same for post mortems: only a thread the server scanned, archived or not, can be looked back on.
+  const postmortems = opts.postmortems ?? createPostMortems({ dataDir: opts.dataDir ?? DEFAULT_DATA_DIR, harnesses, threads: scanned })
 
   // An adapter may hand back several URLs to open in order (folder first, then session), or a
   // terminal window to run a command in.
@@ -277,6 +277,21 @@ export function createApiMiddleware(opts = {}) {
       const folder = body?.folder ?? ''
       if (folder !== '' && !isFolder(folder)) return [400, { ok: false, error: 'Not a folder.' }]
       return [200, await foreman.start(body?.ids, { folder })]
+    },
+
+    // Every post mortem held, and which are still out. Read-only, like the foreman's.
+    'GET /api/postmortems': async () => [200, await postmortems.status()],
+
+    /**
+     * Hold a post mortem of one thread (`start`), tick one of its findings off or on (`mark`), or put
+     * it away (`remove`). POST, like the foreman: holding one runs the person's CLI on their plan.
+     */
+    'POST /api/postmortem': async (body) => {
+      const acts = { start: () => postmortems.start(body?.id), mark: () => postmortems.mark(body?.id, body?.key, body?.done === true), remove: () => postmortems.remove(body?.id) }
+      const act = typeof body?.action === 'string' && Object.hasOwn(acts, body.action) ? acts[body.action] : null
+      if (!act) return [400, { ok: false, error: 'Unknown action.' }]
+      const r = await act()
+      return [r.ok ? 200 : 400, r]
     },
 
     /** POST although it only reads: a transcript is private, and POST makes the page's Origin mandatory. */

@@ -28,6 +28,14 @@ export const JUDGE_BUDGET_USD = 1
 export const ASK_BUDGET_USD = 1
 
 /**
+ * A post mortem reads a whole conversation, not a status line: the thread re-reads all of itself
+ * and the reviewer reads most of its transcript, so a long one would stop short at the foreman's
+ * dollar. It is one conversation, sent on purpose; no run is let past MAX_BUDGET_USD whoever asks.
+ */
+export const POSTMORTEM_BUDGET_USD = 2
+export const MAX_BUDGET_USD = 2
+
+/**
  * The CLI's arguments for one headless run. The prompt is not among them: it goes in on stdin, so
  * it is never read as an option however it starts.
  * @param {{ schema: object, tools?: string[], resume?: string, model?: string, budget?: number }} o

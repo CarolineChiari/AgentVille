@@ -39,9 +39,15 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
   const current = () => pick(harnesses(), box.querySelector('[data-f="harness"]')?.value)
   const currentTarget = () => pick(current()?.targets || [], box.querySelector('[data-f="target"]')?.value)
 
-  function render(preselect) {
+  /**
+   * `exact` is a folder's path that must be the one picked: one the village no longer knows is
+   * looked for under Another folder…, never swapped for whichever folder comes first.
+   */
+  function render(preselect, exact = '') {
     const folders = village.knownFolders()
-    const pre = folders.find((f) => f.name === preselect)?.path ?? folders[0]?.path ?? OTHER
+    const pre = exact
+      ? folders.find((f) => f.path === exact)?.path ?? OTHER
+      : folders.find((f) => f.name === preselect)?.path ?? folders[0]?.path ?? OTHER
     const s = village.settings
     const list = harnesses()
     const h = pick(list, s.newHarness)
@@ -76,7 +82,7 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
     renderTargets()
     renderChips()
     renderGroups()
-    if (pre === OTHER) browse('')
+    if (pre === OTHER) browse(exact, { fallback: !exact })
   }
 
   // Browsing: the folder shown, and which listing is the latest so a slow one can't land over it.
@@ -228,10 +234,11 @@ export function createNewSession(root, village, { onRemember = () => {} } = {}) 
 
   /**
    * `prompt` starts the form with a first prompt already written, e.g. an issue to fix; `group`
-   * with one of the repo's groups picked for the session to join.
+   * with one of the repo's groups picked for the session to join; `folder`, a path that must be the
+   * folder it starts in.
    */
-  function open(preselect = village.selectedPlot, { prompt = '', group = '' } = {}) {
-    render(preselect)
+  function open(preselect = village.selectedPlot, { prompt = '', group = '', folder = '' } = {}) {
+    render(preselect, typeof folder === 'string' ? folder : '')
     if (group) renderGroups(group)
     const p = box.querySelector('[data-f="prompt"]')
     if (p && prompt) p.value = prompt

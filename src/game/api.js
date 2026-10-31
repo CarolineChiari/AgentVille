@@ -62,3 +62,5 @@ export const reveal = (folder) => post('/api/reveal', { folder }).then((r) => r.
 export const sendTask = (harness, ref, folder, prompt, target = '') => post('/api/task', { harness, ref, folder, prompt, target }).then((r) => r.body)
 export const fetchForeman = async () => (await json(await fetch('/api/foreman'))).body
 export const sendForeman = (action, ids = [], folder = '') => post('/api/foreman', { action, ids, folder }).then((r) => r.body)
+export const fetchPostMortems = async () => (await json(await fetch('/api/postmortems'))).body
+export const sendPostMortem = (action, id, extra = {}) => post('/api/postmortem', { action, id, ...extra }).then((r) => r.body)

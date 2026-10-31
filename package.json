@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.106.0",
+  "version": "0.108.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -44,6 +44,7 @@
       "src/game/groups.js",
       "src/game/spotlight.js",
       "src/game/foreman.js",
+      "src/game/postmortem.js",
       "src/sim/status.js",
       "src/sim/constants.js"
     ],
