@@ -234,7 +234,7 @@ export class World {
         // so does an open PR's bud the moment it merges.
         const justMerged = prev && prev.open && !f.open
         const born = prev && !justMerged ? prev.born : this.first ? null : this.time
-        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, white: Boolean(f.white), open: Boolean(f.open), plot: name, born, ...plot.flowerSpot(i) })
+        flowers.set(f.id, { id: f.id, kind: f.kind, color: f.color, white: Boolean(f.white), open: Boolean(f.open), checks: f.checks || '', plot: name, born, ...plot.flowerSpot(i) })
       })
     }
     this.flowers = flowers

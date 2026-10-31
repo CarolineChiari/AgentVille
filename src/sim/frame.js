@@ -26,9 +26,10 @@
  *           while he walks his rounds: id `foreman` (src/sim/foreman.js), plot '', verdict `rounds`.
  *           `spotlight` is set while someone is keeping an eye on it: the marker held up over it,
  *           `fx.spotlight.<id>` drawn in `theme`, which may be any theme's, not only its plot's.
- * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers
+ * @property {{ id: string, kind: number, color: number, white: boolean, open: boolean, checks: string, x: number, y: number, plot: string, born: number|null, selected: boolean, hovered: boolean }[]} flowers
  *           Finished work; (x, y) is the base of the stem. `born` is sim time, null if always there.
  *           `white` marks an unlabeled PR; `open` a PR still waiting to merge (drawn as a glittering bud).
+ *           `checks` is an open PR's CI word: 'fail' glows red, 'pending' glows without sparkle, else gold.
  * @property {{ id: string, plot: string, tx: number, ty: number, x: number, y: number, count: number, notes: { id: string }[], selected: boolean, hovered: boolean }[]} boards
  *           One notice board per plot with open issues, one note per issue. (tx, ty) is its tile;
  *           (x, y) the bottom centre of that tile. A board shows at most a handful of notes; `count` is all of them.
