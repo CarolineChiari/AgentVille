@@ -152,6 +152,11 @@ minute to midnight, a ballroom and a bandstand, every villager wears a party hat
 work is a sparkler or a party popper going off instead of a flower: a sparkler for a bug fix, a
 party popper for a refactor, a rocket for performance.
 
+Or Holi, where the fences are splashed whitewash, marigold garlands, bamboo and stacked logs, the
+ground is powder-dusted stone, petals or terracotta flags, the threads build flat-roofed homes
+with colour thrown on the walls, colour shops and a bonfire stack, everybody wears a white tunic
+splashed with gulal, and finished work is a pot of gulal instead of a flower.
+
 Each theme has looks for its folders: a farmstead, a market town or a stone hamlet in the
 village; new homes, a high-rise, roadworks, a restoration or an industrial park on the site; a
 greenwood, a silver wood, a river hall, a golden bough or a thorn hold in the elvish realm; a
@@ -161,7 +166,8 @@ cottages at the seaside; a red barn, a dairy, a grain farm, an orchard or a mark
 farm; a harvest farm, family homes, autumn woods or a pie bakery at Thanksgiving; an egg hunt garden,
 pastel cottages, a tulip farm, a spring market or a chapel green at Easter; a rooftop
 party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
-fireworks or small-town porches on the Fourth of July. A
+fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi,
+a bonfire square or courtyard homes at Holi. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -311,8 +317,9 @@ Every theme brings five markers of its own: the village's pink arrow, star, hear
 crown; the site's cone, hard hat, crane hook, warning sign and beacon; the elves' leaf, moon,
 lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat and candle; the
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
-sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; and Independence Day's flag, firework,
-liberty bell, watermelon and sparkler. A spotlight
+sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
+liberty bell, watermelon and sparkler; and Holi's pichkari, plate of gulal,
+marigold, handprint and water balloon. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.

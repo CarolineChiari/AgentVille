@@ -399,6 +399,41 @@ export const THEMES = {
       },
     },
   },
+  holi: {
+    label: 'Holi',
+    spotlights: [{ id: 'pichkari', label: 'Pichkari' }, { id: 'gulal', label: 'Plate of gulal' }, { id: 'marigold', label: 'Marigold' }, { id: 'handprint', label: 'Handprint' }, { id: 'water-balloon', label: 'Water balloon' }],
+    dims: {
+      // Whitewashed low walls splashed with colour, marigold garlands strung between posts, bamboo
+      // poles lashed with cloth, and a stack of logs for the bonfire.
+      fence: ['colourwall', 'garland', 'bamboo', 'logstack'],
+      yard: ['powder', 'petals', 'courtyard', 'ashfloor'],
+      wall: ['whitewash', 'pinkwash', 'yellowwash', 'bluewash', 'sandstone'],
+      // Paint for the roofs, doors and awnings: magenta, saffron, marigold and blue, in four
+      // families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'colour-lanes', label: 'Colour lanes', blurb: 'Walls and roads splashed pink, green, yellow and blue, with clouds of gulal in the air', fence: ['colourwall', 'bamboo'], yard: ['powder'], wall: ['whitewash', 'pinkwash', 'yellowwash', 'bluewash'], roofs: [0] },
+      { id: 'flower-holi', label: 'Flower Holi', blurb: 'Petals underfoot, garlands of marigold and rose strung from every post', fence: ['garland', 'bamboo'], yard: ['petals'], wall: ['whitewash', 'yellowwash'], roofs: [2] },
+      { id: 'bonfire-square', label: 'Bonfire square', blurb: 'A stack of logs ready for the Holika Dahan fire, lit at night', fence: ['logstack', 'bamboo'], yard: ['ashfloor', 'courtyard'], wall: ['sandstone', 'whitewash'], roofs: [1] },
+      { id: 'courtyard-homes', label: 'Courtyard homes', blurb: 'Flat rooftops and open courtyards, with colour on every wall and balcony', fence: ['colourwall', 'garland'], yard: ['courtyard', 'powder'], wall: ['sandstone', 'pinkwash', 'bluewash'], roofs: [3] },
+    ],
+    auto: ['colour-lanes', 'flower-holi', 'bonfire-square', 'courtyard-homes'],
+    // Everybody is in white, splashed with colour (see the 'gulal' top).
+    outfit: { hat: 'none', top: 'gulal' },
+    // Finished work is a pot of gulal, each kind of work its own shape of pot. An open PR's pot is
+    // still covered with a cloth. The glyph is a sixteen-pointed asterisk, a splash, which none of
+    // the village's ✿, the site's ⚐, the elves' ✦, Halloween's ☻, the harbour's ❂, the farm's ♣,
+    // Thanksgiving's ❧, New Year's ✶ or the open issues' ⚑ is.
+    finished: {
+      one: 'pot of gulal', many: 'pots of gulal', place: 'colour stall', glyph: '\u273A', grow: 'Fill pots of gulal for pull requests',
+      names: {
+        fix: 'Matka', feature: 'Tall urn', refactor: 'Squat handi', docs: 'Banded jar', test: 'Trio of cups',
+        ui: 'Painted pot', infra: 'Thali heap', data: 'Stacked pots', perf: 'Surahi', review: 'Footed bowl',
+        research: 'Spilling jug', misc: 'Little pot',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

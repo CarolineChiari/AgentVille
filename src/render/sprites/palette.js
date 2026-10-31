@@ -875,6 +875,76 @@ export const PALETTE = {
   lawnSoilLight: '#6e5740',
   lawnSoilDeep: '#392b1e',
 
+  // ---------- the Holi theme (src/render/themes/holi/) ----------
+  // Paint and cloth for the houses: magenta, green, marigold, blue, white, saffron, violet and
+  // terracotta. A plot's buildings share a family of three (PAINT_FAMILIES in holi/buildings.js).
+  holiPaint: ['#d6336c', '#2fa35a', '#f2a81d', '#2f6fd0', '#f7f2e6', '#ef7d22', '#7d3fb4', '#b9633f'],
+  // Gulal, the coloured powder: pink, green, yellow, blue, orange and violet. It is thrown over
+  // walls and lanes, heaped in pots and worn on the white of a villager's tunic.
+  holiGulal: ['#ff4f9a', '#3fc46a', '#ffd23a', '#3f8cff', '#ff7a2e', '#9a5cf0'],
+  // Walls: whitewash, and limewash tinted pink, yellow and blue, and warm sandstone.
+  holiWhite: '#f4efe3',
+  holiWhiteDark: '#d6cdb9',
+  holiWhiteLight: '#fffaf0',
+  holiPink: '#f3a9c4',
+  holiPinkDark: '#d68aa8',
+  holiPinkLight: '#fcc9dc',
+  holiYellow: '#f4d56b',
+  holiYellowDark: '#d4b247',
+  holiYellowLight: '#fbe699',
+  holiBlue: '#8db4ea',
+  holiBlueDark: '#6b93cb',
+  holiBlueLight: '#b2cdf4',
+  holiSandstone: '#d9a779',
+  holiSandstoneDark: '#b88557',
+  holiSandstoneLight: '#ecc39a',
+  // Marigold garlands and rose petals, and the green they are strung on.
+  marigold: '#f59a1a',
+  marigoldDark: '#c9700e',
+  marigoldLight: '#ffc247',
+  roseRed: '#d9264f',
+  roseRedDark: '#a31a3a',
+  // Bamboo poles, for fences and the pichkari's barrel.
+  bamboo: '#b9b25a',
+  bambooDark: '#8f8a3e',
+  bambooLight: '#d6d07c',
+  // Terracotta, for the pots gulal and water stand in.
+  matka: '#c4673a',
+  matkaDark: '#9c4a27',
+  matkaLight: '#e08a5c',
+  // Ground by yard tone: powder-dusted stone, petal-strewn earth, terracotta courtyard flags and
+  // the swept ash of the bonfire square. Each is base, shade, light and deepest; then the same in
+  // a dry patch and in a lush one, one for one (see src/render/ground.js). Only the ground is
+  // drawn in these.
+  holiGround: [
+    ['#d8cdc2', '#c0b3a6', '#e9dfd5', '#a89a8d'],
+    ['#c7a68f', '#ae8a74', '#dcc0aa', '#8f6f5c'],
+    ['#c98b63', '#ae7249', '#dca47c', '#8c5a37'],
+    ['#8d7b6c', '#75645a', '#a6958a', '#5a4b43'],
+  ],
+  holiGroundSunny: [
+    ['#dbd1c6', '#c4b8ac', '#ebe1d8', '#aea195'],
+    ['#cbac97', '#b4927e', '#dec4b0', '#977967'],
+    ['#cd936e', '#b47c56', '#deaa85', '#946645'],
+    ['#958476', '#7f6f66', '#ac9c92', '#665850'],
+  ],
+  holiGroundLush: [
+    ['#c9bfb4', '#b3a69a', '#d9cfc6', '#9c8f83'],
+    ['#b99a85', '#a2806c', '#cdb39e', '#856756'],
+    ['#bb815c', '#a26a44', '#cd9973', '#825433'],
+    ['#837264', '#6d5d54', '#9a8b80', '#54463e'],
+  ],
+  // The lane round a plot: pale lime-dusted earth, lighter than the ground so the plots read.
+  holiLane: '#e3d3c1',
+  holiLaneDark: '#c9b6a1',
+  holiLaneLight: '#f1e6d8',
+  holiLaneEdge: '#a58f7a',
+  // The field finished work stands in: dark soil strewn with petals.
+  holiBed: '#7a4a3a',
+  holiBedDark: '#633a2d',
+  holiBedLight: '#93604b',
+  holiBedDeep: '#4d2c22',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
