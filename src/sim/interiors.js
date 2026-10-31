@@ -538,7 +538,7 @@ export const INTERIORS = {
         { kind: 'crate', x: 2, y: 2, variant: 0 },
         { kind: 'table', x: 9, y: 2 },
         { kind: 'crate', x: 16, y: 2, variant: 1 },
-        { kind: 'lamp', x: 15, y: 3, variant: 2 },
+        { kind: 'lamp', x: 15, y: 3, variant: 1 },
       ],
     }),
     room('sweets-kitchen', 'Sweets kitchen', 'A marble slab, trays of ma\'amoul and the oven at the back', {

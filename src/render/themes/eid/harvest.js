@@ -72,7 +72,7 @@ const LANTERNS = {
   // A new feature is a tall fanous, straight sided.
   feature: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: top(h + 1), y1: BASE - 1, half: flat(Math.min(w, 2)) }),
   // A refactor is the hexagonal one, its corners turned.
-  refactor: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: hexagon(w) }),
+  refactor: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: hexagon(w), edge: P.eidBrassLight }),
   // Docs are a paper lantern: ribbed, no brass, a cord over the top.
   docs: (pc, c, lit, h, w) => {
     lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: round(w + 0.4), edge: shade(c, -0.35), cap: false, ribs: true })
@@ -81,14 +81,15 @@ const LANTERNS = {
     pc.hline(CX - 1, CX + 1, BASE - 0, P.eidBrassDark)
   },
   // Tests are a small candle lantern: short, a flame showing through a window.
-  test: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: BASE - 3, y1: BASE - 1, half: flat(Math.max(1, w - 1)) }),
+  test: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: BASE - 3, y1: BASE - 1, half: flat(2) }),
   // Design work is a star lantern: points out all round.
   ui: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: top(h + 1), y1: BASE - 1, half: diamond(w + 1) }),
   // Infrastructure is a brass lantern: more metal than glass.
   infra: (pc, c, lit, h, w) => {
-    lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: flat(w), edge: P.eidBrassLight })
-    pc.hline(CX - w + 1, CX + w - 1, top(h), P.eidBrass)
-    pc.hline(CX - w + 1, CX + w - 1, BASE - 1, P.eidBrass)
+    const iw = Math.max(2, w)
+    lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: flat(iw), edge: P.eidBrassLight })
+    pc.hline(CX - iw + 1, CX + iw - 1, top(h), P.eidBrass)
+    pc.hline(CX - iw + 1, CX + iw - 1, BASE - 1, P.eidBrass)
   },
   // Data is a lattice lantern: a grid of brass over the glass.
   data: (pc, c, lit, h, w) => {
@@ -111,8 +112,13 @@ const LANTERNS = {
     lamp(pc, { c, lit, y0: top(h), y1: BASE - 1, half: round(w + 0.4), edge: P.glazeWhite })
     pc.vline(CX - w + 1, top(h) + 1, top(h) + 2, P.white)
   },
-  // Odds and ends are a small fanous, whatever shape it came in.
-  misc: (pc, c, lit, h, w) => lamp(pc, { c, lit, y0: BASE - 4, y1: BASE - 1, half: round(1.6) }),
+  // Odds and ends are a small fanous, whatever shape it came in: straight sided, no brass cap,
+  // a tassel hung from the top.
+  misc: (pc, c, lit, h, w) => {
+    lamp(pc, { c, lit, y0: BASE - 4, y1: BASE - 1, half: flat(2), cap: false })
+    pc.vline(CX, BASE - 7, BASE - 5, P.brassDark)
+    pc.px(CX, BASE - 8, P.brassLight)
+  },
 }
 
 /**

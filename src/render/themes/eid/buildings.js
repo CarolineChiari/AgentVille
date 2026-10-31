@@ -431,7 +431,7 @@ function souk(pc, o) {
   paneOf(pc, 24, base - 13, 4, 5, o.lit)
   // Outside: a palm by one door, a row of lanterns along the foot of the other.
   palmAt(pc, 6, base, 11)
-  lanternRow(pc, 23, base, 2)
+  lanternRow(pc, 20, base, 2)
   if (!o.roof) return { x0: 2, x1: 29, top: eave }
   const top = roofOver(pc, 1, 30, eave - 1, o.low ? 10 : 13, roofPaintOf(o.roofs, tone), lim)
   finial(pc, 16, top, lim)
