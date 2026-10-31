@@ -147,6 +147,11 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     else if (act === 'seePostMortem') onSeePostMortem(village.selected)
     else if (act === 'restore') village.unarchive(village.selected)
     else if (act === 'openPr') village.openPr()
+    else if (act === 'sendPr') village.sendPr(village.selected, card.querySelector('select[data-f="to"]')?.value || '')
+    else if (act === 'recruitPr') {
+      const f = village.flower(village.selected)
+      if (f) onRecruit(f.project, village.prPrompt(village.selected))
+    }
     else if (act === 'openThread') village.open(b.dataset.id)
     else if (act === 'threadPr') village.openThreadPr(village.selected, b.dataset.key)
     else if (act === 'transcript') onTranscript(b.dataset.id || village.selected)
@@ -450,6 +455,15 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       ['Changes', `+${pr.additions} −${pr.deletions}`],
       ['Labels', pr.labels.length ? pr.labels.join(', ') : `none (white ${words.one})`],
     ].filter(Boolean)
+    // An open PR can be handed to a free villager on its repo to review, or to a new recruit.
+    const free = f.open ? village.idleVillagers(f.project) : []
+    if (!free.some((t) => t.id === handTo)) handTo = free[0]?.id || ''
+    const who = free.length > 1
+      ? `<label class="hand-to">Send to <select data-f="to">${free.map((t) => `<option value="${esc(t.id)}" ${t.id === handTo ? 'selected' : ''}>${esc(t.title)}</option>`).join('')}</select></label>`
+      : ''
+    const review = f.open
+      ? `<button class="btn" data-act="sendPr" title="${free.length ? 'Hand this PR to a villager already on this repo to review' : 'Nobody here is free'}" ${free.length ? '' : 'disabled'}>Send</button><button class="btn" data-act="recruitPr" title="Start a new session on this repo to review this PR">Recruit</button>`
+      : ''
     card.innerHTML = `
       <div class="head">
         <canvas class="avatar" width="16" height="24"></canvas>
@@ -460,8 +474,10 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
       </div>
       <ul class="meta">${meta.map(([k, v]) => `<li><span>${esc(k)}</span><span title="${esc(v)}">${esc(v)}</span></li>`).join('')}</ul>
+      ${who}
       <div class="actions">
         <button class="btn primary" data-act="openPr" ${pr.url ? '' : 'disabled'}>Open PR<kbd>↵</kbd></button>
+        ${review}
         ${f.threadId ? `<button class="btn" data-act="transcript" data-id="${esc(f.threadId)}">Transcript</button><button class="btn" data-act="openThread" data-id="${esc(f.threadId)}">Open thread</button>` : ''}
       </div>`
     const g = card.querySelector('canvas.avatar').getContext('2d')
@@ -562,7 +578,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       const f = id && village.flower(id)
       if (f?.pr) {
-        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}`
+        const key = `pr|${f.open}|${f.pr.title}|${f.pr.labels.join()}|${f.theme}|${village.idleVillagers(f.project).map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           fillPr(f)
           shownId = id

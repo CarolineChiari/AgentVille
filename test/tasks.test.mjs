@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CUSTOM_MAX, LABEL_MAX, PROMPT_MAX, TASKS, EVERY_REPO, cleanTask, cleanTasks, customId, fillPlaceholders, issueTask, taskById, tasksFor } from '../src/game/tasks.js'
+import { CUSTOM_MAX, LABEL_MAX, PROMPT_MAX, TASKS, EVERY_REPO, cleanTask, cleanTasks, customId, fillPlaceholders, issueTask, prTask, taskById, tasksFor } from '../src/game/tasks.js'
 
 test('every task has a unique id, a label and a prompt', () => {
   assert.ok(TASKS.length >= 3)
@@ -74,4 +74,14 @@ test('placeholders are filled from the thread and anything else is left as writt
   assert.equal(fillPlaceholders('Use {unknown} and {branch}', { branch: '' }), 'Use {unknown} and {branch}')
   assert.equal(fillPlaceholders('{repo}', {}), '{repo}')
   assert.equal(fillPlaceholders('{repo} $& $1', { repo: '$&' }), '$& $& $1', 'no replacement patterns')
+})
+
+test('a pull request becomes a review that names it, links it and posts nothing', () => {
+  const t = prTask({ number: 7, title: 'Add\nthings', url: 'https://github.com/me/app/pull/7' })
+  assert.equal(t.label, 'Review PR #7')
+  assert.ok(t.label.length <= LABEL_MAX)
+  assert.match(t.prompt, /#7 "Add things" \(https:\/\/github\.com\/me\/app\/pull\/7\)/)
+  assert.match(t.prompt, /Don't post anything to GitHub/)
+  assert.ok(!prTask({ number: 7, title: 'x' }).prompt.includes('()'), 'no empty link without a url')
+  assert.ok(prTask({ number: 7, title: 'x'.repeat(300), url: 'https://github.com/a/b/pull/7' }).prompt.length <= PROMPT_MAX)
 })

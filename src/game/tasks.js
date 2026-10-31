@@ -113,3 +113,15 @@ export function issueTask(issue) {
   const prompt = `Look at GitHub issue #${n} "${title}"${url}. Reproduce or understand it, then fix it and run the tests. Summarise what you changed. If the issue is unclear or bigger than it looks, stop and tell me instead of guessing.`
   return { id: `issue-${n}`, label: `Issue #${n}`, prompt: prompt.slice(0, PROMPT_MAX) }
 }
+
+/**
+ * The job an open pull request turns into: a review, reported back here. It says not to post, so a
+ * review sent from the village never lands on GitHub unless you ask. Clipped like issueTask.
+ */
+export function prTask(pr) {
+  const n = Number(pr?.number) || 0
+  const title = String(pr?.title || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+  const url = typeof pr?.url === 'string' && pr.url ? ` (${pr.url})` : ''
+  const prompt = `Review pull request #${n} "${title}"${url}. Check out its branch, read the diff, run the tests, and give me your review here as a list, most serious first. Don't post anything to GitHub unless I ask.`
+  return { id: `pr-${n}`, label: `Review PR #${n}`, prompt: prompt.slice(0, PROMPT_MAX) }
+}
