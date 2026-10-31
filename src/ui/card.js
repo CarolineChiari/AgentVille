@@ -530,13 +530,13 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         : `<p class="note">Nobody on ${esc(b.project)} is free right now. Recruit a villager to take one on.</p>`
     const sendTitle = free.length ? 'Hand this issue to a villager already on this repo' : 'Nobody here is free'
     const row = (i) => {
-      const sub = [i.author && `by ${i.author}`, `opened ${ago(i.createdAt)}`, i.labels.length && i.labels.join(', '), i.assignees.length && `→ ${i.assignees.join(', ')}`].filter(Boolean)
+      const sub = [i.author && `by ${i.author}`, `opened ${ago(i.createdAt)}`, i.labels.length && i.labels.join(', '), i.assignees.length && `→ ${i.assignees.join(', ')}`, i.takenBy && `taken by ${i.takenBy}`].filter(Boolean)
       return `<li class="issue">
         <div class="line"><span class="num">#${i.number}</span> <span class="title" title="${esc(i.title)}">${esc(i.title)}</span></div>
         <div class="sub" title="${esc(sub.join(' · '))}">${esc(sub.join(' · '))}</div>
         <div class="acts">
           <button class="btn" data-act="openIssue" data-issue="${esc(i.id)}" ${i.url ? '' : 'disabled'}>Open</button>
-          <button class="btn" data-act="sendIssue" data-issue="${esc(i.id)}" title="${sendTitle}" ${free.length ? '' : 'disabled'}>Send</button>
+          <button class="btn" data-act="sendIssue" data-issue="${esc(i.id)}" title="${i.takenBy ? `Already with ${esc(i.takenBy)}. Recruit another pair of hands instead` : sendTitle}" ${free.length && !i.takenBy ? '' : 'disabled'}>Send</button>
           <button class="btn" data-act="recruit" data-issue="${esc(i.id)}" title="Start a new session on this repo with the issue as its first prompt">Recruit</button>
         </div>
       </li>`
@@ -599,7 +599,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       const id = village.selected
       const bd = id && village.board(id)
       if (bd) {
-        const key = `board|${bd.filter}|${bd.total}|${bd.viewer}|${bd.labels.join()}|${bd.issues.map((i) => `${i.number}:${i.updatedAt}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
+        const key = `board|${bd.filter}|${bd.total}|${bd.viewer}|${bd.labels.join()}|${bd.issues.map((i) => `${i.number}:${i.updatedAt}:${i.takenBy}`).join()}|${bd.candidates.map((t) => `${t.id}:${t.title}`).join()}`
         if (id !== shownId || key !== shownKey) {
           if (id !== shownId) issuesShown = ISSUE_CARD_MAX
           fillBoard(bd)

@@ -12,6 +12,7 @@ import { MAX_ROUND, isRunning, roundLine, sortReport, verdictsOf } from './forem
 import { cleanPostMortem, isItemKey, pmLine } from './postmortem.js'
 import { growthInputs, highWater, standing } from './growth.js'
 import { progressOf } from '../sim/progress.js'
+import { pruneTaken, takenIssues } from './taken.js'
 import { cleanFilter, filterIssues, labelsOf } from './boardfilter.js'
 import { CUSTOM_MAX, EVERY_REPO, cleanTask, customId, fillPlaceholders, issueTask, prTask, taskById, tasksFor } from './tasks.js'
 import { flowerFor, flowerForPr, FLOWER_KINDS, WORK_LABEL } from '../sim/flowers.js'
@@ -101,7 +102,7 @@ function demoChanges(t, path = '') {
 
 const emptyState = () => ({
   version: 1, archived: [], archivedAt: {}, kept: [], plots: {}, seen: {}, hiddenProjects: [], viewedAt: {}, tasks: {}, looks: {}, names: {}, groups: {}, groupOf: {},
-  spots: {}, progress: {}, grades: {}, spotlights: {}, boardFilters: {}, settings: null, updatedAt: 0,
+  spots: {}, progress: {}, grades: {}, spotlights: {}, takenIssues: {}, boardFilters: {}, settings: null, updatedAt: 0,
 })
 
 /** The real weather is asked for this often; it changes slowly, and the server caches it for the same hour. */
@@ -383,6 +384,7 @@ export class Village {
     }
     this._plantGardens()
     this._pinBoards()
+    if (this._settleTaken()) dirty = true
     const grown = this._grow(now)
     if (grown.changed) dirty = true
     // A spotlight that has gone out is left for the server to drop on the next write. Deleting it
@@ -477,6 +479,37 @@ export class Village {
   }
 
   /**
+   * Forget issues that have left the open list and threads that have gone. A repo whose issues
+   * aren't loaded (boards off, gh away) is left alone: an empty list there means nothing is known.
+   * @returns {boolean} whether the record changed
+   */
+  _settleTaken() {
+    const record = this.state.takenIssues || {}
+    // Loaded means the fetch answered, even with no open issues: closing the last one must clear its record.
+    const off = new Set(this.state.hiddenProjects)
+    const known = new Set()
+    if (this.settings.issueBoards) {
+      for (const [project, r] of Object.entries(this.issues.repos || {})) if (!off.has(project) && Array.isArray(r?.issues)) known.add(r.slug)
+    }
+    const open = new Set(this.issueInfo.keys())
+    // A dormant repo's threads are folded, not gone; only archived ones (and vanished ones) end a hand-off.
+    const live = new Set([...this.view.live, ...this.view.folded, ...this.view.hidden].map((t) => t.id))
+    const settled = pruneTaken(record, open, live)
+    for (const [id, r] of Object.entries(record)) if (!known.has(id.slice(6).split('#')[0])) settled[id] = r
+    if (Object.keys(settled).length === Object.keys(record).length) return false
+    this.state.takenIssues = settled
+    return true
+  }
+
+  /** The villager an open issue was handed to, or null: recorded when sent, or read off the threads' first prompts. */
+  takenBy(id) {
+    const info = this.issueInfo.get(id)
+    if (!info) return null
+    const taken = takenIssues([{ id, number: info.issue.number }], this.view.live, this.state.takenIssues, info.project)
+    return taken.has(id) ? this.thread(taken.get(id)) || null : null
+  }
+
+  /**
    * Each repo's open issues, newest first, for its notice board. Hidden repos put theirs away too.
    * The map, the counts and I follow the repo's filter; boardAll keeps the whole list for the card.
    */
@@ -548,7 +581,7 @@ export class Village {
     const entry = this.boardAll.get(project)
     if (!entry) return null
     const shown = new Set((this.boards.get(project) || []).map((n) => n.id))
-    const issues = entry.all.filter((n) => shown.has(n.id)).map((n) => ({ id: n.id, ...this.issueInfo.get(n.id).issue }))
+    const issues = entry.all.filter((n) => shown.has(n.id)).map((n) => ({ id: n.id, ...this.issueInfo.get(n.id).issue, takenBy: this.takenBy(n.id)?.title || '' }))
     const everyIssue = entry.all.map((n) => this.issueInfo.get(n.id).issue)
     return {
       id, project, slug: entry.slug, issues, total: entry.all.length,
@@ -598,7 +631,13 @@ export class Village {
     if (!info) return
     const to = threadId ? this.thread(threadId) : this.idleVillagers(info.project)[0]
     if (!to) return this.toast(`Nobody is free on ${info.project}. Recruit a villager instead.`, 'error')
-    return this.sendTask(to, issueTask(info.issue))
+    const sent = await this.sendTask(to, issueTask(info.issue))
+    if (sent) {
+      ;(this.state.takenIssues ||= {})[id] = { threadId: to.id, at: Date.now() }
+      this.queueSave()
+      this.onChange()
+    }
+    return sent
   }
 
   /** Hand a task to a villager; the one thing issues and pull requests share. */
@@ -1336,6 +1375,8 @@ export class Village {
       if (!r.continued && t.group) this._expect(t.project, t.group.id)
       this.toast(r.continued ? `“${task.label}” sent to ${t.villager}, “${t.title}”${where}${clip}` : `Starting “${task.label}” as a new session${where}${clip}`)
       for (const ms of [5000, 12000, 25000]) setTimeout(() => this.poll(), ms)
+      // Only a hand-off that reached the thread: the prompt went in, or is on the clipboard to paste.
+      return Boolean(r.continued && (r.promptPassed || copied))
     } catch (err) {
       this.toast(err.message, 'error')
     }
