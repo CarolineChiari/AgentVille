@@ -95,8 +95,12 @@ const CANDLES = {
     wax(pc, { c, lit, y0: top(h), half: 1 })
     for (let y = top(h) + 1; y <= BASE - 1; y += 2) pc.hline(CX - 1, CX + 1, y, lit ? P.white : P.hkWhitewashDark)
   },
-  // Performance is a slim, short candle with a tall flame.
-  perf: (pc, c, lit, h) => wax(pc, { c, lit, y0: top(h - 1), half: 0, flameBig: true }),
+  // Performance is a slim, short candle on a silver foot, its flame tall.
+  perf: (pc, c, lit, h) => {
+    wax(pc, { c, lit, y0: top(h - 1), half: 0, flameBig: true })
+    // A silver foot, so an unlit one (whose flame is only a wick) still differs from a bug fix's.
+    pc.hline(CX - 1, CX + 1, BASE - 1, P.hkBrassLight)
+  },
   // A review is the shammash, the helper candle, standing on a silver stem above the rest.
   review: (pc, c, lit, h) => {
     pc.vline(CX, BASE - 5, BASE - 1, P.hkBrass)

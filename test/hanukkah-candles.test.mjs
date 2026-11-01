@@ -15,12 +15,14 @@ test('every kind of finished work shows its colour, and white differs from it', 
   })
 })
 
-test('no two kinds of different work share a candle', () => {
+test('no two kinds of different work share a candle, lit or not', () => {
   const seen = new Map()
   FLOWER_KINDS.forEach((k, i) => {
-    const key = look(drawHanukkah(i, 2, COLOUR))
-    const other = seen.get(key)
-    if (other && other.work !== k.work) assert.fail(`${k.name} (${k.work}) is drawn as ${other.name} (${other.work})`)
-    seen.set(key, k)
+    for (const stage of [1, 2]) {
+      const key = `${stage}:${look(drawHanukkah(i, stage, COLOUR))}`
+      const other = seen.get(key)
+      if (other && other.work !== k.work) assert.fail(`${k.name} (${k.work}) is drawn as ${other.name} (${other.work}) at stage ${stage}`)
+      seen.set(key, k)
+    }
   })
 })

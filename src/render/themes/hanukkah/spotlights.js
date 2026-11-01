@@ -4,22 +4,22 @@ import { PALETTE as P } from '../../sprites/palette.js'
 import { INK, drawMarker } from '../../sprites/spotlights.js'
 
 const MARKERS = {
-  // A hanukkiah: nine branches, the shammash standing above the other eight, every flame lit.
-  // The first marker a folder shows.
+  // A hanukkiah: eight candles in a row, four either side, and the shammash standing above them
+  // on the middle stem, every flame lit. The first marker a folder shows.
   hanukkiah: [[
     '.....y.....',
     '.....Y.....',
-    'y.y.y.y.y.y',
-    'Y.Y.Y.Y.Y.Y',
-    'XsXXXsXXXsX',
-    'XsXXXsXXXsX',
-    '.XsXXsXXsX.',
-    '..XsssssX..',
-    '....XsX....',
-    '....XsX....',
-    '..XXXsXXX..',
-    '..XsssssX..',
-  ], { X: INK, s: P.hkBrassLight, y: P.flameTip, Y: P.flameCore }],
+    'yyyy.w.yyyy',
+    'YYYY.W.YYYY',
+    'wWwW.w.wWwW',
+    'wWwW.W.wWwW',
+    'sssssssssss',
+    'XXXXXsXXXXX',
+    '.....s.....',
+    '.....s.....',
+    '...sssss...',
+    '...XXXXX...',
+  ], { X: INK, s: P.hkBrassLight, y: P.flameTip, Y: P.flameCore, w: P.white, W: P.hkPaint[3] }],
   // A dreidel: the spinning top, a letter on its face, its point to the table.
   dreidel: [[
     '.....XX....',
