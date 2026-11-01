@@ -466,6 +466,38 @@ export const THEMES = {
       },
     },
   },
+  hanukkah: {
+    label: 'Hanukkah',
+    spotlights: [{ id: 'hanukkiah', label: 'Hanukkiah' }, { id: 'dreidel', label: 'Dreidel' }, { id: 'gelt', label: 'Gelt' }, { id: 'sufganiyah', label: 'Sufganiyah' }, { id: 'latke', label: 'Latkes' }],
+    dims: {
+      // Candle posts, a low whitewashed wall, a lattice screen and a string of blue-and-white bunting.
+      fence: ['candleposts', 'lowwall', 'lattice', 'bunting'],
+      // Blue-grey cobbles, a winter lawn, pale snow and blue-and-white tile.
+      yard: ['cobbles', 'garden', 'snow', 'tiles'],
+      wall: ['whitewash', 'limestone', 'tilework', 'brick', 'screen'],
+      // Paint for the roofs, doors and awnings: blue, silver, sky and navy, in four families of
+      // three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'window-lights', label: 'Window lights', blurb: 'Homes with a hanukkiah lit in every window facing the street', fence: ['lowwall', 'candleposts'], yard: ['cobbles', 'garden'], wall: ['whitewash', 'limestone'], roofs: [0] },
+      { id: 'blue-silver-street', label: 'Blue and silver street', blurb: 'Blue-and-white bunting and lights, a large hanukkiah in the square', fence: ['bunting', 'lattice'], yard: ['tiles', 'snow'], wall: ['tilework', 'whitewash'], roofs: [2] },
+      { id: 'bakery-row', label: 'Bakery row', blurb: 'Sufganiyot and latkes, warm windows over the counters', fence: ['lattice', 'lowwall'], yard: ['cobbles', 'tiles'], wall: ['brick', 'limestone'], roofs: [3] },
+      { id: 'dreidel-courtyard', label: 'Dreidel courtyard', blurb: "Children's games, gelt and lanterns in a snowy courtyard", fence: ['candleposts', 'bunting'], yard: ['snow', 'garden'], wall: ['screen', 'whitewash'], roofs: [1] },
+    ],
+    auto: ['window-lights', 'blue-silver-street', 'bakery-row', 'dreidel-courtyard'],
+    // Finished work is a candle, each kind of work its own shape, with a dreidel for tests. An
+    // open PR's is not lit yet. The glyph is an eight-petalled snowflake, which none of the other themes'
+    // glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ ☼ ★ or the open issues' ⚑) is.
+    finished: {
+      one: 'candle', many: 'candles', place: 'candle bed', glyph: '\u2742', grow: 'Light candles for pull requests',
+      names: {
+        fix: 'Tall candle', feature: 'Fat candle', refactor: 'Twisted candle', docs: 'Taper', test: 'Dreidel',
+        ui: 'Blue candle', infra: 'Candle in a holder', data: 'Striped candle', perf: 'Slim candle', review: 'Shammash',
+        research: 'Beeswax candle', misc: 'Little candle',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
