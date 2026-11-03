@@ -7,7 +7,7 @@ import { sprites } from './render/sprites/registry.js'
 import { TILE_PX } from './render/sprites/palette.js'
 import { dayFactor, duskFactor, hourNow } from './render/daynight.js'
 import { Village } from './game/village.js'
-import { announcementFor } from './game/notify.js'
+import { announcementFor, parseThreadHash } from './game/notify.js'
 import { createLive } from './game/live.js'
 import { reducedMotion, villageSummary } from './game/motion.js'
 import { loadSettings, saveSettings } from './ui/settings.js'
@@ -251,6 +251,17 @@ async function enableNotices() {
   hud.render()
   toast('Notifications are blocked for this page. Allow them in the browser’s site settings, then turn this on again.', 'error')
 }
+
+/** The tray (desktop app) opens a villager by setting `#thread=<id>`; pick it up on load and when it changes. */
+function openFromHash() {
+  const id = parseThreadHash(location.hash)
+  if (!id) return
+  history.replaceState(null, '', location.pathname + location.search)
+  if (!village.thread(id)) return
+  village.select(id)
+  fly({ villager: id })
+}
+addEventListener('hashchange', openFromHash)
 
 // ---------- camera helpers ----------
 
@@ -610,6 +621,7 @@ async function boot() {
     toast(`Couldn't reach the AgentVille server: ${err.message}`, 'error')
   }
   await poll()
+  openFromHash()
   village.pollWeather()
   // The server says when a harness's files moved; the timer is only the heartbeat behind it.
   // The demo village has no files to watch.

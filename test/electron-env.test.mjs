@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds, showDisplays, showSeed, showUrl } from '../electron/env.mjs'
+import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, keepInTray, parseBounds, parseThreadHash, threadHash, trayBitmap, trayEntries, showDisplays, showSeed, showUrl } from '../electron/env.mjs'
 import { APP_TITLE, SESSION_RE, pageTitle } from '../src/game/notify.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
@@ -192,4 +192,47 @@ test('a Linux launcher-started app still finds snap and ~/.local/bin', () => {
   const dirs = augmentedPath({ PATH: '/usr/bin:/bin' }, { home: '/home/me', platform: 'linux' }).split(':')
   assert.ok(dirs.includes('/snap/bin'))
   assert.ok(dirs.includes('/home/me/.local/bin'))
+})
+
+test('the tray icon is the badge disc, blue and bare when nobody needs you', () => {
+  const some = trayBitmap(2)
+  const none = trayBitmap(0)
+  assert.equal(some.data.length, BADGE_PX * BADGE_PX * 4)
+  assert.deepEqual(some.data.subarray(0, 0), Buffer.alloc(0))
+  const px = (b) => [...b.data.subarray(((8 * BADGE_PX) + 4) * 4, ((8 * BADGE_PX) + 4) * 4 + 4)]
+  const { r, g, b } = hexToRgb(BADGE.working)
+  assert.deepEqual(px(none), [b, g, r, 255])
+  assert.equal(trayBitmap(-1) && trayBitmap(1.5).width, BADGE_PX)
+})
+
+test('a thread hash round-trips and refuses anything odd', () => {
+  assert.equal(parseThreadHash(threadHash('claude-code:abc-123')), 'claude-code:abc-123')
+  assert.equal(threadHash('a b'), '')
+  assert.equal(threadHash('../x'), '')
+  assert.equal(threadHash(5), '')
+  assert.equal(parseThreadHash('#thread=%E0%A4%A'), '')
+  assert.equal(parseThreadHash('#thread=a&b=c'), '')
+  assert.equal(parseThreadHash('#other=1'), '')
+})
+
+test('the tray lists waiting and blocked villagers, newest first, and drops bad ids', () => {
+  const list = trayEntries([
+    { id: 'a1', title: 'Old', status: 'waiting', updatedAt: 1, project: 'p' },
+    { id: 'b2', title: 'New\nline', status: 'blocked', updatedAt: 5 },
+    { id: 'c3', title: 'Busy', status: 'working', updatedAt: 9 },
+    { id: 'bad id', title: 'x', status: 'waiting', updatedAt: 9 },
+    { id: 'd4', title: 'Gone', status: 'waiting', archived: true },
+    null,
+  ])
+  assert.deepEqual(list.map((e) => e.id), ['b2', 'a1'])
+  assert.equal(list[0].label, 'Blocked: New line')
+  assert.equal(list[1].label, 'Waiting: Old · p')
+  assert.deepEqual(trayEntries('nope'), [])
+})
+
+test('keepInTray reads only a true setting out of the page’s saved JSON', () => {
+  assert.equal(keepInTray('{"trayKeep":true}'), true)
+  assert.equal(keepInTray('{"trayKeep":"yes"}'), false)
+  assert.equal(keepInTray(null), false)
+  assert.equal(keepInTray('{oops'), false)
 })

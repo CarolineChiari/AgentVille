@@ -86,3 +86,24 @@ export function pageTitle(counts, session = '') {
   const base = n ? `(${n}) ${APP_TITLE}` : APP_TITLE
   return typeof session === 'string' && SESSION_RE.test(session) ? `${base} · session ${session}` : base
 }
+
+/** A thread id as the page and the tray pass it in a URL hash: letters, digits and `_ . : -` only. */
+const THREAD_ID = /^[A-Za-z0-9_.:-]{1,120}$/
+
+/** The hash that tells the page to select a thread, or '' for an id that isn't one. */
+export function threadHash(id) {
+  return typeof id === 'string' && THREAD_ID.test(id) ? `#thread=${encodeURIComponent(id)}` : ''
+}
+
+/** The thread id a hash names, or '' when it names none, or one that wouldn't pass. */
+export function parseThreadHash(hash) {
+  if (typeof hash !== 'string') return ''
+  const m = /^#thread=([^&]+)$/.exec(hash)
+  if (!m) return ''
+  try {
+    const id = decodeURIComponent(m[1])
+    return THREAD_ID.test(id) ? id : ''
+  } catch {
+    return ''
+  }
+}
