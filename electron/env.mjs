@@ -1,7 +1,8 @@
 // Pure: what the desktop wrapper decides, from where it listens to what its dock badge says.
 // Imports nothing from Electron, so it runs under `node --test`.
 import path from 'node:path'
-import { parseThreadHash, threadHash } from '../src/game/notify.js'
+import { NEW_SESSION_HASH, parseThreadHash, threadHash } from '../src/game/notify.js'
+import { statusFor } from '../src/sim/status.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
 /**
@@ -213,16 +214,19 @@ const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
  * @param {unknown} threads
  * @returns {{ id: string, label: string }[]}
  */
-export function trayEntries(threads) {
+export function trayEntries(threads, now = Date.now()) {
   if (!Array.isArray(threads)) return []
+  // /api/threads sends raw threads: the status is worked out here, as the page does with statusFor.
   return threads
-    .filter((t) => t && typeof t === 'object' && !t.archived && (t.status === 'waiting' || t.status === 'blocked') && threadHash(t.id))
-    .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0))
+    .filter((t) => t && typeof t === 'object' && !t.archived && !t.archivedHere && threadHash(t.id))
+    .map((t) => ({ t, status: statusFor(t, now) }))
+    .filter(({ status }) => status === 'waiting' || status === 'blocked')
+    .sort((a, b) => (Number(b.t.lastActivityAt) || 0) - (Number(a.t.lastActivityAt) || 0))
     .slice(0, TRAY_LISTED)
-    .map((t) => {
+    .map(({ t, status }) => {
       const title = clip(String(t.title || 'Untitled').replace(/\s+/g, ' ').trim(), 50)
       const where = typeof t.project === 'string' && t.project ? ` · ${clip(t.project, 24)}` : ''
-      return { id: t.id, label: `${t.status === 'blocked' ? 'Blocked' : 'Waiting'}: ${title}${where}` }
+      return { id: t.id, label: `${status === 'blocked' ? 'Blocked' : 'Waiting'}: ${title}${where}` }
     })
 }
 
@@ -235,4 +239,4 @@ export function keepInTray(raw) {
   }
 }
 
-export { parseThreadHash, threadHash }
+export { NEW_SESSION_HASH, parseThreadHash, threadHash }

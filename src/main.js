@@ -7,7 +7,7 @@ import { sprites } from './render/sprites/registry.js'
 import { TILE_PX } from './render/sprites/palette.js'
 import { dayFactor, duskFactor, hourNow } from './render/daynight.js'
 import { Village } from './game/village.js'
-import { announcementFor, parseThreadHash } from './game/notify.js'
+import { NEW_SESSION_HASH, announcementFor, parseThreadHash } from './game/notify.js'
 import { createLive } from './game/live.js'
 import { reducedMotion, villageSummary } from './game/motion.js'
 import { loadSettings, saveSettings } from './ui/settings.js'
@@ -252,8 +252,19 @@ async function enableNotices() {
   toast('Notifications are blocked for this page. Allow them in the browser’s site settings, then turn this on again.', 'error')
 }
 
-/** The tray (desktop app) opens a villager by setting `#thread=<id>`; pick it up on load and when it changes. */
+/**
+ * The tray (desktop app) asks for a villager with `#thread=<id>`, or the new-session form with
+ * `#new`. Until boot has loaded the village there is nothing to select, so the hash stays put and
+ * boot comes back for it.
+ */
+let booted = false
 function openFromHash() {
+  if (!booted) return
+  if (location.hash === NEW_SESSION_HASH) {
+    history.replaceState(null, '', location.pathname + location.search)
+    newSession.open(village.selectedPlot)
+    return
+  }
   const id = parseThreadHash(location.hash)
   if (!id) return
   history.replaceState(null, '', location.pathname + location.search)
@@ -621,6 +632,7 @@ async function boot() {
     toast(`Couldn't reach the AgentVille server: ${err.message}`, 'error')
   }
   await poll()
+  booted = true
   openFromHash()
   village.pollWeather()
   // The server says when a harness's files moved; the timer is only the heartbeat behind it.

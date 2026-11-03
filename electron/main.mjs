@@ -4,7 +4,7 @@ import { app, BrowserWindow, Menu, nativeImage, screen, session, shell, Tray } f
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
-import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, keepInTray, parseBounds, showDisplays, showSeed, showUrl, threadHash, trayBitmap, trayEntries } from './env.mjs'
+import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, NEW_SESSION_HASH, keepInTray, parseBounds, showDisplays, showSeed, showUrl, threadHash, trayBitmap, trayEntries } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { HEADERS } from '../server/headers.mjs'
 import { createShellOpener } from '../server/opener.mjs'
@@ -83,19 +83,18 @@ async function readKeepTray() {
   return keepTray
 }
 
-function showWindow(id, script) {
+function showWindow(hash) {
   if (!win) createWindow()
   else {
     if (win.isMinimized()) win.restore()
     win.show()
     win.focus()
   }
-  const hash = threadHash(id)
-  if (!hash && !script) return
-  // Run on the page that is already loaded; a new window gets it when it finishes loading.
-  const go = () => win?.webContents.executeJavaScript(hash ? `location.hash = ${JSON.stringify(hash)}` : script).catch(() => {})
-  if (win.webContents.isLoading()) win.webContents.once('did-finish-load', go)
-  else go()
+  if (!hash) return
+  // The page holds the hash until it has booted, so it is safe to set it before it has loaded;
+  // a window still loading takes it from the URL instead.
+  if (win.webContents.isLoading()) win.loadURL(appUrl + hash)
+  else win.webContents.executeJavaScript(`location.hash = ${JSON.stringify(hash)}`).catch(() => {})
 }
 
 function trayImage(n) {
@@ -109,14 +108,14 @@ function trayImage(n) {
 
 function buildTrayMenu() {
   const needs = entries.length
-    ? entries.map((e) => ({ label: e.label, click: () => showWindow(e.id) }))
+    ? entries.map((e) => ({ label: e.label, click: () => showWindow(threadHash(e.id)) }))
     : [{ label: 'Nobody needs you', enabled: false }]
   return Menu.buildFromTemplate([
     { label: 'Needs you', enabled: false },
     ...needs,
     { type: 'separator' },
     { label: 'Show AgentVille', click: () => showWindow() },
-    { label: 'New session', click: () => showWindow(null, "document.querySelector('[data-act=newAny]')?.click()") },
+    { label: 'New session', click: () => showWindow(NEW_SESSION_HASH) },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ])
@@ -256,6 +255,17 @@ function createWindow() {
     refreshTray() // the count changed, so who needs you did
     syncShows(showSeed(title))
   })
+  // Whether to quit or stay in the tray is read from the page now, while it still exists: the
+  // setting changes without any title change, so the polled copy can be a few seconds old.
+  let checked = false
+  win.on('close', (e) => {
+    if (checked || quitting) return
+    e.preventDefault()
+    readKeepTray().finally(() => {
+      checked = true
+      if (win && !win.isDestroyed()) win.close()
+    })
+  })
   win.on('closed', () => {
     win = null
     closeShows()
@@ -263,10 +273,9 @@ function createWindow() {
   win.loadURL(appUrl)
 }
 
+// Relaunching while only the tray is left brings the window back.
 app.on('second-instance', () => {
-  if (!win) return
-  if (win.isMinimized()) win.restore()
-  win.focus()
+  if (appUrl) showWindow()
 })
 
 app.whenReady().then(async () => {

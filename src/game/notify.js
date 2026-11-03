@@ -107,3 +107,6 @@ export function parseThreadHash(hash) {
     return ''
   }
 }
+
+/** The hash the tray sets to open the new-session form. */
+export const NEW_SESSION_HASH = '#new'

@@ -215,15 +215,17 @@ test('a thread hash round-trips and refuses anything odd', () => {
   assert.equal(parseThreadHash('#other=1'), '')
 })
 
-test('the tray lists waiting and blocked villagers, newest first, and drops bad ids', () => {
+test('the tray lists waiting and blocked villagers from raw threads, newest first, and drops bad ids', () => {
+  const now = 1_000_000
+  const raw = (o) => ({ title: 'T', project: '', lastActivityAt: now - 1000, running: false, needsInput: null, hasError: false, ...o })
   const list = trayEntries([
-    { id: 'a1', title: 'Old', status: 'waiting', updatedAt: 1, project: 'p' },
-    { id: 'b2', title: 'New\nline', status: 'blocked', updatedAt: 5 },
-    { id: 'c3', title: 'Busy', status: 'working', updatedAt: 9 },
-    { id: 'bad id', title: 'x', status: 'waiting', updatedAt: 9 },
-    { id: 'd4', title: 'Gone', status: 'waiting', archived: true },
+    raw({ id: 'a1', title: 'Old', needsInput: 'question', lastActivityAt: now - 5000, project: 'p' }),
+    raw({ id: 'b2', title: 'New\nline', hasError: true }),
+    raw({ id: 'c3', title: 'Busy', running: true }),
+    raw({ id: 'bad id', needsInput: 'question' }),
+    raw({ id: 'd4', needsInput: 'question', archived: true }),
     null,
-  ])
+  ], now)
   assert.deepEqual(list.map((e) => e.id), ['b2', 'a1'])
   assert.equal(list[0].label, 'Blocked: New line')
   assert.equal(list[1].label, 'Waiting: Old · p')
