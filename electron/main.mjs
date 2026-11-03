@@ -1,10 +1,10 @@
 // The desktop app: the same server `npm start` runs, started inside Electron's main process, and
 // one window pointed at it. The page is the ordinary web build; it gets no Node and no preload.
-import { app, BrowserWindow, nativeImage, screen, session, shell } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, screen, session, shell, Tray } from 'electron'
 import os from 'node:os'
 import fs from 'node:fs'
 import path from 'node:path'
-import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds, showDisplays, showSeed, showUrl } from './env.mjs'
+import { APP_PORT, DEFAULT_BOUNDS, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, NEW_SESSION_HASH, keepInTray, parseBounds, showDisplays, showSeed, showUrl, threadHash, trayBitmap, trayEntries } from './env.mjs'
 import { createServer } from '../server/index.mjs'
 import { HEADERS } from '../server/headers.mjs'
 import { createShellOpener } from '../server/opener.mjs'
@@ -64,6 +64,83 @@ function showCount(n) {
     img.addRepresentation({ scaleFactor: scale, width, height, buffer: data })
   }
   win?.setOverlayIcon(img, n === 1 ? '1 villager needs you' : `${n} villagers need you`)
+}
+
+// The tray (menu bar on macOS, notification area elsewhere), kept only while the setting asks for it.
+let tray = null
+let keepTray = false
+let entries = []
+let quitting = false
+
+/** The page's own settings, read from its localStorage: the page has no preload to hand them over. */
+async function readKeepTray() {
+  if (!win || win.isDestroyed()) return keepTray
+  try {
+    keepTray = keepInTray(await win.webContents.executeJavaScript("localStorage.getItem('agentville.settings')"))
+  } catch {
+    // No page yet, or storage blocked: leave it as it was.
+  }
+  return keepTray
+}
+
+function showWindow(hash) {
+  if (!win) createWindow()
+  else {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+  }
+  if (!hash) return
+  // The page holds the hash until it has booted, so it is safe to set it before it has loaded;
+  // a window still loading takes it from the URL instead.
+  if (win.webContents.isLoading()) win.loadURL(appUrl + hash)
+  else win.webContents.executeJavaScript(`location.hash = ${JSON.stringify(hash)}`).catch(() => {})
+}
+
+function trayImage(n) {
+  const img = nativeImage.createEmpty()
+  for (const scale of [1, 2]) {
+    const { width, height, data } = trayBitmap(n, scale)
+    img.addRepresentation({ scaleFactor: scale, width, height, buffer: data })
+  }
+  return img
+}
+
+function buildTrayMenu() {
+  const needs = entries.length
+    ? entries.map((e) => ({ label: e.label, click: () => showWindow(threadHash(e.id)) }))
+    : [{ label: 'Nobody needs you', enabled: false }]
+  return Menu.buildFromTemplate([
+    { label: 'Needs you', enabled: false },
+    ...needs,
+    { type: 'separator' },
+    { label: 'Show AgentVille', click: () => showWindow() },
+    { label: 'New session', click: () => showWindow(NEW_SESSION_HASH) },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() },
+  ])
+}
+
+/** Ask the server who needs you (it is our own, in this process) and redraw the tray from the answer. */
+async function refreshTray() {
+  if (!(await readKeepTray())) {
+    tray?.destroy()
+    tray = null
+    return
+  }
+  try {
+    const res = await fetch(new URL('/api/threads', appUrl))
+    entries = trayEntries((await res.json()).threads)
+  } catch {
+    // The server is busy scanning or going away: keep what the menu said.
+  }
+  if (!tray) {
+    tray = new Tray(trayImage(entries.length))
+    tray.on('click', () => showWindow())
+  }
+  tray.setImage(trayImage(entries.length))
+  tray.setToolTip(entries.length ? `${entries.length} villager${entries.length === 1 ? '' : 's'} need${entries.length === 1 ? 's' : ''} you` : 'AgentVille')
+  tray.setContextMenu(buildTrayMenu())
 }
 
 const boundsFile = () => path.join(dataDir(), 'window.json')
@@ -175,7 +252,19 @@ function createWindow() {
   // after it; it has no other way to reach us.
   win.on('page-title-updated', (e, title) => {
     showCount(badgeCount(title))
+    refreshTray() // the count changed, so who needs you did
     syncShows(showSeed(title))
+  })
+  // Whether to quit or stay in the tray is read from the page now, while it still exists: the
+  // setting changes without any title change, so the polled copy can be a few seconds old.
+  let checked = false
+  win.on('close', (e) => {
+    if (checked || quitting) return
+    e.preventDefault()
+    readKeepTray().finally(() => {
+      checked = true
+      if (win && !win.isDestroyed()) win.close()
+    })
   })
   win.on('closed', () => {
     win = null
@@ -184,10 +273,9 @@ function createWindow() {
   win.loadURL(appUrl)
 }
 
+// Relaunching while only the tray is left brings the window back.
 app.on('second-instance', () => {
-  if (!win) return
-  if (win.isMinimized()) win.restore()
-  win.focus()
+  if (appUrl) showWindow()
 })
 
 app.whenReady().then(async () => {
@@ -205,5 +293,20 @@ app.whenReady().then(async () => {
 })
 
 // The village is the whole app, so closing it quits, on macOS too.
-app.on('window-all-closed', () => app.quit())
-app.on('before-quit', () => server?.close())
+// Unless the setting asks to stay in the tray, where the village keeps running without a window.
+app.on('window-all-closed', () => {
+  if (quitting || !keepTray) app.quit()
+})
+app.on('before-quit', () => {
+  quitting = true
+  tray?.destroy()
+  server?.close()
+})
+// The setting changes with no title change; look at it often (it is one localStorage read), and
+// ask the server for the list only when the tray is on.
+let ticks = 0
+setInterval(async () => {
+  const was = keepTray
+  await readKeepTray()
+  if (keepTray !== was || (keepTray && ++ticks % 4 === 0)) refreshTray()
+}, 3000).unref()

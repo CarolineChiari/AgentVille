@@ -291,6 +291,10 @@ However many villagers need you is also in the tab's title, `(2) AgentVille`, wh
 settings. In the desktop app it's on the Dock icon on macOS, and on the taskbar button as a small
 yellow badge on Windows; answering them clears it.
 
+In the desktop app, **Settings → Keep running in the menu bar when the window is closed** (off by default)
+leaves a tray icon when you close the window. Its menu lists the villagers waiting on you or blocked,
+and picking one reopens the window on that villager; *Show AgentVille*, *New session* and *Quit* are below.
+
 ### Groups
 
 A repo with a lot going on in it can keep its sessions in groups: the auth rework, the docs, the
