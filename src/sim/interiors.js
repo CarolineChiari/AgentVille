@@ -965,7 +965,7 @@ export const INTERIORS = {
       rug: { x: 1, y: 3 },
       stand: { x: 2, y: 3 },
       extra: [
-        { kind: 'lamp', x: 3, y: 2, variant: 3 },
+        { kind: 'lamp', x: 3, y: 2, variant: 1 },
         { kind: 'plant', x: 14, y: 3, variant: 2 },
       ],
     }),
