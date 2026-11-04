@@ -338,3 +338,26 @@ carved screen · four families of paint.
 **Finished work**: a **lantern** in the **lantern bed** (☼), one silhouette per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a tiled courtyard, a souk stall, a sweets kitchen and a garden pavilion.
+
+## Christmas · `christmas`
+
+A village in the snow: snow on every roof and rail, wreaths on the doors, lights along the eaves and
+a candle in the windows. Religious symbols stay on the buildings (the chapel's lit star and its bare
+stable), not on the villagers, and the nativity has no figures. It is dressed by the calendar from
+twelve days before Christmas Day.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Christmas market | `christmas-market` | Wooden stalls of mulled wine and gingerbread under strings of lights |
+| Snowy cottages | `snowy-cottages` | Deep snow, smoke from every chimney and a candle in each window |
+| Santa's workshop | `santas-workshop` | Toymakers, a sleigh by the door and presents piled to the eaves |
+| Gingerbread lane | `gingerbread-lane` | Sweet-coloured houses behind candy-cane fences |
+| Carol singers' chapel | `carol-chapel` | A small church with a lit star over the door and a stable in the yard |
+
+**Built from** — fences: light-hung rails, a snowed low wall, candy canes, a holly garland ·
+ground: deep snow, market cobbles, frosted lawn, gingerbread · walls: planks, logs, gingerbread,
+icing, stone · four families of paint.
+**Finished work**: a **present** on the **present pile** (❄), one shape per kind of work, the
+ribbon in the pull request's colour; an open PR's is still being wrapped in brown paper.
+**Rooms**: a market stall, a snug cottage, a toy workshop, a gingerbread kitchen and a carol nook.
+Villagers' scarves and bobble hats were left out.

@@ -1008,6 +1008,76 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Christmas theme (src/render/themes/christmas/) ----------
+  // Paint and cloth: holly red, pine green, gold, candy pink, cream, gingerbread, midnight blue and
+  // frost. A plot's buildings share a family of three (PAINT_FAMILIES in christmas/buildings.js).
+  xmasPaint: ['#b8283a', '#2f7a45', '#d4a437', '#e58aa5', '#f3ead8', '#8a5230', '#2c4a7a', '#cfe3f0'],
+  // Snow, as it lies on roofs, fences and walls: light, shaded in the blue of its shadow, and deep.
+  xmasSnow: '#f6faff',
+  xmasSnowShade: '#cddbed',
+  xmasSnowDeep: '#a4b8d4',
+  // Walls: market planks, snowed-in logs, gingerbread, white icing and cold grey stone.
+  xmasPlank: '#a8703c',
+  xmasPlankDark: '#7e5028',
+  xmasPlankLight: '#c48c52',
+  xmasLog: '#7a4e2e',
+  xmasLogDark: '#573520',
+  xmasLogLight: '#97663e',
+  xmasGinger: '#b8743a',
+  xmasGingerDark: '#8f5426',
+  xmasGingerLight: '#d08e52',
+  xmasIcing: '#fbf5ea',
+  xmasIcingDark: '#e3d6c2',
+  xmasStone: '#9aa3ae',
+  xmasStoneDark: '#737c88',
+  xmasStoneLight: '#bcc4cd',
+  // Candy: the sweets on gingerbread eaves, in stripes and gumdrops.
+  xmasCandyRed: '#d63a4a',
+  xmasCandyGreen: '#4aa35c',
+  xmasMint: '#b9e3cf',
+  xmasGumdrop: '#f2a43a',
+  // Fir, holly and mistletoe; and the bulbs and tinsel the evergreen is hung with.
+  xmasFir: '#2d6a3e',
+  xmasFirDark: '#1f4a2c',
+  xmasFirLight: '#4a9158',
+  xmasHolly: '#c92a2f',
+  xmasBulbBlue: '#3d7fd0',
+  xmasBulbYellow: '#ffd75e',
+  xmasTinsel: '#e8c25a',
+  xmasWax: '#f7efd9',
+  xmasToyWood: '#d9a15a',
+  // Ground by yard tone: deep snow, market cobbles under snow, frosted lawn and a gingerbread
+  // floor. Each is base, shade, light and deepest; then the same in a dry patch and in a lush
+  // one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  xmasGround: [
+    ['#eef3fa', '#d3deec', '#fbfdff', '#b2c3da'],
+    ['#c9d0da', '#aab3c1', '#e0e5ec', '#8892a3'],
+    ['#b8d2b6', '#9bbb9b', '#d2e6cf', '#7fa082'],
+    ['#c98d58', '#ad7343', '#dca572', '#8f5b32'],
+  ],
+  xmasGroundSunny: [
+    ['#f3f2ee', '#dbdbd8', '#fffefa', '#bdbfc4'],
+    ['#d2d0d2', '#b5b4ba', '#e8e6e8', '#95949f'],
+    ['#c2d6b0', '#a5c096', '#d9e8c6', '#87a47b'],
+    ['#d2915a', '#b6783f', '#e5a972', '#975d2f'],
+  ],
+  xmasGroundLush: [
+    ['#e8f0f8', '#cbd9ea', '#f6fbff', '#abbfd8'],
+    ['#c2cdd9', '#a3b0c0', '#d9e2eb', '#8291a6'],
+    ['#acd0b8', '#90b8a0', '#c6e4d0', '#76a086'],
+    ['#c08a5e', '#a67048', '#d4a37a', '#88583a'],
+  ],
+  // The lane round a plot: trodden slush, greyer than the snowy ground so the plots read.
+  xmasLane: '#d9dfe6',
+  xmasLaneDark: '#bcc4cf',
+  xmasLaneLight: '#eceff3',
+  xmasLaneEdge: '#97a1b0',
+  // The present bed: a tree skirt of dark green felt so wrapped presents stand out from the snow.
+  xmasBed: '#2a4a3a',
+  xmasBedDark: '#1e3629',
+  xmasBedLight: '#3d6350',
+  xmasBedDeep: '#142619',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
