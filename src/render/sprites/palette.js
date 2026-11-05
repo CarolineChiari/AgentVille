@@ -1008,6 +1008,49 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Lunar New Year theme (src/render/themes/lunar-new-year/) ----------
+  // Paint and cloth for the new year: red, gold, crimson, jade, cream, dark wood, blossom pink and
+  // mandarin orange. A plot's buildings share a family of three (PAINT_FAMILIES in the pack's buildings).
+  lnyPaint: ['#c4262e', '#e2a72e', '#8d1f2a', '#2f7a62', '#f4e8cc', '#5e3220', '#e07a96', '#d9661f'],
+  // Walls: whitewash, blue-grey brick, and (in the pack) red lacquer, rammed earth and a lattice.
+  // (The lattice's wood is the farm's timber, the rammed earth the clay of the Eid pack.)
+  lnyWhitewash: '#f3efe6',
+  lnyWhitewashDark: '#d2cbbb',
+  lnyWhitewashLight: '#fbf8f0',
+  lnyBrick: '#8f9aa0',
+  lnyBrickDark: '#6e7a82',
+  lnyBrickLight: '#b0babf',
+  // Gold leaf on lanterns, finials and door studs.
+  lnyGold: '#d6a02c',
+  lnyGoldDark: '#9a6c1c',
+  lnyGoldLight: '#f6d56a',
+  // Ground by yard tone: pale flagstone, a blossom garden lawn, red brick pavers and jade tile.
+  // Each is base, shade, light and deepest; then the same in a dry patch and in a lush one, one for
+  // one (see src/render/ground.js). Only the ground is drawn in these.
+  lnyGround: [
+    ['#cfcbc0', '#b4b0a4', '#e1ddd2', '#97938a'],
+    ['#79a85a', '#648f47', '#8ec06c', '#4f7637'],
+    ['#b5563f', '#9a4430', '#c9694f', '#7d3524'],
+    ['#3f8a76', '#2f7261', '#58a38d', '#245a4c'],
+  ],
+  lnyGroundSunny: [
+    ['#d6d0bd', '#bcb6a2', '#e8e2cf', '#9f9984'],
+    ['#89ae55', '#729843', '#a0c764', '#5a7d33'],
+    ['#be5b3d', '#a34830', '#d27049', '#843a22'],
+    ['#4a927a', '#397a64', '#64ab90', '#2c614d'],
+  ],
+  lnyGroundLush: [
+    ['#c4c6b8', '#aaac9e', '#d7d9cb', '#8d8f82'],
+    ['#6ba360', '#568b4b', '#80b975', '#437337'],
+    ['#ab5242', '#904032', '#bf6655', '#733226'],
+    ['#37846f', '#276d5a', '#4f9d86', '#1e5545'],
+  ],
+  // The lane round a plot: swept pale stone, paler than the ground so the plots read.
+  lnyLane: '#e9e4d4',
+  lnyLaneDark: '#cdc7b2',
+  lnyLaneLight: '#f6f2e6',
+  lnyLaneEdge: '#a39d88',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
