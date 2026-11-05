@@ -338,3 +338,25 @@ carved screen · four families of paint.
 **Finished work**: a **lantern** in the **lantern bed** (☼), one silhouette per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a tiled courtyard, a souk stall, a sweets kitchen and a garden pavilion.
+
+## Lunar New Year · `lunar-new-year`
+
+A village for the new year: red lanterns strung over every lane, lacquered doors, plum blossom and
+trays of mandarins. Religious symbols stay out of it, and nothing is worn as costume. The lion
+dance, the zodiac animal of the year and a calendar window are left for later: the festival moves
+with the lunar calendar, so it is chosen in **Settings → Theme**. A dragon or lion is also left out
+for now rather than drawn badly.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Lantern street | `lantern-street` | Rows of red lanterns strung over the lane, glowing after dark |
+| Temple fair | `temple-fair` | Stalls, snacks and a stage for the lion dance, gold on every awning |
+| Blossom garden | `blossom-garden` | Plum blossom over green lawn, pale walls and jade-tile paths |
+| Family courtyard | `family-courtyard` | Homes round a courtyard with red couplets on every door |
+
+**Built from** — fences: red lantern posts, a banded low wall, a lattice, a garland ·
+ground: flagstone, blossom lawn, red brick, jade tile · walls: whitewash, grey brick, red lacquer,
+rammed earth, lattice · four families of paint.
+**Finished work**: a **lantern** in the **lantern bed** (❖), one silhouette per kind of work; an
+open PR's is not lit yet.
+**Rooms**: a reunion hall, a lantern stall, a dumpling kitchen and a blossom pavilion.

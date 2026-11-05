@@ -466,6 +466,38 @@ export const THEMES = {
       },
     },
   },
+  'lunar-new-year': {
+    label: 'Lunar New Year',
+    spotlights: [{ id: 'lantern', label: 'Red lantern' }, { id: 'firecracker', label: 'Firecrackers' }, { id: 'envelope', label: 'Red envelope' }, { id: 'blossom', label: 'Plum blossom' }, { id: 'tangerine', label: 'Mandarins' }],
+    dims: {
+      // Red lantern posts, a low whitewashed wall banded in red and gold, a carved lattice, and a
+      // garland of blossom and gold.
+      fence: ['lanterns', 'lowwall', 'lattice', 'garland'],
+      yard: ['flagstone', 'garden', 'brick', 'jadetile'],
+      wall: ['whitewash', 'greybrick', 'lacquer', 'rammed', 'lattice'],
+      // Paint for the roofs, doors and awnings: red, gold, jade and crimson, in four families of
+      // three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'lantern-street', label: 'Lantern street', blurb: 'Rows of red lanterns strung over the lane, glowing after dark', fence: ['lanterns', 'garland'], yard: ['flagstone', 'brick'], wall: ['lacquer', 'whitewash'], roofs: [0] },
+      { id: 'temple-fair', label: 'Temple fair', blurb: 'Stalls, snacks and a stage for the lion dance, gold on every awning', fence: ['lanterns', 'lattice'], yard: ['brick', 'flagstone'], wall: ['lattice', 'rammed'], roofs: [1] },
+      { id: 'blossom-garden', label: 'Blossom garden', blurb: 'Plum blossom over green lawn, pale walls and jade-tile paths', fence: ['garland', 'lowwall'], yard: ['garden', 'jadetile'], wall: ['whitewash', 'greybrick'], roofs: [2] },
+      { id: 'family-courtyard', label: 'Family courtyard', blurb: 'Homes round a courtyard with red couplets on every door', fence: ['lowwall', 'lattice'], yard: ['brick', 'jadetile'], wall: ['greybrick', 'lacquer'], roofs: [3] },
+    ],
+    auto: ['lantern-street', 'temple-fair', 'blossom-garden', 'family-courtyard'],
+    // Finished work is a red lantern, each kind of work its own shape. An open PR's is not lit yet.
+    // The glyph is a black diamond with a white cross, the shape of a fu pasted on a door, which none
+    // of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ⚘ ✶ ★ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'lantern', many: 'lanterns', place: 'lantern bed', glyph: '\u2756', grow: 'Hang lanterns for pull requests',
+      names: {
+        fix: 'Round lantern', feature: 'Tall lantern', refactor: 'Hexagonal lantern', docs: 'Paper lantern', test: 'Candle lantern',
+        ui: 'Star lantern', infra: 'Gold-bound lantern', data: 'Lattice lantern', perf: 'Teardrop lantern', review: 'Hanging lantern',
+        research: 'Silk lantern', misc: 'Small lantern',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
