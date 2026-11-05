@@ -15,12 +15,17 @@ test('every kind of finished work shows its colour, and white differs from it', 
   })
 })
 
-test('no two kinds of different work share a lantern', () => {
-  const seen = new Map()
-  FLOWER_KINDS.forEach((k, i) => {
-    const key = look(drawLny(i, 2, COLOUR))
-    const other = seen.get(key)
-    if (other && other.work !== k.work) assert.fail(`${k.name} (${k.work}) is drawn as ${other.name} (${other.work})`)
-    seen.set(key, k)
-  })
+// The shape alone: which pixels are drawn, not what colour they are.
+const silhouette = (pc) => Array.from(pc.data.filter((_, i) => i % 4 === 3), (a) => (a > 0 ? 1 : 0)).join('')
+
+test('no two kinds of different work share a silhouette', () => {
+  for (const stage of [1, 2]) {
+    const seen = new Map()
+    FLOWER_KINDS.forEach((k, i) => {
+      const key = silhouette(drawLny(i, stage, COLOUR))
+      const other = seen.get(key)
+      if (other && other.work !== k.work) assert.fail(`${k.name} (${k.work}) has the outline of ${other.name} (${other.work}) at stage ${stage}`)
+      seen.set(key, k)
+    })
+  }
 })

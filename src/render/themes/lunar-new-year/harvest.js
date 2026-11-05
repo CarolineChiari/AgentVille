@@ -122,6 +122,35 @@ const LANTERNS = {
 }
 
 /**
+ * What sets a lantern's outline apart from another kind of work's, where the shapes above would
+ * otherwise coincide at some sizes (a refactor's hexagon and a fix's round, a data lattice and an
+ * infrastructure brass lantern). Each adds to the silhouette itself, not to its colours, since
+ * the work is told by shape: ears on a refactor's cap, a crown on research, handles on infra
+ * and pendants at the foot of data.
+ */
+const MARKS = {
+  refactor: (pc, h, w) => {
+    const w0 = Math.max(1, w - 1)
+    pc.px(CX - w0 - 2, top(h) - 1, P.lnyGoldLight)
+    pc.px(CX + w0 + 2, top(h) - 1, P.lnyGoldLight)
+  },
+  research: (pc, h) => {
+    pc.px(CX - 1, top(h) - 3, P.lnyGoldLight)
+    pc.px(CX + 1, top(h) - 3, P.lnyGoldLight)
+  },
+  infra: (pc, h, w) => {
+    const iw = Math.max(2, w)
+    pc.px(CX - iw - 1, top(h) + 1, P.lnyGoldDark)
+    pc.px(CX + iw + 1, top(h) + 1, P.lnyGoldDark)
+  },
+  data: (pc, h, w) => {
+    const iw = Math.max(2, w)
+    pc.px(CX - iw - 1, BASE - 1, P.lnyPaint[0])
+    pc.px(CX + iw + 1, BASE - 1, P.lnyPaint[0])
+  },
+}
+
+/**
  * One finished thread's lantern, for FLOWER_KINDS[kind], the size of a flower and on the flower's spot.
  * @param {number} kind  into FLOWER_KINDS
  * @param {number} stage 0 an unlit candle · 1 the lantern, not yet lit (an open PR) · 2 lit
@@ -144,10 +173,12 @@ export function drawLny(kind, stage, color) {
   const w = HALF[k.size] ?? HALF.m
   const h = HEIGHT[k.stem] ?? HEIGHT.mid
   const draw = LANTERNS[k.work] || LANTERNS.misc
+  const mark = MARKS[k.work]
   const lit = stage >= 2
   // Unlit, the glass keeps a touch of its colour so an open PR reads as not done at a glance
   // rather than merely as a darker lantern.
   draw(pc, color, lit, h, w)
+  if (mark) mark(pc, h, w)
   if (!lit) pc.px(CX, BASE - 3, color)
   return pc.outline(P.outline)
 }

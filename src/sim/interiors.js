@@ -897,7 +897,7 @@ export const INTERIORS = {
       ],
     }),
     room('lantern-stall', 'Lantern stall', 'Lanterns heaped in crates and strung over the counter, a fair in full swing', {
-      subs: ['temple-fair', 'lantern-street'],
+      subs: ['temple-fair'],
       w: 18,
       board: { x: 6, y: -7 },
       pinboard: { x: 1, y: -3 },
@@ -917,6 +917,7 @@ export const INTERIORS = {
       ],
     }),
     room('dumpling-kitchen', 'Dumpling kitchen', 'Steam off the range, a table floured for folding and a basket of mandarins', {
+      subs: ['lantern-street'],
       wallH: 8,
       board: { x: 3, y: -8 },
       pinboard: { x: 13, y: -2 },
