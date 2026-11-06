@@ -36,6 +36,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let shownId = null
   let shownKey = ''
   let tasksOpen = false // the task list stays open across re-renders of the same thread
+  let replyBusy = false // whether the reply box on screen was drawn disabled
   const drafts = new Map() // unsent replies by thread id: in memory only, so switching cards doesn't lose one
   let handTo = '' // on a board's card: which free villager Send goes to, kept across re-renders
   let issuesShown = ISSUE_CARD_MAX // how far down a board's issue list we've loaded, reset per board
@@ -131,14 +132,23 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   })
 
   /** The reply box's text, sent as a one-off task; the box empties only if it reached the thread. */
+  const sending = new Set() // thread ids with a reply on its way: a second press would start a second continuation
   async function sendReply(box) {
     const id = village.selected
     const text = box.value.trim().slice(0, PROMPT_MAX)
-    if (!id || !text) return
+    if (!id || !text || sending.has(id)) return
     const label = text.length > 40 ? `${text.slice(0, 39)}…` : text
-    if (await village.sendPrompt(id, label, text)) {
-      drafts.delete(id)
-      box.value = ''
+    sending.add(id)
+    try {
+      if (await village.sendPrompt(id, label, text)) {
+        // Only what was sent goes: words typed while it was on its way stay. The card may have been
+        // redrawn meanwhile, so the box is looked up again rather than trusting the one pressed.
+        if ((drafts.get(id) ?? '').trim().slice(0, PROMPT_MAX) === text) drafts.delete(id)
+        const now = village.selected === id ? card.querySelector('textarea.reply') : null
+        if (now && now.value.trim().slice(0, PROMPT_MAX) === text) now.value = ''
+      }
+    } finally {
+      sending.delete(id)
     }
   }
 
@@ -369,7 +379,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   /** The ready-made tasks, or why there are none right now. */
   function taskList(t) {
-    const busy = t.running || t.needsInput
+    const busy = Boolean(t.running || t.needsInput)
+    replyBusy = busy
     // A live question can't be answered from outside the harness, so the box says so and Open is the way in.
     const why = t.needsInput ? 'It is waiting on a question. Answer it with Open.' : 'Busy right now. You can tell it something once it stops.'
     const reply = `<div class="reply-box">
@@ -668,7 +679,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       const flower = village.isFinished(id) ? village.flower(id) : null
       const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
-      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus, textarea.reply:focus')) return
+      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus, textarea.reply:focus') && Boolean(t.running || t.needsInput) === replyBusy) return
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)
