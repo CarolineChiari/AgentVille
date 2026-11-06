@@ -5,6 +5,7 @@ import { sprites } from '../render/sprites/registry.js'
 import { ACCENTS, BADGE, PALETTE as P, PETALS } from '../render/sprites/palette.js'
 import { DEFAULT_THEME, THEMES, THEME_IDS, finishedWords } from '../sim/themes.js'
 import { NAME_MAX } from '../game/names.js'
+import { PROMPT_MAX } from '../game/tasks.js'
 import { FILTER_MINE, FILTER_UNASSIGNED, filterLabel, labelFilter } from '../game/boardfilter.js'
 import { GROUP_NAME_MAX, sameName } from '../game/groups.js'
 import { SPOTLIGHT_SPANS, timeLeft } from '../game/spotlight.js'
@@ -35,6 +36,8 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   let shownId = null
   let shownKey = ''
   let tasksOpen = false // the task list stays open across re-renders of the same thread
+  let replyBusy = false // whether the reply box on screen was drawn disabled
+  const drafts = new Map() // unsent replies by thread id: in memory only, so switching cards doesn't lose one
   let handTo = '' // on a board's card: which free villager Send goes to, kept across re-renders
   let issuesShown = ISSUE_CARD_MAX // how far down a board's issue list we've loaded, reset per board
   let builtId = null // which thread the Built section is about
@@ -101,6 +104,14 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
   }
 
   card.addEventListener('keydown', (e) => {
+    if (e.target.matches('textarea.reply')) {
+      e.stopPropagation() // typing here is not a village shortcut
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        sendReply(e.target)
+      }
+      return
+    }
     const box = e.target.matches('input.rename') ? endRename : e.target.matches('input.new-group') ? endGroup : null
     if (!box) return
     if (e.key === 'Enter') box(true)
@@ -115,6 +126,31 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
     if (e.target.matches('input.rename') && renaming) endRename(true)
     else if (e.target.matches('input.new-group') && grouping) endGroup(true)
   })
+
+  card.addEventListener('input', (e) => {
+    if (e.target.matches('textarea.reply') && village.selected) drafts.set(village.selected, e.target.value)
+  })
+
+  /** The reply box's text, sent as a one-off task; the box empties only if it reached the thread. */
+  const sending = new Set() // thread ids with a reply on its way: a second press would start a second continuation
+  async function sendReply(box) {
+    const id = village.selected
+    const text = box.value.trim().slice(0, PROMPT_MAX)
+    if (!id || !text || sending.has(id)) return
+    const label = text.length > 40 ? `${text.slice(0, 39)}…` : text
+    sending.add(id)
+    try {
+      if (await village.sendPrompt(id, label, text)) {
+        // Only what was sent goes: words typed while it was on its way stay. The card may have been
+        // redrawn meanwhile, so the box is looked up again rather than trusting the one pressed.
+        if ((drafts.get(id) ?? '').trim().slice(0, PROMPT_MAX) === text) drafts.delete(id)
+        const now = village.selected === id ? card.querySelector('textarea.reply') : null
+        if (now && now.value.trim().slice(0, PROMPT_MAX) === text) now.value = ''
+      }
+    } finally {
+      sending.delete(id)
+    }
+  }
 
   card.addEventListener('dblclick', (e) => {
     if (e.target.closest('.head b') && village.thread(village.selected) && !village.isFinished(village.selected)) startRename()
@@ -199,6 +235,9 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         fill(t)
         drawAvatar(village.world.villager(village.selected))
       }
+    } else if (act === 'reply') {
+      const box = card.querySelector('textarea.reply')
+      if (box) sendReply(box)
     } else if (act === 'editTasks') {
       const t = village.thread(village.selected)
       if (t) onEditTasks(t.project)
@@ -340,7 +379,16 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
 
   /** The ready-made tasks, or why there are none right now. */
   function taskList(t) {
-    if (t.running || t.needsInput) return '<p class="tasks note">Busy right now. Tasks can go once it stops.</p>'
+    const busy = Boolean(t.running || t.needsInput)
+    replyBusy = busy
+    // A live question can't be answered from outside the harness, so the box says so and Open is the way in.
+    const why = t.needsInput ? 'It is waiting on a question. Answer it with Open.' : 'Busy right now. You can tell it something once it stops.'
+    const reply = `<div class="reply-box">
+      <textarea class="reply" rows="2" maxlength="${PROMPT_MAX}" placeholder="Tell it something…" aria-label="Tell ${esc(t.villager)} something" ${busy ? 'disabled' : ''}>${busy ? '' : esc(drafts.get(t.id) || '')}</textarea>
+      <button class="btn" data-act="reply" ${busy ? 'disabled' : ''} title="Cmd/Ctrl+Enter">Send</button>
+      <p class="note">${busy ? why : 'Cmd/Ctrl+Enter sends. It goes the way tasks go.'}</p>
+    </div>`
+    if (busy) return `<div class="tasks"><p class="note">Busy right now. Tasks can go once it stops.</p>${reply}</div>`
     // Only Claude Code resumes a thread with a prompt; the server falls back to a new session.
     const how = t.harness === 'claude-code'
       ? (village.settings.taskIn === 'background' ? 'Continues this conversation quietly in the background, with no window; it stops at the first permission prompt.'
@@ -351,6 +399,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       ${village.tasksFor(t.project).map((x) => `<button class="btn${x.id.startsWith('c-') ? ' custom' : ''}" data-act="task" data-task="${esc(x.id)}" title="${esc(x.prompt)}">${esc(x.label)}</button>`).join('')}
       <button class="btn link" data-act="editTasks" title="Add tasks of your own for ${esc(t.project)}">+ Edit tasks</button>
       <p class="note">${how}</p>
+      ${reply}
     </div>`
   }
 
@@ -630,7 +679,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       const flower = village.isFinished(id) ? village.flower(id) : null
       const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
-      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus')) return
+      if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus, textarea.reply:focus') && Boolean(t.running || t.needsInput) === replyBusy) return
       if (id !== shownId || key !== shownKey) {
         if (id !== shownId) tasksOpen = false
         if (flower) fillFinished(t, flower)
