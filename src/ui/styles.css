@@ -322,6 +322,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .card .issue .acts { display: flex; gap: 4px; margin-top: 4px; }
 .card .issue .acts .btn { padding: 2px 8px; font-size: 11px; }
 .card > .btn.link { margin-top: 6px; background: none; border-color: transparent; color: var(--muted); }
+.card .reply-box { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+.card .reply-box textarea { flex: 1 1 180px; resize: vertical; font: inherit; }
 .card .tasks .btn.custom { border-style: dashed; }
 .card .tasks .btn.link { background: none; border-color: transparent; color: var(--muted); }
 .card .built { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }
