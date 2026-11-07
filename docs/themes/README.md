@@ -354,7 +354,7 @@ the rooms inside, the countryside and the landmarks stay the village's.
 | Transit hub | `transit-hub` | Steel and glass stations under rails, barriers and cyan signage |
 
 **Built from** — fences: neon tube, chain link, concrete barrier, hologram · ground: wet asphalt,
-concrete, paving, rooftop deck · walls: concrete, steel, glass, panel, brick · four families of paint.
+concrete, paving, rooftop deck · walls: the village's plaster, wood, stone, brick and timber, all gone to dusk · four families of paint.
 **Finished work**: a **neon sign** in the **sign row** (◈), one glyph per kind of work; an open PR's
 tube is not switched on yet.
 **Rooms**: a noodle bar, an arcade hall, a server room and a rooftop hut.
