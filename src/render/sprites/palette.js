@@ -1017,6 +1017,62 @@ export const PALETTE = {
   ash: '#8a8078',
   gilt: '#e9bb3f', // finials, weathervanes, a clock's hands and a bell
   giltDark: '#b58a24',
+
+  // ---------- the Neon city theme (src/render/themes/neon-city/) ----------
+  // The plot ground: wet asphalt, poured concrete, paving and a rooftop deck, each as
+  // [base, shade, light, deepest], with the dry and the lush partner of each for the tint pass
+  // (see src/render/ground.js). Only the ground is drawn in these, or the patches would repaint
+  // whatever else used them.
+  neonGround: [
+    ['#262a3a', '#1f2331', '#30364a', '#171a26'],
+    ['#4a4f60', '#40455a', '#5a6076', '#32364a'],
+    ['#3a3347', '#322b3e', '#4a4059', '#272134'],
+    ['#2c3b3a', '#243230', '#3a4b49', '#1b2625'],
+  ],
+  neonGroundSunny: [
+    ['#2b3042', '#242839', '#383f55', '#1b1e2c'],
+    ['#525869', '#484e63', '#636a80', '#393e53'],
+    ['#423a51', '#3a3248', '#524766', '#2d263c'],
+    ['#33443f', '#2a3a37', '#42564f', '#202c29'],
+  ],
+  neonGroundLush: [
+    ['#232f3a', '#1c2630', '#2c3a47', '#141c25'],
+    ['#444f60', '#3a4659', '#546178', '#2d384a'],
+    ['#363a47', '#2e323e', '#464b5a', '#242833'],
+    ['#2a423a', '#223630', '#38544a', '#192a25'],
+  ],
+  neonKerb: '#6a708a', // the lip where the road meets anything, and the planters' edging
+  neonRoad: '#1c1f2c',
+  neonRoadDark: '#14161f',
+  neonRoadLight: '#2a2e40',
+  neonRoadEdge: '#0f1118',
+  neonLine: '#d9c85a', // the painted line on the road
+  neonSlab: '#565c74', // the footpath's pavers
+  neonSlabDark: '#454a60',
+  neonSlabLight: '#6b7290',
+  neonPuddle: '#1a2a4a',
+  neonPuddleLight: '#2c4a78',
+  neonSteel: '#8d94ad',
+  neonSteelDark: '#5d6480',
+  neonConcrete: '#9aa0b4',
+  neonConcreteDark: '#6f758c',
+  neonSoil: '#2a2430', // the planters finished work stands in
+  neonSoilLight: '#3a3242',
+  neonSoilDark: '#1a1620',
+  // The tubes: lit, and the same tube switched off.
+  neonPink: '#ff4fb8',
+  neonPinkDim: '#6a2150',
+  neonCyan: '#3de6ff',
+  neonCyanDim: '#17505e',
+  neonViolet: '#9b6bff',
+  neonVioletDim: '#3d2a70',
+  neonAmber: '#ffb02e',
+  neonAmberDim: '#6a4710',
+  neonLime: '#9bff4f',
+  neonLimeDim: '#355a1c',
+  neonRed: '#ff4a4a',
+  neonRedDim: '#6a1f1f',
+  neonGlass: '#16203a',
 }
 
 /** One per plot, picked by a hash of its name with collisions stepped past. */
