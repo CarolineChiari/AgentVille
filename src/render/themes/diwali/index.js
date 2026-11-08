@@ -1,8 +1,8 @@
-// The Diwali theme: every plot a corner of a village on the festival. Its sub-themes (a lantern souk,
-// courtyard homes, a night garden, a sweets street) are recipes in src/sim/themes.js; this is how
-// it draws them. Finished work is a fanous, the festival lantern, set out on the lantern bed where
-// the village has a garden. The countryside between the plots, the arrival square and the plots'
-// landmarks stay the village's, so an Diwali plot can stand in any village.
+// The Diwali theme: every plot a corner of a village on the festival of lights. Its sub-themes (diya-lit
+// homes, rangoli courtyards, a lantern bazaar, a marigold haveli) are recipes in src/sim/themes.js; this
+// is how it draws them. Finished work is a diya, the clay oil lamp, set out on the diya bed where the
+// village has a garden. The countryside between the plots, the arrival square and the plots'
+// landmarks stay the village's, so a Diwali plot can stand in any village.
 import { buildingFrames, chimneyOf, drawDiwaliBuilding, fitted, heightOf, shadowOf } from './buildings.js'
 import { drawDiwali } from './harvest.js'
 import { BED_EDGE, COVER_VARIANTS, ROAD_EDGE, drawBed, drawCover, drawFence, drawFringe, drawGround, drawRoad, drawTrail, drawVerge, diwaliCover, patches } from './ground.js'

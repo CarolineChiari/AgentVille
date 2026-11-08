@@ -342,8 +342,8 @@ open PR's is not lit yet.
 ## Diwali · `diwali`
 
 A village for the festival of lights: rows of diyas on every ledge, rangoli in bright powders, akash
-kandil lanterns hung high and marigold garlands over the doors. Religious symbols stay on the
-buildings and fences, not on the villagers. The calendar doesn't dress the village for it yet:
+kandil lanterns hung high and marigold garlands over the doors. No deity or religious imagery is drawn: it is
+lamps, lanterns, powders and flowers on buildings and fences, never on the villagers. The calendar doesn't dress the village for it yet:
 Diwali's date moves, so it is chosen in **Settings → Theme**.
 
 | Sub-theme | `id` | |

@@ -3,7 +3,7 @@
 // them, its accent on the doors and awnings, and a finished one weathered by its wear.
 //
 // Contract (see ThemePack in ../index.js and the village's src/render/sprites/buildings.js):
-// - A thread's building kind (KINDS in src/sim/building.js) maps to an Diwali kind through `fitted`.
+// - A thread's building kind (KINDS in src/sim/building.js) maps to a Diwali kind through `fitted`.
 // - Every sprite is BUILDING_W (32) wide and 48 tall, its bottom row on the ground. Down a
 //   courtyard's sides (`fitted(kind, variant, false)`) nothing is drawn above row DOORSTEP_CLEAR
 //   (9), outline included, at every stage: the villager at the door of the house above stands there.

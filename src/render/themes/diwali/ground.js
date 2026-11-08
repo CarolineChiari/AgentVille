@@ -280,7 +280,7 @@ function post(pc, x, y0, y1, face = P.barnTimber, dark = P.barnTimberDark, light
   pc.px(x + 1, y0, face)
 }
 
-/** A fanous hung by its cord from row y0 at column cx: brass ends and a candle in coloured glass. */
+/** An akash kandil hung by its cord from row y0 at column cx: brass ends and a candle in coloured glass. */
 function hung(pc, cx, y0, glass = P.diwaliPaint[1]) {
   pc.px(cx, y0, P.diwaliBrassDark)
   pc.hline(cx - 1, cx + 1, y0 + 1, P.diwaliBrassLight)
@@ -300,7 +300,7 @@ const BAND = [P.glazeBlue, P.glazeBlue, P.glazeTeal, P.glazeTeal, P.glazeBlueDar
  * (y from a to b), and the post that stands at a corner or the end of a run.
  */
 const FENCE_DRAW = {
-  // Lantern posts: a post every fifth column with a fanous hung from a rail, the rail strung
+  // Lantern posts: a post every fifth column with a kandil hung from a rail, the rail strung
   // between them.
   lanterns: {
     across(pc, a, b) {

@@ -195,5 +195,5 @@ function plant(variant) {
 
 const DRAW = { floor: (v) => drawRoomFloor(MATERIALS, v), wall: (v) => drawRoomWall(MATERIALS, v), window, crate, stove, lamp, table, plant }
 
-/** One piece of an Diwali room, or null for the ones the village draws just as well. */
+/** One piece of a Diwali room, or null for the ones the village draws just as well. */
 export const drawDiwaliInterior = (kind, variant) => (DRAW[kind] ? DRAW[kind](variant) : null)
