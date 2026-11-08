@@ -466,6 +466,37 @@ export const THEMES = {
       },
     },
   },
+  diwali: {
+    label: 'Diwali',
+    spotlights: [{ id: 'diya', label: 'Diya' }, { id: 'rangoli', label: 'Rangoli' }, { id: 'marigold', label: 'Marigold garland' }, { id: 'kandil', label: 'Akash kandil' }, { id: 'mithai', label: 'Mithai' }],
+    dims: {
+      // Posts hung with akash kandil lanterns, a low wall with a diya in every niche, a carved jali
+      // screen, and a garland of marigolds.
+      fence: ['lanterns', 'lowwall', 'lattice', 'garland'],
+      yard: ['stone', 'garden', 'courtyard', 'indigo'],
+      wall: ['whitewash', 'sandstone', 'tilework', 'clay', 'screen'],
+      // Paint for the roofs, doors and awnings: magenta, marigold, blue and peacock, in four
+      // families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'diya-homes', label: 'Diya-lit homes', blurb: 'Lamps along every ledge and step, glowing at dusk', fence: ['lowwall', 'lanterns'], yard: ['stone', 'courtyard'], wall: ['whitewash', 'clay'], roofs: [1] },
+      { id: 'rangoli-courtyards', label: 'Rangoli courtyards', blurb: 'A rangoli in each yard, a different pattern for every folder', fence: ['lowwall', 'lattice'], yard: ['indigo', 'courtyard'], wall: ['whitewash', 'tilework'], roofs: [0] },
+      { id: 'lantern-bazaar', label: 'Lantern bazaar', blurb: 'Stalls of lanterns, mithai and flowers under strings of lights', fence: ['lanterns', 'garland'], yard: ['stone', 'courtyard'], wall: ['sandstone', 'screen'], roofs: [3] },
+      { id: 'marigold-haveli', label: 'Marigold haveli', blurb: 'Grand houses hung with marigold toran garlands', fence: ['garland', 'lattice'], yard: ['garden', 'stone'], wall: ['sandstone', 'whitewash'], roofs: [2] },
+    ],
+    auto: ['diya-homes', 'rangoli-courtyards', 'lantern-bazaar', 'marigold-haveli'],
+    // Finished work is a diya, each kind of work its own lamp. An open PR's is not lit yet. The
+    // glyph is a black sun, which none of the other themes' glyphs is.
+    finished: {
+      one: 'diya', many: 'diyas', place: 'diya bed', glyph: '\u2600', grow: 'Light diyas for pull requests',
+      names: {
+        fix: 'Clay diya', feature: 'Brass deepam', refactor: 'Pair of diyas', docs: 'Leaf boat', test: 'Small diya',
+        ui: 'Rangoli diya', infra: 'Thali diya', data: 'Many-wick lamp', perf: 'Tall flame', review: 'Hanging lamp',
+        research: 'Jar candle', misc: 'Diya and petal',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

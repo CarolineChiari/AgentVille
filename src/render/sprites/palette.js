@@ -1008,6 +1008,55 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Diwali theme (src/render/themes/diwali/) ----------
+  // Paint and cloth for the festival: magenta, marigold orange, saffron, deep blue, cream, maroon,
+  // peacock teal and leaf green. A plot's buildings share a family of three (PAINT_FAMILIES in
+  // diwali/buildings.js). Walls reuse the Eid block's clay, tilework and timber; limewash and
+  // pink sandstone are its own.
+  diwaliPaint: ['#c2185b', '#e8731a', '#e8b020', '#2b3a8a', '#f6ecd6', '#7a1f2b', '#1f7a7a', '#4a8f3f'],
+  diwaliWhitewash: '#f4eadb',
+  diwaliWhitewashDark: '#d6c6ae',
+  diwaliWhitewashLight: '#fdf6ea',
+  diwaliSandstone: '#d99a8a',
+  diwaliSandstoneDark: '#b87a6c',
+  diwaliSandstoneLight: '#ecb8a8',
+  // Marigold garlands and petals, and the clay of the diyas.
+  marigoldDeep: '#c9600f',
+  diyaClay: '#b8643a',
+  diyaClayLight: '#d58253',
+  diyaClayDark: '#8a4527',
+  // A burnt wick, a spent sparkler's tip.
+  cinder: '#2e2a30',
+  // Brass of the deepams and thalis.
+  diwaliBrass: '#d49a2a',
+  diwaliBrassDark: '#8e611a',
+  diwaliBrassLight: '#f2c75c',
+  // Ground by yard tone: swept stone, a garden lawn, terracotta courtyard pavers and a deep indigo
+  // floor for rangoli. Each is base, shade, light and deepest; then the same in a dry patch and in
+  // a lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  diwaliGround: [
+    ['#d8c3a0', '#bfa985', '#e8d6b6', '#9e8a68'],
+    ['#78a24e', '#628a3d', '#8fb862', '#4e7330'],
+    ['#bf6f4a', '#a55a38', '#d4865f', '#86452a'],
+    ['#3d3f78', '#2e3060', '#55589a', '#212348'],
+  ],
+  diwaliGroundSunny: [
+    ['#e0c898', '#c7ae7d', '#f0dcb0', '#a68f60'],
+    ['#8aa84a', '#74903a', '#a0be5e', '#5c7a2a'],
+    ['#c97848', '#af6236', '#dd8f5c', '#8f4c28'],
+    ['#47477f', '#363668', '#5f60a2', '#272852'],
+  ],
+  diwaliGroundLush: [
+    ['#cdbc9c', '#b4a380', '#ddcfb0', '#948360'],
+    ['#6a9c52', '#568546', '#80b26a', '#42702f'],
+    ['#b56a4c', '#9b563a', '#c9805f', '#7c422b'],
+    ['#383b72', '#2a2c5a', '#4e5193', '#1d1f42'],
+  ],
+  diwaliLane: '#ead7ae',
+  diwaliLaneDark: '#cfba8e',
+  diwaliLaneLight: '#f7ebc8',
+  diwaliLaneEdge: '#a8946a',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

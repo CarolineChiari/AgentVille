@@ -150,6 +150,11 @@ a garland of crescents and stars, the ground is sand, garden lawn, terracotta pa
 and finished work is a lit fanous in each plot's lantern bed instead of a flower: a round fanous for
 a bug fix, a star lantern for design work, a paper lantern for docs.
 
+Or Diwali, where the fences are posts hung with akash kandil lanterns, a low wall with a diya in every
+niche, a carved jali screen and a garland of marigolds, the ground is swept stone, garden lawn,
+terracotta pavers and deep indigo for rangoli, and finished work is a diya in each plot's lamp bed
+instead of a flower: a clay diya for a bug fix, a brass deepam for a feature, a leaf boat for docs.
+
 Or New Year's Eve, where the fences are bunting, string lights, velvet rope and balloons, the
 ground is confetti-strewn pavement, a night lawn, a dance floor or fresh snow, the threads build
 party houses with a dance floor under lights on the roof, snowy cabins, a clock tower at a
@@ -173,7 +178,7 @@ pastel cottages, a tulip farm, a spring market or a chapel green at Easter; a ro
 party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
 fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi,
 a bonfire square or courtyard homes at Holi; a lantern souk, courtyard homes, a night garden or a
-sweets street at Eid. A
+sweets street at Eid; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -325,7 +330,7 @@ lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat 
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
 sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
 liberty bell, watermelon and sparkler; Holi's pichkari, plate of gulal,
-marigold, handprint and water balloon; and Eid's crescent and star, fanous, dates, ma'amoul and palm. A spotlight
+marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; and Diwali's diya, rangoli, marigold garland, akash kandil and mithai. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
