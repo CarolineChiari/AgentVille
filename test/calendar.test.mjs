@@ -77,6 +77,17 @@ test('nextHoliday names the next window to open, even in the next year', () => {
   const n = nextHoliday(dayOf(2026, 12, 28))
   assert.equal(n.holiday.id, 'independence-day')
   assert.equal(n.start, dayOf(2027, 6, 28))
-  assert.equal(nextHoliday(dayOf(2026, 8, 15)).holiday.id, 'halloween')
+  assert.equal(nextHoliday(dayOf(2026, 8, 15)).holiday.id, 'labor-day')
+  assert.equal(nextHoliday(dayOf(2026, 8, 15)).start, dayOf(2026, 9, 1))
+  assert.equal(nextHoliday(dayOf(2026, 9, 9)).holiday.id, 'halloween')
   assert.equal(nextHoliday(dayOf(2026, 8, 15), []), null)
+})
+
+test('Labor Day is the first Monday of September, with the week before it', () => {
+  assert.equal(dayOf(2026, 9, 7), HOLIDAYS.find((h) => h.id === 'labor-day').on(2026))
+  assert.equal(dayOf(2027, 9, 6), HOLIDAYS.find((h) => h.id === 'labor-day').on(2027))
+  assert.equal(activeHoliday(dayOf(2026, 8, 31)), null)
+  assert.equal(activeHoliday(dayOf(2026, 9, 1)).holiday.id, 'labor-day')
+  assert.equal(activeHoliday(dayOf(2026, 9, 8)).holiday.id, 'labor-day')
+  assert.equal(activeHoliday(dayOf(2026, 9, 9)), null)
 })

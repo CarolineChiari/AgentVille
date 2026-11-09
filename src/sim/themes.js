@@ -466,6 +466,39 @@ export const THEMES = {
       },
     },
   },
+  'labor-day': {
+    label: 'Labor Day',
+    spotlights: [{ id: 'banner', label: 'Banner' }, { id: 'hammer', label: 'Hammer' }, { id: 'loaf', label: 'Fresh loaf' }, { id: 'pail', label: 'Lunch pail' }, { id: 'gear', label: 'Gear' }],
+    dims: {
+      // Banner poles hung with plain cloth, sawhorses and planks, a rail of bunting, and stacked crates.
+      fence: ['bannerposts', 'sawhorses', 'bunting', 'crates'],
+      yard: ['picnic', 'meadow', 'gravel', 'cobbles'],
+      wall: ['brick', 'clapboard', 'planks', 'plaster', 'sheet'],
+      // Paint for the roofs, doors and awnings: navy, brick red, forest green, mustard, charcoal,
+      // teal and rust, in four families of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'parade-route', label: 'Parade route', blurb: 'Brick halls on a cobbled street, banners on poles and a procession of trades coming down it', fence: ['bannerposts', 'bunting'], yard: ['cobbles', 'meadow'], wall: ['brick', 'clapboard'], roofs: [0] },
+      { id: 'picnic-green', label: 'Picnic green', blurb: 'Gingham blankets, trestle tables and a grill on a green at the end of summer', fence: ['bunting', 'crates'], yard: ['picnic', 'meadow'], wall: ['clapboard', 'plaster'], roofs: [1] },
+      { id: 'builders-yard', label: "Builders' yard", blurb: 'Carpenters and bricklayers at rest: lumber stacks, sawhorses and a workshop with its doors open', fence: ['sawhorses', 'crates'], yard: ['gravel', 'cobbles'], wall: ['planks', 'sheet'], roofs: [2] },
+      { id: 'bakers-row', label: "Bakers' row", blurb: 'Bakeries and market stalls on one street, bread cooling in every window', fence: ['crates', 'bannerposts'], yard: ['cobbles', 'picnic'], wall: ['plaster', 'brick', 'planks'], roofs: [3] },
+    ],
+    auto: ['parade-route', 'picnic-green', 'builders-yard', 'bakers-row'],
+    // Finished work is a tool laid out on the bench, a different trade's for each kind of work: a
+    // wrench, a hammer, a handsaw, a ledger, a spirit level, a paintbrush, a shovel, a sheaf of
+    // wheat, a loaf, a stethoscope, a lunch pail. An open PR's is not in use yet: the same tool in
+    // grey. The glyph is hammer and pick, which none of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧
+    // ✶ ★ ✺ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'tool', many: 'tools', place: 'tool bench', glyph: '\u2692', grow: 'Lay out tools for pull requests',
+      names: {
+        fix: 'Wrench', feature: 'Hammer', refactor: 'Handsaw', docs: 'Ledger', test: 'Spirit level',
+        ui: 'Paintbrush', infra: 'Shovel', data: 'Wheat sheaf', perf: 'Fresh loaf', review: 'Stethoscope',
+        research: 'Lunch pail', misc: 'Iced tea',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

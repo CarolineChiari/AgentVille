@@ -1,0 +1,80 @@
+// Labor Day's markers for a spotlight (named in src/sim/themes.js). See
+// src/render/sprites/spotlights.js for what every theme's markers share.
+import { PALETTE as P } from '../../sprites/palette.js'
+import { INK, drawMarker } from '../../sprites/spotlights.js'
+
+const MARKERS = {
+  // A plain cloth banner on its crossbar, swallow-tailed, a cream stripe across: no emblem on it.
+  banner: [[
+    'XXXXXXXXXXX',
+    'XtttttttttX',
+    'XXXXXXXXXXX',
+    '.XbbbbbbbX.',
+    '.XbBBBBBbX.',
+    '.XwwwwwwwX.',
+    '.XbbbbbbbX.',
+    '.XbbbbbbbX.',
+    '.XbbbbbbbX.',
+    '.XbbbXbbbX.',
+    '.XbbX.XbbX.',
+    '.XXX...XXX.',
+  ], { X: INK, t: P.barnTimberLight, b: P.laborBanner[0], B: P.laborBannerLight, w: P.laborBanner[4] }],
+  hammer: [[
+    '.XXXXXXXXX.',
+    'XhhhhhhhssX',
+    'XsssssssssX',
+    'XddddddddsX',
+    '.XXXXtXXXX.',
+    '....XtX....',
+    '....XtX....',
+    '....XrX....',
+    '....XrX....',
+    '....XtX....',
+    '....XtX....',
+    '.....X.....',
+  ], { X: INK, h: P.laborBristle, s: P.laborSteel, d: P.laborSteelDark, t: P.barnTimber, r: P.laborBanner[1] }],
+  loaf: [[
+    '...w...w...',
+    '....w...w..',
+    '...........',
+    '...XXXXX...',
+    '..XlcLcLX..',
+    '.XcLcLcLcX.',
+    'XcccccccccX',
+    'XcccccccccX',
+    'XdddddddddX',
+    'XrrrrrrrrrX',
+    'XRRRRRRRRRX',
+    '.XXXXXXXXX.',
+  ], { X: INK, w: P.laborBanner[4], c: P.crust, l: P.crustLight, L: P.crustLight, d: P.crustDark, r: P.laborGingham, R: P.laborGinghamDark }],
+  pail: [[
+    '...XXXXX...',
+    '..XsXXXsX..',
+    '..XsX.XsX..',
+    '.XXXXXXXXX.',
+    'XhhhhhhhhhX',
+    'XsssssssssX',
+    'XbbbbbbbbbX',
+    'XbBbbbbbbbX',
+    'XbbbbbbbbbX',
+    'XbbbbbbbbdX',
+    'XdddddddddX',
+    '.XXXXXXXXX.',
+  ], { X: INK, s: P.laborSteelDark, h: P.laborSteel, b: P.laborBanner[1], B: P.laborBannerLight, d: P.laborRedDark }],
+  gear: [[
+    '....XXX....',
+    '.XX.XgX.XX.',
+    'XggXXgXXggX',
+    'XggggggggGX',
+    '.XggXXXggX.',
+    'XgggX.XgggX',
+    'XgggX.XgggX',
+    '.XggXXXggX.',
+    'XggggggggGX',
+    'XggXXgXXggX',
+    '.XX.XgX.XX.',
+    '....XXX....',
+  ], { X: INK, g: P.laborBrass, G: P.laborGoldDark }],
+}
+
+export const drawLaborSpotlight = (id) => drawMarker(MARKERS, id)

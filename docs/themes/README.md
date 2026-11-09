@@ -297,6 +297,30 @@ for a review. An open pull request's is not lit yet: the same shape in grey.
 **Landmark**: the village's own.
 **Rooms**: a porch parlour, a picnic pavilion, a parade hall and a lake cabin.
 
+## Labor Day · `labor-day`
+
+The end-of-summer holiday: a picnic on the green and a parade of the trades, with banners on poles
+and bunting in plain colours (no union's or company's emblem is drawn). It follows the calendar:
+the first Monday of September, with the week before it.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Parade route | `parade-route` | Brick halls on a cobbled street, banners on poles and a procession of trades coming down it |
+| Picnic green | `picnic-green` | Gingham blankets, trestle tables and a grill on a green at the end of summer |
+| Builders' yard | `builders-yard` | Carpenters and bricklayers at rest: lumber stacks, sawhorses and a workshop with its doors open |
+| Bakers' row | `bakers-row` | Bakeries, market stalls and a clinic on one street, bread cooling in every window |
+
+**Built from** — fences: banner poles, striped sawhorses, bunting rails, stacked crates ·
+ground: picnic green, mown meadow, builders' gravel, cobbles · walls: brick, clapboard, planks,
+plaster, sheet steel · four families of paint.
+**Buildings**: a meeting hall with banners, a bakery, a carpenter's workshop and a long picnic table under bunting.
+**Finished work**: a **tool** on the **tool bench** (⚒) — a wrench for a bug fix, a hammer for a
+feature, a handsaw for a refactor, a ledger for docs, a spirit level for tests, a paintbrush for
+design, a shovel for infrastructure, a sheaf of wheat for data, a loaf for performance, a
+stethoscope for a review, a lunch pail for research. An open PR's is not in use yet: the same tool in grey.
+**Landmark**: the village's own.
+**Rooms**: a meeting hall, a picnic shelter, a carpenter's shop and a bakehouse.
+
 ## Making one
 
 Follow the `new-theme` skill in [`.claude/skills/new-theme/`](../../.claude/skills/new-theme/SKILL.md).
