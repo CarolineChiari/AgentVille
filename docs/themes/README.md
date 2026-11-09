@@ -308,7 +308,7 @@ the first Monday of September, with the week before it.
 | Parade route | `parade-route` | Brick halls on a cobbled street, banners on poles and a procession of trades coming down it |
 | Picnic green | `picnic-green` | Gingham blankets, trestle tables and a grill on a green at the end of summer |
 | Builders' yard | `builders-yard` | Carpenters and bricklayers at rest: lumber stacks, sawhorses and a workshop with its doors open |
-| Bakers' row | `bakers-row` | Bakeries, market stalls and a clinic on one street, bread cooling in every window |
+| Bakers' row | `bakers-row` | Bakeries and market stalls on one street, bread cooling in every window |
 
 **Built from** — fences: banner poles, striped sawhorses, bunting rails, stacked crates ·
 ground: picnic green, mown meadow, builders' gravel, cobbles · walls: brick, clapboard, planks,

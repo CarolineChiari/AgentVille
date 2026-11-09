@@ -318,7 +318,9 @@ function workshop(pc, o) {
   // Lumber stacked beside the door and a sawhorse on the step.
   lumberAt(pc, doorLeft ? 20 : 3, s.base, 7, 3)
   if (!o.roof) return { x0: 3, x1: 28, top: s.wallTop }
-  // The stovepipe: sheet steel, at the back of the roof.
+  // The stovepipe: sheet steel, at the back of the roof. Drawn twice on purpose: the roof covers
+  // its lower part, so the first pass is the part that shows beside the roof's slope and the second,
+  // after the roof, the part standing above it. Dropping either changes the picture.
   for (let y = s.stackTop; y <= s.wallTop - 5; y++) {
     pc.hline(23, 25, y, P.laborSheet)
     pc.px(23, y, P.laborSheetLight)

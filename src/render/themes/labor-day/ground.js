@@ -244,7 +244,7 @@ export function drawTrail(variant, links, tone) {
  */
 export function drawRoad(variant) {
   const pc = new PixelCanvas(T, T)
-  const rand = mulberry32(variant * 149 + SEED.road * 6151)
+  const rand = mulberry32(variant * 149 + SEED.road)
   pc.rect(0, 0, T, T, P.laborLane)
   scatter(rand, 22, (x, y) => pc.px(x, y, P.laborLaneDark))
   scatter(rand, 16, (x, y) => pc.px(x, y, P.laborLaneLight))
