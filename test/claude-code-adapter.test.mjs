@@ -272,6 +272,16 @@ test('a question waiting in the transcript counts as needing you, even hours lat
   assert.equal(th.running, false)
 })
 
+test('the question a thread is stopped on is carried on the thread', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const ask = assistantRecord([{ type: 'tool_use', id: 'q', name: 'AskUserQuestion', input: { questions: [{ question: 'Which   database?' }] } }])
+  writeTranscript(home, { id: uuid(32), records: [userRecord('go'), ask], mtime: NOW })
+  writeLive(home, { pid: process.pid, sessionId: uuid(32) })
+  const [th] = await adapterFor(home).scanThreads()
+  assert.equal(th.needsInputText, 'Which database?')
+})
+
 test('the process status decides working and idle when it has one', async (t) => {
   const { home, cleanup } = tmpHome()
   t.after(cleanup)
