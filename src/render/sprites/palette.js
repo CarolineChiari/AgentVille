@@ -1008,6 +1008,166 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Hanukkah theme (src/render/themes/hanukkah/) ----------
+  // Paint and cloth: blue and white with silver. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in hanukkah/buildings.js): royal blue, silver, navy, sky, white, walnut,
+  // indigo and gold (the gold is for gelt and the shammash's flame, not for walls).
+  hkPaint: ['#2a5aa8', '#b9c2d0', '#16356b', '#6fa3dc', '#f4f6fa', '#5a4a3a', '#3a4f8f', '#e0b93a'],
+  // Walls: white plaster, pale limestone, glazed blue tilework, brick and a lattice screen.
+  hkWhitewash: '#f2f4f8',
+  hkWhitewashDark: '#c9cfdc',
+  hkWhitewashLight: '#fbfcfe',
+  hkSandstone: '#d9d2c0',
+  hkSandstoneDark: '#b7af9a',
+  hkSandstoneLight: '#ece6d6',
+  // The hanukkiah and its fittings: silver, with the flame of the candles (the village's flame
+  // colours) above. Named for the metal rather than the lantern it replaces.
+  hkBrass: '#a9b3c4',
+  hkBrassDark: '#6f7a90',
+  hkBrassLight: '#dfe6f2',
+  // Dreidels and gelt: a spinning top's blue and the foil of a chocolate coin.
+  dreidelBlue: '#2f62b8',
+  geltGold: '#e3b93c',
+  geltGoldDark: '#a78420',
+  // Ground by yard tone: blue-grey cobbles, a winter lawn, pale snow and blue-and-white tile.
+  // Each is base, shade, light and deepest; then the same in a dry patch and in a lush one.
+  hkGround: [
+    ['#8c97aa', '#76829a', '#a3adbf', '#5f6a80'],
+    ['#6f9a62', '#5b834e', '#85b078', '#466b3a'],
+    ['#dbe4ef', '#c1ccdc', '#edf2f8', '#a3b0c4'],
+    ['#4b78b8', '#3a63a0', '#6a92cc', '#2b4b82'],
+  ],
+  hkGroundSunny: [
+    ['#98a0aa', '#818a96', '#aeb6c0', '#68707c'],
+    ['#7da45a', '#688d48', '#93b970', '#50702f'],
+    ['#e4e9ef', '#cbd2dc', '#f4f7fa', '#acb6c2'],
+    ['#5683b0', '#436e9a', '#72a0c8', '#33577c'],
+  ],
+  hkGroundLush: [
+    ['#828fa6', '#6c7a94', '#97a5bb', '#56637c'],
+    ['#62915f', '#4f7a4c', '#78a876', '#3c6038'],
+    ['#d2dcea', '#b8c4d6', '#e4ebf5', '#9aa8be'],
+    ['#4170b6', '#315a9c', '#5e8ac8', '#244478'],
+  ],
+  // The lane round a plot: pale frosted stone, paler than the ground so the plots read.
+  hkLane: '#d8e0ec',
+  hkLaneDark: '#bbc6d8',
+  hkLaneLight: '#ecf1f8',
+  hkLaneEdge: '#8e9bb2',
+
+  // ---------- the Christmas theme (src/render/themes/christmas/) ----------
+  // Paint and cloth: holly red, pine green, gold, candy pink, cream, gingerbread, midnight blue and
+  // frost. A plot's buildings share a family of three (PAINT_FAMILIES in christmas/buildings.js).
+  xmasPaint: ['#b8283a', '#2f7a45', '#d4a437', '#e58aa5', '#f3ead8', '#8a5230', '#2c4a7a', '#cfe3f0'],
+  // Snow, as it lies on roofs, fences and walls: light, shaded in the blue of its shadow, and deep.
+  xmasSnow: '#f6faff',
+  xmasSnowShade: '#cddbed',
+  xmasSnowDeep: '#a4b8d4',
+  // Walls: market planks, snowed-in logs, gingerbread, white icing and cold grey stone.
+  xmasPlank: '#a8703c',
+  xmasPlankDark: '#7e5028',
+  xmasPlankLight: '#c48c52',
+  xmasLog: '#7a4e2e',
+  xmasLogDark: '#573520',
+  xmasLogLight: '#97663e',
+  xmasGinger: '#b8743a',
+  xmasGingerDark: '#8f5426',
+  xmasGingerLight: '#d08e52',
+  xmasIcing: '#fbf5ea',
+  xmasIcingDark: '#e3d6c2',
+  xmasStone: '#9aa3ae',
+  xmasStoneDark: '#737c88',
+  xmasStoneLight: '#bcc4cd',
+  // Candy: the sweets on gingerbread eaves, in stripes and gumdrops.
+  xmasCandyRed: '#d63a4a',
+  xmasCandyGreen: '#4aa35c',
+  xmasMint: '#b9e3cf',
+  xmasGumdrop: '#f2a43a',
+  // Fir, holly and mistletoe; and the bulbs and tinsel the evergreen is hung with.
+  xmasFir: '#2d6a3e',
+  xmasFirDark: '#1f4a2c',
+  xmasFirLight: '#4a9158',
+  xmasHolly: '#c92a2f',
+  xmasBulbBlue: '#3d7fd0',
+  xmasBulbYellow: '#ffd75e',
+  xmasTinsel: '#e8c25a',
+  xmasWax: '#f7efd9',
+  xmasToyWood: '#d9a15a',
+  // Ground by yard tone: deep snow, market cobbles under snow, frosted lawn and a gingerbread
+  // floor. Each is base, shade, light and deepest; then the same in a dry patch and in a lush
+  // one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  xmasGround: [
+    ['#eef3fa', '#d3deec', '#fbfdff', '#b2c3da'],
+    ['#c9d0da', '#aab3c1', '#e0e5ec', '#8892a3'],
+    ['#b8d2b6', '#9bbb9b', '#d2e6cf', '#7fa082'],
+    ['#c98d58', '#ad7343', '#dca572', '#8f5b32'],
+  ],
+  xmasGroundSunny: [
+    ['#f3f2ee', '#dbdbd8', '#fffefa', '#bdbfc4'],
+    ['#d2d0d2', '#b5b4ba', '#e8e6e8', '#95949f'],
+    ['#c2d6b0', '#a5c096', '#d9e8c6', '#87a47b'],
+    ['#d2915a', '#b6783f', '#e5a972', '#975d2f'],
+  ],
+  xmasGroundLush: [
+    ['#e8f0f8', '#cbd9ea', '#f6fbff', '#abbfd8'],
+    ['#c2cdd9', '#a3b0c0', '#d9e2eb', '#8291a6'],
+    ['#acd0b8', '#90b8a0', '#c6e4d0', '#76a086'],
+    ['#c08a5e', '#a67048', '#d4a37a', '#88583a'],
+  ],
+  // The lane round a plot: trodden slush, greyer than the snowy ground so the plots read.
+  xmasLane: '#d9dfe6',
+  xmasLaneDark: '#bcc4cf',
+  xmasLaneLight: '#eceff3',
+  xmasLaneEdge: '#97a1b0',
+  // The present bed: a tree skirt of dark green felt so wrapped presents stand out from the snow.
+  xmasBed: '#2a4a3a',
+  xmasBedDark: '#1e3629',
+  xmasBedLight: '#3d6350',
+  xmasBedDeep: '#142619',
+
+  // ---------- the Lunar New Year theme (src/render/themes/lunar-new-year/) ----------
+  // Paint and cloth for the new year: red, gold, crimson, jade, cream, dark wood, blossom pink and
+  // mandarin orange. A plot's buildings share a family of three (PAINT_FAMILIES in the pack's buildings).
+  lnyPaint: ['#c4262e', '#e2a72e', '#8d1f2a', '#2f7a62', '#f4e8cc', '#5e3220', '#e07a96', '#d9661f'],
+  // Walls: whitewash, blue-grey brick, and (in the pack) red lacquer, rammed earth and a lattice.
+  // (The lattice's wood is the farm's timber, the rammed earth the clay of the Eid pack.)
+  lnyWhitewash: '#f3efe6',
+  lnyWhitewashDark: '#d2cbbb',
+  lnyWhitewashLight: '#fbf8f0',
+  lnyBrick: '#8f9aa0',
+  lnyBrickDark: '#6e7a82',
+  lnyBrickLight: '#b0babf',
+  // Gold leaf on lanterns, finials and door studs.
+  lnyGold: '#d6a02c',
+  lnyGoldDark: '#9a6c1c',
+  lnyGoldLight: '#f6d56a',
+  // Ground by yard tone: pale flagstone, a blossom garden lawn, red brick pavers and jade tile.
+  // Each is base, shade, light and deepest; then the same in a dry patch and in a lush one, one for
+  // one (see src/render/ground.js). Only the ground is drawn in these.
+  lnyGround: [
+    ['#cfcbc0', '#b4b0a4', '#e1ddd2', '#97938a'],
+    ['#79a85a', '#648f47', '#8ec06c', '#4f7637'],
+    ['#b5563f', '#9a4430', '#c9694f', '#7d3524'],
+    ['#3f8a76', '#2f7261', '#58a38d', '#245a4c'],
+  ],
+  lnyGroundSunny: [
+    ['#d6d0bd', '#bcb6a2', '#e8e2cf', '#9f9984'],
+    ['#89ae55', '#729843', '#a0c764', '#5a7d33'],
+    ['#be5b3d', '#a34830', '#d27049', '#843a22'],
+    ['#4a927a', '#397a64', '#64ab90', '#2c614d'],
+  ],
+  lnyGroundLush: [
+    ['#c4c6b8', '#aaac9e', '#d7d9cb', '#8d8f82'],
+    ['#6ba360', '#568b4b', '#80b975', '#437337'],
+    ['#ab5242', '#904032', '#bf6655', '#733226'],
+    ['#37846f', '#276d5a', '#4f9d86', '#1e5545'],
+  ],
+  // The lane round a plot: swept pale stone, paler than the ground so the plots read.
+  lnyLane: '#e9e4d4',
+  lnyLaneDark: '#cdc7b2',
+  lnyLaneLight: '#f6f2e6',
+  lnyLaneEdge: '#a39d88',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

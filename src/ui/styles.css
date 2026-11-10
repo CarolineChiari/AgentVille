@@ -291,6 +291,7 @@ kbd { font: 10px var(--mono); opacity: 0.6; margin-left: 4px; }
 .card .avatar { width: 32px; height: 48px; image-rendering: pixelated; border-radius: 8px; background: rgba(255, 255, 255, 0.05); flex: none; }
 .card .head b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card .head .status { font-size: 12px; color: var(--muted); }
+.card .head .asking { display: block; margin-top: 2px; font-size: 12px; font-style: italic; color: var(--muted); overflow-wrap: anywhere; }
 .card .head input.rename {
   display: block; width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; font-weight: 700;
   color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--accent);
@@ -322,6 +323,8 @@ p.tasks.note { display: block; margin: 8px 0 0; }
 .card .issue .acts { display: flex; gap: 4px; margin-top: 4px; }
 .card .issue .acts .btn { padding: 2px 8px; font-size: 11px; }
 .card > .btn.link { margin-top: 6px; background: none; border-color: transparent; color: var(--muted); }
+.card .reply-box { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; }
+.card .reply-box textarea { flex: 1 1 180px; resize: vertical; font: inherit; }
 .card .tasks .btn.custom { border-style: dashed; }
 .card .tasks .btn.link { background: none; border-color: transparent; color: var(--muted); }
 .card .built { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--panel-border); }

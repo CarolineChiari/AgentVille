@@ -133,6 +133,17 @@ test('a question or plan approval with no answer is pending; an answered one is 
   assert.equal(pendingQuestion([assistantRecord(toolUse())]), false)
 })
 
+import { questionText } from '../server/harnesses/claude-code/transcript.mjs'
+
+test('questionText reads the question or the plan title, clipped, and is empty otherwise', () => {
+  const ask = (input, name = 'AskUserQuestion') => assistantRecord([{ type: 'tool_use', name, input }])
+  assert.equal(questionText([userRecord('go'), ask({ questions: [{ question: 'Use Postgres?' }] })]), 'Use Postgres?')
+  assert.equal(questionText([ask({ plan: '# Add a cache\n\nSteps…' }, 'ExitPlanMode')]), 'Add a cache')
+  assert.equal(questionText([ask({ questions: [{ question: 'x'.repeat(500) }] })]).length, 200)
+  assert.equal(questionText([ask({})]), '')
+  assert.equal(questionText([ask({ questions: [{ question: 'Done?' }] }), userRecord([{ type: 'tool_result', content: 'Yes' }])]), '')
+})
+
 test('task notifications and subagent hand-backs are not shown as the person speaking', () => {
   const note = '<task-notification>\n<task-id>bmuq57mur</task-id>\n<status>stopped</status>\n</task-notification>'
   const msgs = transcriptMessages([
