@@ -32,6 +32,7 @@ export function makeThread(harness, harnessName, f) {
     // A thread still working has nothing to review yet.
     unread: Boolean(f.unread) && !running,
     needsInput: f.needsInput || '',
+    needsInputText: f.needsInputText || '',
     hasError: Boolean(f.hasError),
     prState: '',
     prNumber: 0,

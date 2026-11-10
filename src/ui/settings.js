@@ -32,6 +32,7 @@ export const DEFAULTS = {
   quietNames: false, // true: only name plots where something is happening
   villagerNames: true, // a small name under each villager when zoomed in
   motion: 'system', // 'system' follows the OS's reduced-motion flag | 'reduce' | 'full'; see src/game/motion.js
+  trayKeep: false, // desktop app only: keep running in the menu bar / tray when the window is closed
   uiVisible: true,
   seenHelp: false,
 }
