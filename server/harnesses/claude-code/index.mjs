@@ -9,7 +9,7 @@ import { isAlive, jsonLines, listDirs, listFiles, num, readHead, readJson, readT
 import { EFFORT_CHOICES, HARNESS_ID, MODEL_CHOICES, isCliId, isDesktopId, isEffort, isModel, threadId } from './ids.mjs'
 import { cliDirs, desktopDataDir, findClaude, SESSIONS_SUBDIR } from './paths.mjs'
 import { decodeProjectDir } from './project.mjs'
-import { addPr, awaitingReply, pendingQuestion, prLinkOf, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
+import { addPr, awaitingReply, pendingQuestion, prLinkOf, questionText, readTranscriptMeta, transcriptMessages } from './transcript.mjs'
 import { emptyEntry, isBookkeepingOnly, mergeThread, toThread } from './merge.mjs'
 import { EDITS_MAX, changeLog, filesTouched } from './changes.mjs'
 import { folderUrl } from '../vscode-family.mjs'
@@ -165,6 +165,7 @@ export function createClaudeCodeAdapter(opts = {}) {
       const tail = jsonLines(await readTail(t.file, TAIL_BYTES))
       hit.waiting = awaitingReply(tail)
       hit.asking = pendingQuestion(tail)
+      hit.askingText = questionText(tail)
     }
     return hit
   }
@@ -236,6 +237,7 @@ export function createClaudeCodeAdapter(opts = {}) {
         for (const p of await transcriptPrs(tr)) addPr(e.prs, p)
         e.waiting = Boolean(info.waiting) && e.live && fresh
         e.asking = Boolean(info.asking) && e.live
+        e.askingText = e.asking ? info.askingText || '' : ''
       }
       if (isBookkeepingOnly(e, t)) continue
       const fresh = t - e.lastActivityAt < ACTIVE_WINDOW_MS
@@ -249,6 +251,7 @@ export function createClaudeCodeAdapter(opts = {}) {
         e.running = false
         e.unread = true
         e.needsInput = proc?.waitingFor || (e.asking ? 'question' : 'input needed')
+        e.needsInputText = e.asking ? e.askingText || '' : ''
       } else if (proc?.status === 'busy' || proc?.status === 'shell') {
         e.running = true
       } else if (proc?.status === 'idle') {
