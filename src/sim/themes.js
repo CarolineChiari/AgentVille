@@ -660,6 +660,39 @@ export const THEMES = {
       },
     },
   },
+  'space-colony': {
+    label: 'Space colony',
+    spotlights: [{ id: 'dome', label: 'Habitat dome' }, { id: 'rover', label: 'Rover' }, { id: 'rocket', label: 'Rocket' }, { id: 'dish', label: 'Radar dish' }, { id: 'helmet', label: 'Spacesuit helmet' }],
+    dims: {
+      // Perimeter beacons, a hazard-striped guard rail, wire mesh and a row of solar panels.
+      fence: ['beacons', 'rail', 'mesh', 'panels'],
+      // Red regolith, landing-pad plating, dark basalt from the mine and a dome garden.
+      yard: ['regolith', 'pad', 'ore', 'garden'],
+      wall: ['hull', 'brick', 'plating', 'glass', 'greenhouse'],
+      // Paint for the roofs, hatches and awnings: five families of three (PAINT_FAMILIES in the
+      // pack's buildings).
+      roofs: 5,
+    },
+    subthemes: [
+      { id: 'habitat-domes', label: 'Habitat domes', blurb: 'Pressurised glass domes with gardens under them, ringed by solar panels', fence: ['panels', 'beacons'], yard: ['regolith', 'garden'], wall: ['hull', 'glass'], roofs: [0] },
+      { id: 'mining-outpost', label: 'Mining outpost', blurb: 'Drill rigs, ore carts and cranes on dark basalt, behind a striped rail', fence: ['rail', 'mesh'], yard: ['ore', 'regolith'], wall: ['brick', 'plating'], roofs: [1] },
+      { id: 'hydroponics-ring', label: 'Hydroponics ring', blurb: 'Greenhouses glowing green, racks of crops under grow lights', fence: ['mesh', 'beacons'], yard: ['garden'], wall: ['greenhouse', 'glass'], roofs: [2] },
+      { id: 'launch-site', label: 'Launch site', blurb: 'Rockets on their pads between gantries and beacons', fence: ['rail', 'beacons'], yard: ['pad', 'regolith'], wall: ['plating', 'hull'], roofs: [3] },
+      { id: 'research-station', label: 'Research station', blurb: 'Antennas, radar dishes and labs on a bare plateau', fence: ['panels', 'mesh'], yard: ['pad', 'ore'], wall: ['hull', 'plating'], roofs: [4] },
+    ],
+    auto: ['habitat-domes', 'mining-outpost', 'hydroponics-ring', 'launch-site', 'research-station'],
+    // Finished work is a beacon or a crystal sample, each kind of work its own. An open PR's is
+    // not lit yet. The glyph is a diamond within a diamond, a cut sample, which none of the other
+    // themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ⚘ ✶ ★ ✺ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'sample', many: 'samples', place: 'sample bay', glyph: '\u25c8', grow: 'Light beacons and collect samples for pull requests',
+      names: {
+        fix: 'Warning beacon', feature: 'Mast beacon', refactor: 'Crystal cluster', docs: 'Sample jar', test: 'Test shard',
+        ui: 'Cut gem', infra: 'Relay mast', data: 'Core sample tray', perf: 'Spire crystal', review: 'Gantry beacon',
+        research: 'Specimen dome', misc: 'Sample cube',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
