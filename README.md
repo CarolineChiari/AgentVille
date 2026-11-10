@@ -145,6 +145,12 @@ set outside, and finished work is a pumpkin, a squash or an ear of corn brought 
 plot's harvest patch instead of a flower: a pumpkin for a bug fix, a corn cob for data work, a
 bottle gourd for a review.
 
+Or a Space colony, where the fences are perimeter beacons, a hazard-striped guard rail, wire mesh and a row of
+solar panels, the ground is red regolith, landing-pad plating, dark basalt or a dome garden, the threads build
+glass habitat domes, hab modules, rockets on their pads, drill rigs and greenhouses glowing green, and finished
+work is a beacon or a crystal sample in each plot's sample bay instead of a flower: a warning beacon for a bug
+fix, a cut gem for design work, a sample jar for docs.
+
 Or Eid, where the fences are lantern posts, a low whitewashed wall banded in tile, a carved lattice and
 a garland of crescents and stars, the ground is sand, garden lawn, terracotta pavers and blue mosaic,
 and finished work is a lit fanous in each plot's lantern bed instead of a flower: a round fanous for
@@ -173,7 +179,7 @@ pastel cottages, a tulip farm, a spring market or a chapel green at Easter; a ro
 party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
 fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi,
 a bonfire square or courtyard homes at Holi; a lantern souk, courtyard homes, a night garden or a
-sweets street at Eid. A
+sweets street at Eid; habitat domes, a mining outpost, a hydroponics ring, a launch site or a research station in a space colony. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -325,7 +331,7 @@ lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat 
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
 sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
 liberty bell, watermelon and sparkler; Holi's pichkari, plate of gulal,
-marigold, handprint and water balloon; and Eid's crescent and star, fanous, dates, ma'amoul and palm. A spotlight
+marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; and the space colony's dome, rover, rocket, radar dish and helmet. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.

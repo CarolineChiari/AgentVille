@@ -1008,6 +1008,69 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Space colony theme (src/render/themes/space-colony/) ----------
+  // Paint for hulls, hatches and roofs: blue, orange, green, red, hull white, slate, violet and
+  // yellow. A plot's buildings share a family (PAINT_FAMILIES in space-colony/buildings.js).
+  spacePaint: ['#3a78c0', '#e07a35', '#3fa56a', '#c4483f', '#e6eaf0', '#76829a', '#7b5ec0', '#d9b43a'],
+  // Walls: painted hull panels, sintered regolith brick, dark steel plating, dome glass and the
+  // green-lit panels of a greenhouse.
+  spaceHull: '#e3e8ef',
+  spaceHullDark: '#b7c0cf',
+  spaceHullLight: '#f6f9fc',
+  spaceBrick: '#b2623f',
+  spaceBrickDark: '#8a4630',
+  spaceBrickLight: '#cc7d55',
+  spacePlate: '#5d6878',
+  spacePlateDark: '#3f4857',
+  spacePlateLight: '#8793a6',
+  spaceGlass: '#9fd4ea',
+  spaceGlassDark: '#5f9cc0',
+  spaceGlassLight: '#d6f1fb',
+  spaceGreenGlow: '#8ee69a',
+  spaceGreenPanel: '#3f9a5c',
+  spaceGreenDark: '#2a6e42',
+  spaceLeaf: '#58b865',
+  spaceLeafDark: '#357d46',
+  // Solar cells, hazard stripes, the lamp inside a beacon and the ore in a cart.
+  spaceSolar: '#24408a',
+  spaceSolarLight: '#3f64b8',
+  spaceSolarGrid: '#8fa8dc',
+  spaceHazard: '#e8b923',
+  spaceGlow: '#fff2b0',
+  spaceOre: '#6a5a74',
+  spaceOreLight: '#9a86a8',
+  // Ground by yard tone: red regolith, landing-pad plating, dark basalt and a dome garden. Each is
+  // base, shade, light and deepest; then the same in a dry patch and in a lush one, one for one
+  // (see src/render/ground.js). Only the ground is drawn in these.
+  spaceGround: [
+    ['#b8714f', '#9f5c3d', '#cf8a66', '#83482f'],
+    ['#8b929e', '#767d89', '#a2a9b5', '#5d646f'],
+    ['#4f4a5c', '#403c4c', '#645e74', '#322f3c'],
+    ['#5fb06a', '#4c9657', '#78c682', '#397a44'],
+  ],
+  spaceGroundSunny: [
+    ['#c27a4a', '#a8653a', '#d89560', '#8c5128'],
+    ['#949a94', '#7f857f', '#abb1ab', '#666c66'],
+    ['#575049', '#474139', '#6d665c', '#38332c'],
+    ['#72b062', '#5e964f', '#8cc67a', '#487a3c'],
+  ],
+  spaceGroundLush: [
+    ['#ad6e57', '#945941', '#c4846c', '#7a4533'],
+    ['#858e9c', '#70798a', '#9ca5b4', '#586070'],
+    ['#484a5e', '#3a3c4e', '#5c5e74', '#2c2e3d'],
+    ['#52ab76', '#40915f', '#6bc28d', '#2f7549'],
+  ],
+  // The lane round a plot: packed pale dust, lighter than the red ground so the plots read.
+  spaceLane: '#c9a58f',
+  spaceLaneDark: '#ae8a75',
+  spaceLaneLight: '#dcbfab',
+  spaceLaneEdge: '#8f6e5b',
+  // The sample bay: dark basalt, so the beacons and crystals stand out from the plot's ground.
+  spaceBed: '#2d2a3d',
+  spaceBedDark: '#221f30',
+  spaceBedLight: '#403c58',
+  spaceBedDeep: '#181625',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

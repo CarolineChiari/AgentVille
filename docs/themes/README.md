@@ -338,3 +338,23 @@ carved screen · four families of paint.
 **Finished work**: a **lantern** in the **lantern bed** (☼), one silhouette per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a tiled courtyard, a souk stall, a sweets kitchen and a garden pavilion.
+
+## Space colony · `space-colony`
+
+A settlement on another world: pressurised domes, landing pads, rovers, solar arrays and red regolith.
+The villagers keep their everyday clothes (no spacesuit outfit yet), and the landmarks stay the village's.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Habitat domes | `habitat-domes` | Glass domes with gardens under them, ringed by solar panels |
+| Mining outpost | `mining-outpost` | Drill rigs, ore carts and cranes on dark basalt |
+| Hydroponics ring | `hydroponics-ring` | Greenhouses glowing green, racks of crops under grow lights |
+| Launch site | `launch-site` | Rockets on their pads between gantries and beacons |
+| Research station | `research-station` | Antennas, radar dishes and labs on a bare plateau |
+
+**Built from** — fences: perimeter beacons, a hazard-striped rail, wire mesh, solar panels ·
+ground: regolith, landing pad, basalt, dome garden · walls: hull, sintered brick, plating, glass,
+greenhouse panels · five families of paint.
+**Finished work**: a **beacon or crystal sample** in the **sample bay** (◈), one shape per kind of work; an
+open PR's is not lit yet.
+**Rooms**: a dome lounge, an ore bay, a grow lab, mission control and a research lab.
