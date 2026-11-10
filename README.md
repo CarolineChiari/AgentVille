@@ -200,7 +200,7 @@ fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi
 a bonfire square or courtyard homes at Holi; a lantern souk, courtyard homes, a night garden or a
 sweets street at Eid; window lights, a blue and silver street, a bakery row or a dreidel courtyard at Hanukkah; a Christmas market, snowy cottages, Santa's workshop, gingerbread lane or a carol
 singers' chapel at Christmas; a lantern street, a temple fair, a blossom
-garden or a family courtyard at Lunar New Year; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali. A
+garden or a family courtyard at Lunar New Year; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali; a parade route, a picnic green, a builders' yard or bakers' row on Labor Day. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -356,7 +356,7 @@ lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat 
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
 sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
 liberty bell, watermelon and sparkler; Holi's pichkari, plate of gulal,
-marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; Hanukkah's hanukkiah, dreidel, gelt, sufganiyah and latkes; Christmas's tree, present, candy cane, snowman and wreath; Lunar New Year's red lantern, firecrackers, red envelope, plum blossom and mandarins; and Diwali's diya, rangoli, marigold garland, akash kandil and mithai. A spotlight
+marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; Hanukkah's hanukkiah, dreidel, gelt, sufganiyah and latkes; Christmas's tree, present, candy cane, snowman and wreath; Lunar New Year's red lantern, firecrackers, red envelope, plum blossom and mandarins; Diwali's diya, rangoli, marigold garland, akash kandil and mithai; and Labor Day's banner, hammer, fresh loaf, lunch pail and gear. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.

@@ -1217,6 +1217,65 @@ export const PALETTE = {
   diwaliLaneLight: '#f7ebc8',
   diwaliLaneEdge: '#a8946a',
 
+  // ---------- the Labor Day theme (src/render/themes/labor-day/) ----------
+  // Paint for the roofs, doors and awnings, and the plain cloth of a banner: navy, brick red, forest
+  // green, mustard, cream, charcoal, teal and rust. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in labor-day/buildings.js). Plain colours only; no organisation's own.
+  laborPaint: ['#2d4373', '#a8402f', '#33704a', '#d9a53a', '#f3ecda', '#2f3441', '#3a7f8e', '#b4622f'],
+  laborBanner: ['#2d4373', '#a8402f', '#33704a', '#d9a53a', '#f3ecda'],
+  laborBannerDark: '#1f2f54',
+  laborBannerLight: '#4f6aa3',
+  laborRedDark: '#7c2d21',
+  laborGoldDark: '#a77c22',
+  // Cream clapboard, whitewashed bakery plaster and corrugated sheet steel: the walls that aren't the village's.
+  laborCream: '#efe6cf',
+  laborCreamDark: '#cdc2a4',
+  laborCreamLight: '#faf4e2',
+  laborPlaster: '#f0dcc0',
+  laborPlasterDark: '#cfb48f',
+  laborPlasterLight: '#fbeed8',
+  laborSheet: '#8d9aa5',
+  laborSheetDark: '#667683',
+  laborSheetLight: '#b4c0c9',
+  // A picnic blanket in red gingham, and the tools: steel, a brass fitting, a painter's bristles.
+  laborGingham: '#c4503f',
+  laborGinghamDark: '#9b3a2d',
+  laborSteel: '#aab4bd',
+  laborSteelDark: '#7a8590',
+  laborBrass: '#c9a043',
+  laborBristle: '#e8d9a8',
+  // Ground by yard tone: a picnic green, a mown meadow, packed gravel of a builders' yard and the
+  // cobbles of a parade route. Each is base, shade, light and deepest; then the same in a dry patch
+  // and in a lush one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  laborGround: [
+    ['#72a24c', '#5f8d3c', '#8ab964', '#4a7231'],
+    ['#82b858', '#6ea545', '#98cc6f', '#58903a'],
+    ['#b6a68a', '#9d8e72', '#cdbfa3', '#827557'],
+    ['#a9a091', '#8f8678', '#c1b8a8', '#756d60'],
+  ],
+  laborGroundSunny: [
+    ['#7ea84b', '#699438', '#97c25f', '#517a2d'],
+    ['#8ec553', '#79b241', '#a6d86a', '#5e9b34'],
+    ['#c0ad86', '#a79770', '#d6c69d', '#8b7c55'],
+    ['#b4aa90', '#9a9077', '#cbc1a6', '#7d7460'],
+  ],
+  laborGroundLush: [
+    ['#65994b', '#528439', '#7aae62', '#3f6b30'],
+    ['#72b358', '#60a046', '#88c670', '#4b883b'],
+    ['#ac9f89', '#938772', '#c2b6a1', '#786d5a'],
+    ['#9ea39b', '#848a82', '#b5bab2', '#6b716a'],
+  ],
+  // The street round a plot: pale warm cobble, lighter than the ground so the plots read.
+  laborLane: '#cbbfa8',
+  laborLaneDark: '#b0a48c',
+  laborLaneLight: '#e0d5bf',
+  laborLaneEdge: '#8a7e68',
+  // The tool bench: sawdust and wood chips swept into rows, darker than the plot's ground so the tools stand out.
+  laborChips: '#c8995f',
+  laborChipsDark: '#a97b45',
+  laborChipsLight: '#deb87e',
+  laborChipsDeep: '#7d5830',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
