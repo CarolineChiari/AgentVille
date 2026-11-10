@@ -339,6 +339,93 @@ carved screen · four families of paint.
 open PR's is not lit yet.
 **Rooms**: a tiled courtyard, a souk stall, a sweets kitchen and a garden pavilion.
 
+## Hanukkah · `hanukkah`
+
+A village for the festival of lights: a hanukkiah in the windows, blue and white with silver, stars on
+the bunting, dreidels and gelt, sufganiyot and latkes. Religious symbols stay on the buildings and
+fences, not on the villagers. The calendar doesn't dress the village for it yet: Hanukkah follows the
+Hebrew calendar, so it is chosen in **Settings → Theme**. Candles lit do not yet follow the night of the festival.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Window lights | `window-lights` | Homes with a hanukkiah lit in every window facing the street |
+| Blue and silver street | `blue-silver-street` | Blue-and-white bunting and lights, a large hanukkiah in the square |
+| Bakery row | `bakery-row` | Sufganiyot and latkes, warm windows over the counters |
+| Dreidel courtyard | `dreidel-courtyard` | Children's games, gelt and lanterns in a snowy courtyard |
+
+**Built from** — fences: candle posts, a low wall, a lattice, bunting · ground: cobbles, winter lawn,
+snow, tile · walls: whitewash, limestone, tilework, brick, lattice screen · four families of paint.
+**Finished work**: a **candle** in the **candle bed** (❂), one silhouette per kind of work; an open PR's is not lit yet.
+**Rooms**: a lit parlour, a festival hall, a frying kitchen and a game room.
+**Left out / unsure**: the buildings are the Eid pack's shapes re-coloured, so a few props (lanterns, a palm and dates
+by a door) are still festival-generic, and the square's large hanukkiah and nine-branch candelabra on buildings are not
+drawn yet (only the spotlight marker). Said here rather than guessed at.
+
+## Christmas · `christmas`
+
+A village in the snow: snow on every roof and rail, wreaths on the doors, lights along the eaves and
+a candle in the windows. Religious symbols stay on the buildings (the chapel's lit star and its bare
+stable), not on the villagers, and the nativity has no figures. It is dressed by the calendar from
+twelve days before Christmas Day.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Christmas market | `christmas-market` | Wooden stalls of mulled wine and gingerbread under strings of lights |
+| Snowy cottages | `snowy-cottages` | Deep snow, smoke from every chimney and a candle in each window |
+| Santa's workshop | `santas-workshop` | Toymakers, a sleigh by the door and presents piled to the eaves |
+| Gingerbread lane | `gingerbread-lane` | Sweet-coloured houses behind candy-cane fences |
+| Carol singers' chapel | `carol-chapel` | A small church with a lit star over the door and a stable in the yard |
+
+**Built from** — fences: light-hung rails, a snowed low wall, candy canes, a holly garland ·
+ground: deep snow, market cobbles, frosted lawn, gingerbread · walls: planks, logs, gingerbread,
+icing, stone · four families of paint.
+**Finished work**: a **present** on the **present pile** (❄), one shape per kind of work, the
+ribbon in the pull request's colour; an open PR's is still being wrapped in brown paper.
+**Rooms**: a market stall, a snug cottage, a toy workshop, a gingerbread kitchen and a carol nook.
+Villagers' scarves and bobble hats were left out.
+
+## Lunar New Year · `lunar-new-year`
+
+A village for the new year: red lanterns strung over every lane, lacquered doors, plum blossom and
+trays of mandarins. Religious symbols stay out of it, and nothing is worn as costume. The lion
+dance, the zodiac animal of the year and a calendar window are left for later: the festival moves
+with the lunar calendar, so it is chosen in **Settings → Theme**. A dragon or lion is also left out
+for now rather than drawn badly.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Lantern street | `lantern-street` | Rows of red lanterns strung over the lane, glowing after dark |
+| Temple fair | `temple-fair` | Stalls, snacks and a stage for the lion dance, gold on every awning |
+| Blossom garden | `blossom-garden` | Plum blossom over green lawn, pale walls and jade-tile paths |
+| Family courtyard | `family-courtyard` | Homes round a courtyard with red couplets on every door |
+
+**Built from** — fences: red lantern posts, a banded low wall, a lattice, a garland ·
+ground: flagstone, blossom lawn, red brick, jade tile · walls: whitewash, grey brick, red lacquer,
+rammed earth, lattice · four families of paint.
+**Finished work**: a **lantern** in the **lantern bed** (❖), one silhouette per kind of work; an
+open PR's is not lit yet.
+**Rooms**: a reunion hall, a lantern stall, a dumpling kitchen and a blossom pavilion.
+
+## Neon city · `neon-city`
+
+A rainy city that comes alive at night: wet asphalt, blade signs hung off every building, neon tube
+rails and hologram fences. Buildings are the village's, drawn after dark with their lights spared;
+the rooms inside, the countryside and the landmarks stay the village's.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Noodle market | `noodle-market` | Steaming stalls under paper lanterns and pink neon, wet paving underfoot |
+| Arcade row | `arcade-row` | Flashing signs, cabinets in the windows and violet light on the glass |
+| Data centre | `data-centre` | Windowless concrete, cooling vents and rows of cyan blinking lights |
+| Rooftop gardens | `rooftop-gardens` | Greenery on a concrete deck under strings of amber lights |
+| Transit hub | `transit-hub` | Steel and glass stations under rails, barriers and cyan signage |
+
+**Built from** — fences: neon tube, chain link, concrete barrier, hologram · ground: wet asphalt,
+concrete, paving, rooftop deck · walls: the village's plaster, wood, stone, brick and timber, all gone to dusk · four families of paint.
+**Finished work**: a **neon sign** in the **sign row** (◈), one glyph per kind of work; an open PR's
+tube is not switched on yet.
+**Rooms**: a noodle bar, an arcade hall, a server room and a rooftop hut.
+
 ## Diwali · `diwali`
 
 A village for the festival of lights: rows of diyas on every ledge, rangoli in bright powders, akash

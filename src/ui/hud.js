@@ -100,6 +100,9 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
   const subOption = (s, selected) => `<option value="${esc(s.id)}" title="${esc(s.blurb)}" ${selected ? 'selected' : ''}>${esc(s.label)}</option>`
   const subLabel = (theme, id) => THEMES[theme].subthemes.find((s) => s.id === id)?.label || id
 
+  // Only the desktop app has a tray to keep running in; Electron says so in its user agent.
+  const isDesktop = /\bElectron\//.test(globalThis.navigator?.userAgent || '')
+
   function render() {
     // Replacing the sidebar under an open dropdown would shut it; catch up once it's let go.
     if (side.querySelector('select:focus')) {
@@ -509,6 +512,7 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
         <label title="Follow your system’s reduced-motion setting, or choose. Reduced: no hopping or waving, butterflies or cloud shadows, and the camera cuts instead of flying.">Motion
           <select data-set="motion"><option value="system" ${s.motion === 'system' || !s.motion ? 'selected' : ''}>Follow system</option><option value="reduce" ${s.motion === 'reduce' ? 'selected' : ''}>Reduced</option><option value="full" ${s.motion === 'full' ? 'selected' : ''}>Full</option></select></label>
         <label title="${canNotify ? 'A desktop notification when a villager stops on a question or an error while AgentVille is in the background' : 'This browser can’t show notifications'}">Notify me when a villager needs me <input type="checkbox" data-set="notify" ${s.notify && canNotify ? 'checked' : ''} ${canNotify ? '' : 'disabled'}></label>
+        ${isDesktop ? '<label title="Closing the window leaves a tray icon listing who needs you; Quit from its menu stops AgentVille">Keep running in the menu bar when the window is closed <input type="checkbox" data-set="trayKeep" ' + (s.trayKeep ? 'checked' : '') + '></label>' : ''}
         <label>${esc(finishedWords(theme).grow)} <input type="checkbox" data-set="prGardens" ${s.prGardens ? 'checked' : ''}></label>
         <label>Pin open issues on notice boards <input type="checkbox" data-set="issueBoards" ${s.issueBoards ? 'checked' : ''}></label>
         <label title="Reads the files in each repo to count its lines of code, for its landmark. Nothing is run and nothing leaves this machine.">Count the lines of code in each repo <input type="checkbox" data-set="repoLines" ${s.repoLines ? 'checked' : ''}></label>

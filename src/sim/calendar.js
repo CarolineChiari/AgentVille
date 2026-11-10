@@ -52,6 +52,8 @@ export const HOLIDAYS = [
   { id: 'thanksgiving', label: 'Thanksgiving', theme: 'thanksgiving', on: (y) => nthWeekday(y, 11, 4, 4), lead: 6, tail: 1, def: true },
   // The Fourth of July, with the week before it to hang the bunting and a day after for the sparklers.
   { id: 'independence-day', label: 'Independence Day', theme: 'independence-day', on: (y) => dayOf(y, 7, 4), lead: 6, tail: 1, def: true },
+  // The twelve days before Christmas, for the lights and the wrapping, and no tail: the next day is New Year's Eve's.
+  { id: 'christmas', label: 'Christmas', theme: 'christmas', on: (y) => dayOf(y, 12, 25), lead: 12, tail: 0, def: true },
   // The last week of the year, through New Year's Day, which is in the next year's window.
   { id: 'new-years-eve', label: "New Year's Eve", theme: 'new-years-eve', on: (y) => dayOf(y, 12, 31), lead: 5, tail: 1, def: true },
 ]

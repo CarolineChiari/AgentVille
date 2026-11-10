@@ -1,6 +1,6 @@
 {
   "name": "agentville",
-  "version": "0.119.0",
+  "version": "0.126.0",
   "private": true,
   "type": "module",
   "description": "Every coding-agent session on your machine (Claude Code, GitHub Copilot, Cursor, Antigravity), as a villager in a pixel-art village.",
@@ -22,9 +22,9 @@
     "shots": "node tools/shots.mjs"
   },
   "devDependencies": {
-    "electron": "^44.4.5",
+    "electron": "^45.0.0",
     "electron-builder": "^26.15.3",
-    "vite": "^8.3.1"
+    "vite": "^8.3.3"
   },
   "build": {
     "appId": "dev.agentville.app",
@@ -46,6 +46,7 @@
       "src/game/spotlight.js",
       "src/game/foreman.js",
       "src/game/postmortem.js",
+      "src/game/notify.js",
       "src/sim/status.js",
       "src/sim/constants.js"
     ],

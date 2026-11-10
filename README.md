@@ -150,6 +150,26 @@ a garland of crescents and stars, the ground is sand, garden lawn, terracotta pa
 and finished work is a lit fanous in each plot's lantern bed instead of a flower: a round fanous for
 a bug fix, a star lantern for design work, a paper lantern for docs.
 
+Or Hanukkah, where the fences are candle posts, a low whitewashed wall, a lattice and blue-and-white
+bunting strung with stars, the ground is blue-grey cobbles, a winter lawn, snow and blue-and-white tile,
+and finished work is a candle in each plot's candle bed instead of a flower: a tall candle for a bug
+fix, a taper for docs, the shammash for a review and a dreidel for tests.
+
+Or Christmas, where the fences are rails hung with lights, a snowed-over low wall, candy canes and a
+holly garland, the ground is deep snow, market cobbles, a frosted lawn or a gingerbread floor, and
+finished work is a wrapped present on each plot's present pile instead of a flower: a ribboned box
+for a bug fix, a round tin for a refactor, a stocking for a review.
+
+Or Lunar New Year, where the fences are red lantern posts, a whitewashed low wall banded in red and
+gold, a carved lattice and a garland of blossom, the ground is flagstone, blossom lawn, red brick
+and jade tile, and finished work is a red lantern in each plot's lantern bed instead of a flower: a
+round lantern for a bug fix, a star lantern for design work, a paper lantern for docs.
+
+Or Neon city, a rainy night-time block where the fences are neon tubes, chain link, concrete barriers and
+holograms, the ground is wet asphalt, concrete, paving or a rooftop deck, every building wears a blade
+sign, and finished work is a neon sign in each plot's sign row instead of a flower: a warning triangle
+for a bug fix, an arrow for a feature, a check for tests.
+
 Or Diwali, where the fences are posts hung with akash kandil lanterns, a low wall with a diya in every
 niche, a carved jali screen and a garland of marigolds, the ground is swept stone, garden lawn,
 terracotta pavers and deep indigo for rangoli, and finished work is a diya in each plot's lamp bed
@@ -178,7 +198,9 @@ pastel cottages, a tulip farm, a spring market or a chapel green at Easter; a ro
 party, a midnight square, a cosy cabin or a ballroom on New Year's Eve; a main street parade, a picnic park, lakeside
 fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi,
 a bonfire square or courtyard homes at Holi; a lantern souk, courtyard homes, a night garden or a
-sweets street at Eid; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali. A
+sweets street at Eid; window lights, a blue and silver street, a bakery row or a dreidel courtyard at Hanukkah; a Christmas market, snowy cottages, Santa's workshop, gingerbread lane or a carol
+singers' chapel at Christmas; a lantern street, a temple fair, a blossom
+garden or a family courtyard at Lunar New Year; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -296,6 +318,10 @@ However many villagers need you is also in the tab's title, `(2) AgentVille`, wh
 settings. In the desktop app it's on the Dock icon on macOS, and on the taskbar button as a small
 yellow badge on Windows; answering them clears it.
 
+In the desktop app, **Settings → Keep running in the menu bar when the window is closed** (off by default)
+leaves a tray icon when you close the window. Its menu lists the villagers waiting on you or blocked,
+and picking one reopens the window on that villager; *Show AgentVille*, *New session* and *Quit* are below.
+
 ### Groups
 
 A repo with a lot going on in it can keep its sessions in groups: the auth rework, the docs, the
@@ -330,7 +356,7 @@ lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat 
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
 sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
 liberty bell, watermelon and sparkler; Holi's pichkari, plate of gulal,
-marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; and Diwali's diya, rangoli, marigold garland, akash kandil and mithai. A spotlight
+marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; Hanukkah's hanukkiah, dreidel, gelt, sufganiyah and latkes; Christmas's tree, present, candy cane, snowman and wreath; Lunar New Year's red lantern, firecrackers, red envelope, plum blossom and mandarins; and Diwali's diya, rangoli, marigold garland, akash kandil and mithai. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
