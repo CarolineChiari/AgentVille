@@ -38,7 +38,7 @@ test('Halloween dresses the village from the 24th of October to the 1st of Novem
 })
 
 test("New Year's Eve reaches across the new year", () => {
-  assert.equal(activeHoliday(dayOf(2026, 12, 25)), null)
+  assert.equal(activeHoliday(dayOf(2026, 12, 25)).holiday.id, 'christmas')
   assert.equal(activeHoliday(dayOf(2026, 12, 26)).holiday.id, 'new-years-eve')
   assert.equal(activeHoliday(dayOf(2027, 1, 1)).holiday.id, 'new-years-eve')
   assert.equal(activeHoliday(dayOf(2027, 1, 2)), null)

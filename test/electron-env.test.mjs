@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, parseBounds, showDisplays, showSeed, showUrl } from '../electron/env.mjs'
+import { APP_PORT, BADGE_PX, augmentedPath, badgeBitmap, badgeCount, clampBounds, isAppUrl, keepInTray, parseBounds, parseThreadHash, threadHash, trayBitmap, trayEntries, showDisplays, showSeed, showUrl } from '../electron/env.mjs'
 import { APP_TITLE, SESSION_RE, pageTitle } from '../src/game/notify.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
@@ -192,4 +192,49 @@ test('a Linux launcher-started app still finds snap and ~/.local/bin', () => {
   const dirs = augmentedPath({ PATH: '/usr/bin:/bin' }, { home: '/home/me', platform: 'linux' }).split(':')
   assert.ok(dirs.includes('/snap/bin'))
   assert.ok(dirs.includes('/home/me/.local/bin'))
+})
+
+test('the tray icon is the badge disc, blue and bare when nobody needs you', () => {
+  const some = trayBitmap(2)
+  const none = trayBitmap(0)
+  assert.equal(some.data.length, BADGE_PX * BADGE_PX * 4)
+  assert.deepEqual(some.data.subarray(0, 0), Buffer.alloc(0))
+  const px = (b) => [...b.data.subarray(((8 * BADGE_PX) + 4) * 4, ((8 * BADGE_PX) + 4) * 4 + 4)]
+  const { r, g, b } = hexToRgb(BADGE.working)
+  assert.deepEqual(px(none), [b, g, r, 255])
+  assert.equal(trayBitmap(-1) && trayBitmap(1.5).width, BADGE_PX)
+})
+
+test('a thread hash round-trips and refuses anything odd', () => {
+  assert.equal(parseThreadHash(threadHash('claude-code:abc-123')), 'claude-code:abc-123')
+  assert.equal(threadHash('a b'), '')
+  assert.equal(threadHash('../x'), '')
+  assert.equal(threadHash(5), '')
+  assert.equal(parseThreadHash('#thread=%E0%A4%A'), '')
+  assert.equal(parseThreadHash('#thread=a&b=c'), '')
+  assert.equal(parseThreadHash('#other=1'), '')
+})
+
+test('the tray lists waiting and blocked villagers from raw threads, newest first, and drops bad ids', () => {
+  const now = 1_000_000
+  const raw = (o) => ({ title: 'T', project: '', lastActivityAt: now - 1000, running: false, needsInput: null, hasError: false, ...o })
+  const list = trayEntries([
+    raw({ id: 'a1', title: 'Old', needsInput: 'question', lastActivityAt: now - 5000, project: 'p' }),
+    raw({ id: 'b2', title: 'New\nline', hasError: true }),
+    raw({ id: 'c3', title: 'Busy', running: true }),
+    raw({ id: 'bad id', needsInput: 'question' }),
+    raw({ id: 'd4', needsInput: 'question', archived: true }),
+    null,
+  ], now)
+  assert.deepEqual(list.map((e) => e.id), ['b2', 'a1'])
+  assert.equal(list[0].label, 'Blocked: New line')
+  assert.equal(list[1].label, 'Waiting: Old · p')
+  assert.deepEqual(trayEntries('nope'), [])
+})
+
+test('keepInTray reads only a true setting out of the page’s saved JSON', () => {
+  assert.equal(keepInTray('{"trayKeep":true}'), true)
+  assert.equal(keepInTray('{"trayKeep":"yes"}'), false)
+  assert.equal(keepInTray(null), false)
+  assert.equal(keepInTray('{oops'), false)
 })

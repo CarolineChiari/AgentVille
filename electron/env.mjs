@@ -1,6 +1,8 @@
 // Pure: what the desktop wrapper decides, from where it listens to what its dock badge says.
 // Imports nothing from Electron, so it runs under `node --test`.
 import path from 'node:path'
+import { NEW_SESSION_HASH, parseThreadHash, threadHash } from '../src/game/notify.js'
+import { statusFor } from '../src/sim/status.js'
 import { APP_BG, BADGE, hexToRgb } from '../src/render/sprites/palette.js'
 
 /**
@@ -110,7 +112,22 @@ export const BADGE_PX = 16
  * @returns {{ width: number, height: number, data: Buffer } | null} null for no badge
  */
 export function badgeBitmap(n, scale = 1) {
-  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(scale) || scale < 1) return null
+  if (!Number.isInteger(n) || n < 1) return null
+  return disc(n, scale, BADGE.waiting)
+}
+
+/**
+ * The tray icon: the same disc as the badge, yellow with the count when villagers need you, blue
+ * and bare when nobody does (the colours the village uses for waiting and working).
+ * @param {number} n
+ * @param {number} [scale]
+ */
+export function trayBitmap(n, scale = 1) {
+  return Number.isInteger(n) && n > 0 ? disc(n, scale, BADGE.waiting) : disc(0, scale, BADGE.working)
+}
+
+function disc(n, scale, fill) {
+  if (!Number.isInteger(scale) || scale < 1) return null
   const size = BADGE_PX * scale
   const data = Buffer.alloc(size * size * 4)
   const put = (x, y, hex) => {
@@ -124,13 +141,14 @@ export function badgeBitmap(n, scale = 1) {
   // A one-pixel dark rim, so the badge keeps an edge on a light taskbar, where yellow all but vanishes.
   const rim = (x, y) => !inDisc(x - 1, y) || !inDisc(x + 1, y) || !inDisc(x, y - 1) || !inDisc(x, y + 1)
   for (let y = 0; y < BADGE_PX; y++) {
-    for (let x = 0; x < BADGE_PX; x++) if (inDisc(x, y)) put(x, y, rim(x, y) ? APP_BG : BADGE.waiting)
+    for (let x = 0; x < BADGE_PX; x++) if (inDisc(x, y)) put(x, y, rim(x, y) ? APP_BG : fill)
   }
   const stamp = (rows, x0, y0, k) => rows.forEach((row, y) => [...row].forEach((ch, x) => {
     if (ch !== '#') return
     for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) put(x0 + x * k + i, y0 + y * k + j, APP_BG)
   }))
   // Doubled glyphs, centred: 6×10 pixels. `9+` puts a small plus up by the 9's shoulder.
+  if (n < 1) return { width: size, height: size, data }
   if (n < 10) stamp(DIGITS[n], 5, 3, 2)
   else {
     stamp(DIGITS[9], 3, 3, 2)
@@ -186,3 +204,39 @@ export function clampBounds(bounds, displays, { minWidth = 720, minHeight = 480 
   const y = Math.min(Math.max(bounds.y, d.y), d.y + d.height - height)
   return { x, y, width, height }
 }
+
+const TRAY_LISTED = 12 // a menu longer than this stops being a menu
+const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
+
+/**
+ * The villagers the tray lists: those waiting on you or blocked, newest activity first, each as a
+ * label and the thread id to open. The list comes from the server, so anything without a valid id is dropped.
+ * @param {unknown} threads
+ * @returns {{ id: string, label: string }[]}
+ */
+export function trayEntries(threads, now = Date.now()) {
+  if (!Array.isArray(threads)) return []
+  // /api/threads sends raw threads: the status is worked out here, as the page does with statusFor.
+  return threads
+    .filter((t) => t && typeof t === 'object' && !t.archived && !t.archivedHere && threadHash(t.id))
+    .map((t) => ({ t, status: statusFor(t, now) }))
+    .filter(({ status }) => status === 'waiting' || status === 'blocked')
+    .sort((a, b) => (Number(b.t.lastActivityAt) || 0) - (Number(a.t.lastActivityAt) || 0))
+    .slice(0, TRAY_LISTED)
+    .map(({ t, status }) => {
+      const title = clip(String(t.title || 'Untitled').replace(/\s+/g, ' ').trim(), 50)
+      const where = typeof t.project === 'string' && t.project ? ` · ${clip(t.project, 24)}` : ''
+      return { id: t.id, label: `${status === 'blocked' ? 'Blocked' : 'Waiting'}: ${title}${where}` }
+    })
+}
+
+/** Whether the page's saved settings ask to keep running in the tray; the JSON is the page's own, so doubt it. */
+export function keepInTray(raw) {
+  try {
+    return JSON.parse(raw)?.trayKeep === true
+  } catch {
+    return false
+  }
+}
+
+export { NEW_SESSION_HASH, parseThreadHash, threadHash }
