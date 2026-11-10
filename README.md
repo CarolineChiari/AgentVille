@@ -165,6 +165,11 @@ gold, a carved lattice and a garland of blossom, the ground is flagstone, blosso
 and jade tile, and finished work is a red lantern in each plot's lantern bed instead of a flower: a
 round lantern for a bug fix, a star lantern for design work, a paper lantern for docs.
 
+Or Neon city, a rainy night-time block where the fences are neon tubes, chain link, concrete barriers and
+holograms, the ground is wet asphalt, concrete, paving or a rooftop deck, every building wears a blade
+sign, and finished work is a neon sign in each plot's sign row instead of a flower: a warning triangle
+for a bug fix, an arrow for a feature, a check for tests.
+
 Or New Year's Eve, where the fences are bunting, string lights, velvet rope and balloons, the
 ground is confetti-strewn pavement, a night lawn, a dance floor or fresh snow, the threads build
 party houses with a dance floor under lights on the roof, snowy cabins, a clock tower at a

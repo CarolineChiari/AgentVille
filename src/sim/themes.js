@@ -563,6 +563,39 @@ export const THEMES = {
       },
     },
   },
+  'neon-city': {
+    label: 'Neon city',
+    spotlights: [{ id: 'sign', label: 'Neon sign' }, { id: 'drone', label: 'Drone' }, { id: 'noodles', label: 'Noodle bowl' }, { id: 'hologram', label: 'Hologram' }, { id: 'umbrella', label: 'Umbrella' }],
+    dims: {
+      // Neon tube rails, chain-link, concrete barriers and a hologram fence of posts and light.
+      fence: ['tubes', 'chainlink', 'barrier', 'hologram'],
+      yard: ['wet-asphalt', 'concrete', 'paving', 'rooftop'],
+      // The village's five, by name: its buildings and rooms are what draw them, so a name here
+      // has to mean what it does there. The pack's dusk pass turns them all to indigo.
+      wall: ['plaster', 'wood', 'stone', 'brick', 'timber'],
+      // Paint for the roofs, awnings and signs, in four families of three: pink, cyan, violet, amber.
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'noodle-market', label: 'Noodle market', blurb: 'Steaming stalls under paper lanterns and pink neon, wet paving underfoot', fence: ['tubes', 'chainlink'], yard: ['wet-asphalt', 'paving'], wall: ['brick', 'timber'], roofs: [0] },
+      { id: 'arcade-row', label: 'Arcade row', blurb: 'Flashing signs, cabinets in the windows and violet light on the glass', fence: ['tubes', 'hologram'], yard: ['wet-asphalt', 'concrete'], wall: ['plaster', 'wood'], roofs: [2] },
+      { id: 'data-centre', label: 'Data centre', blurb: 'Windowless concrete, cooling vents and rows of cyan blinking lights', fence: ['barrier', 'chainlink'], yard: ['concrete'], wall: ['stone', 'plaster'], roofs: [1] },
+      { id: 'rooftop-gardens', label: 'Rooftop gardens', blurb: 'Greenery on a concrete deck under strings of amber lights', fence: ['hologram', 'chainlink'], yard: ['rooftop'], wall: ['stone', 'brick'], roofs: [3] },
+      { id: 'transit-hub', label: 'Transit hub', blurb: 'Steel and glass stations under rails, barriers and cyan signage', fence: ['barrier', 'tubes'], yard: ['concrete', 'paving'], wall: ['stone', 'plaster'], roofs: [1, 2] },
+    ],
+    auto: ['noodle-market', 'arcade-row', 'data-centre', 'rooftop-gardens', 'transit-hub'],
+    // Finished work is a neon sign on a post, each kind of work its own shape. An open PR's tube
+    // is not switched on yet. The glyph is a lozenge, which none of the other themes' glyphs
+    // (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ ☼ ✺ or the open issues' ⚑) is.
+    finished: {
+      one: 'sign', many: 'signs', place: 'sign row', glyph: '\u25c8', grow: 'Light neon signs for pull requests',
+      names: {
+        fix: 'Warning sign', feature: 'Arrow sign', refactor: 'Loop sign', docs: 'Menu board', test: 'Check sign',
+        ui: 'Star sign', infra: 'Gear sign', data: 'Grid sign', perf: 'Bolt sign', review: 'Eye sign',
+        research: 'Question sign', misc: 'Small sign',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

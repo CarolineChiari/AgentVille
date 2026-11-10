@@ -405,3 +405,23 @@ rammed earth, lattice · four families of paint.
 **Finished work**: a **lantern** in the **lantern bed** (❖), one silhouette per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a reunion hall, a lantern stall, a dumpling kitchen and a blossom pavilion.
+
+## Neon city · `neon-city`
+
+A rainy city that comes alive at night: wet asphalt, blade signs hung off every building, neon tube
+rails and hologram fences. Buildings are the village's, drawn after dark with their lights spared;
+the rooms inside, the countryside and the landmarks stay the village's.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Noodle market | `noodle-market` | Steaming stalls under paper lanterns and pink neon, wet paving underfoot |
+| Arcade row | `arcade-row` | Flashing signs, cabinets in the windows and violet light on the glass |
+| Data centre | `data-centre` | Windowless concrete, cooling vents and rows of cyan blinking lights |
+| Rooftop gardens | `rooftop-gardens` | Greenery on a concrete deck under strings of amber lights |
+| Transit hub | `transit-hub` | Steel and glass stations under rails, barriers and cyan signage |
+
+**Built from** — fences: neon tube, chain link, concrete barrier, hologram · ground: wet asphalt,
+concrete, paving, rooftop deck · walls: the village's plaster, wood, stone, brick and timber, all gone to dusk · four families of paint.
+**Finished work**: a **neon sign** in the **sign row** (◈), one glyph per kind of work; an open PR's
+tube is not switched on yet.
+**Rooms**: a noodle bar, an arcade hall, a server room and a rooftop hut.
