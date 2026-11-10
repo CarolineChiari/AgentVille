@@ -425,3 +425,29 @@ concrete, paving, rooftop deck · walls: the village's plaster, wood, stone, bri
 **Finished work**: a **neon sign** in the **sign row** (◈), one glyph per kind of work; an open PR's
 tube is not switched on yet.
 **Rooms**: a noodle bar, an arcade hall, a server room and a rooftop hut.
+
+## Diwali · `diwali`
+
+A village for the festival of lights: rows of diyas on every ledge, rangoli in bright powders, akash
+kandil lanterns hung high and marigold garlands over the doors. No deity or religious imagery is drawn: it is
+lamps, lanterns, powders and flowers on buildings and fences, never on the villagers. The calendar doesn't dress the village for it yet:
+Diwali's date moves, so it is chosen in **Settings → Theme**.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Diya-lit homes | `diya-homes` | Lamps along every ledge and step, glowing at dusk |
+| Rangoli courtyards | `rangoli-courtyards` | A rangoli in each yard, on deep indigo floors |
+| Lantern bazaar | `lantern-bazaar` | Stalls of lanterns, mithai and flowers under strings of lights |
+| Marigold haveli | `marigold-haveli` | Grand houses hung with marigold garlands |
+
+**Built from** — fences: lantern posts, a niched low wall, a jali screen, a marigold garland ·
+ground: swept stone, garden lawn, courtyard pavers, indigo · walls: limewash, pink sandstone,
+tilework, clay, carved screen · four families of paint.
+**Finished work**: a **diya** in the **diya bed** (☀), one silhouette per kind of work; an open
+PR's is not lit yet.
+**Rooms**: a rangoli court, a bazaar stall, a mithai kitchen and a diya room.
+
+**Left out, to be checked**: no deity or religious imagery is drawn. The rangoli patterns here are
+simple stand-ins (the finished-work diamond, the spotlight mandala) and would benefit from review by
+people who make them; the rooms and buildings share structure with the Eid theme and are recoloured
+rather than redrawn, and the yard rangoli itself (one big pattern per folder) is not drawn yet.
