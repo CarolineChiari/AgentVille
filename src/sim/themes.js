@@ -498,6 +498,39 @@ export const THEMES = {
       },
     },
   },
+  christmas: {
+    label: 'Christmas',
+    spotlights: [{ id: 'tree', label: 'Christmas tree' }, { id: 'present', label: 'Wrapped present' }, { id: 'candycane', label: 'Candy cane' }, { id: 'snowman', label: 'Snowman' }, { id: 'wreath', label: 'Wreath' }],
+    dims: {
+      // Pine-rail fences hung with lights, a snowed-over low wall, candy canes and a garland of
+      // holly and baubles.
+      fence: ['lights', 'snowwall', 'candycane', 'holly'],
+      yard: ['snow', 'market', 'frost', 'ginger'],
+      wall: ['planks', 'logs', 'gingerbread', 'icing', 'stone'],
+      // Paint for the roofs, doors and awnings: red, green, gold and candy pink, in four families
+      // of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'christmas-market', label: 'Christmas market', blurb: 'Wooden stalls of mulled wine and gingerbread under strings of lights', fence: ['lights', 'holly'], yard: ['market', 'snow'], wall: ['planks'], roofs: [0] },
+      { id: 'snowy-cottages', label: 'Snowy cottages', blurb: 'Deep snow, smoke from every chimney and a candle in each window', fence: ['snowwall', 'lights'], yard: ['snow', 'frost'], wall: ['logs', 'stone'], roofs: [1] },
+      { id: 'santas-workshop', label: "Santa's workshop", blurb: 'Toymakers, a sleigh by the door and presents piled to the eaves', fence: ['lights', 'candycane'], yard: ['snow', 'market'], wall: ['planks', 'logs'], roofs: [2] },
+      { id: 'gingerbread-lane', label: 'Gingerbread lane', blurb: 'Sweet-coloured houses behind candy-cane fences', fence: ['candycane', 'holly'], yard: ['ginger', 'frost'], wall: ['gingerbread', 'icing'], roofs: [3] },
+      { id: 'carol-chapel', label: "Carol singers' chapel", blurb: 'A small church with a lit star over the door and a nativity in the yard', fence: ['holly', 'snowwall'], yard: ['frost', 'snow'], wall: ['stone', 'icing'], roofs: [1, 0] },
+    ],
+    auto: ['christmas-market', 'snowy-cottages', 'santas-workshop', 'gingerbread-lane', 'carol-chapel'],
+    // Finished work is a wrapped present: a different shape for each kind of work, the ribbon in
+    // the pull request's colour. An open PR's is still being wrapped. The glyph is a snowflake,
+    // which none of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ ⚘ ✸ ★ ✺ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'present', many: 'presents', place: 'present pile', glyph: '\u2744', grow: 'Wrap presents for pull requests',
+      names: {
+        fix: 'Ribboned box', feature: 'Tall box', refactor: 'Round tin', docs: 'Flat parcel', test: 'Spotted box',
+        ui: 'Star-topped box', infra: 'Toy chest', data: 'Plaid box', perf: 'Streamer box', review: 'Stocking',
+        research: 'Snow globe', misc: 'Gift sack',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)
