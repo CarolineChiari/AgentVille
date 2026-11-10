@@ -467,9 +467,13 @@ function glasshouse(pc, o) {
   pc.hline(2, 29, BASE, P.spacePlateDark)
   // The glazing: racks of crops glowing under their lamps, behind pale mullions.
   const gx0 = doorLeft ? 11 : 4
-  box(pc, gx0, wallTop + 2, gx0 + 16, BASE - 2, o.lit ? P.spaceGreenGlow : P.spaceGreenPanel)
+  // Plain glass underneath, because weathering finds windows only by the village's glass colours
+  // (GLASS_COLORS) and a pane it doesn't know never cracks or breaks as the building ages. The
+  // green glow is drawn on top of it, in the strip under each rack.
+  box(pc, gx0, wallTop + 2, gx0 + 16, BASE - 2, o.lit ? P.windowLit : P.glass)
   for (let y = wallTop + 5; y < BASE - 2; y += 5) {
     pc.hline(gx0, gx0 + 16, y, P.spaceGreenDark)
+    pc.hline(gx0, gx0 + 16, y - 3, o.lit ? P.spaceGreenGlow : P.spaceGreenPanel)
     for (let x = gx0 + 1; x <= gx0 + 15; x += 3) {
       pc.px(x, y - 1, P.spaceLeaf)
       pc.px(x + 1, y - 2, P.spaceLeafDark)
@@ -478,17 +482,18 @@ function glasshouse(pc, o) {
   for (let x = gx0; x <= gx0 + 16; x += 4) pc.vline(x, wallTop + 2, BASE - 2, P.spaceHullLight)
   pc.hline(gx0, gx0 + 16, wallTop + 2, P.spaceHullLight)
   doorOf(pc, doorLeft ? 4 : 23, BASE - 1, 5, 10, o.accent)
-  // A water tank at the other end.
-  box(pc, doorLeft ? 21 : 24, BASE - 8, doorLeft ? 27 : 29, BASE, P.spacePaint[4])
-  pc.hline(doorLeft ? 21 : 24, doorLeft ? 27 : 29, BASE - 8, P.spaceHullLight)
-  pc.rect(doorLeft ? 22 : 25, BASE - 5, 4, 2, P.water)
+  // A water tank at the other end from the hatch (a right-hand hatch is columns 23-27).
+  const tx = doorLeft ? 21 : 3
+  box(pc, tx, BASE - 8, tx + 6, BASE, P.spacePaint[4])
+  pc.hline(tx, tx + 6, BASE - 8, P.spaceHullLight)
+  pc.rect(tx + 1, BASE - 5, 4, 2, P.water)
   if (!o.roof) return { x0: 1, x1: 30, top: wallTop }
   // The arched glass roof, lit green from the racks inside.
   const rise = o.low ? 8 : 14
   const color = roofPaintOf(o.roofs, tone)
   for (let x = 1; x <= 30; x++) {
     const h = Math.round(rise * Math.sqrt(Math.max(0, 1 - ((x - 15.5) / 15) ** 2)))
-    for (let y = wallTop - h; y < wallTop; y++) pc.px(x, y, y === wallTop - h ? P.spaceGlassLight : o.lit ? P.spaceGreenGlow : P.spaceGlass)
+    for (let y = wallTop - h; y < wallTop; y++) pc.px(x, y, y === wallTop - h ? P.glassLight : y > wallTop - 3 ? (o.lit ? P.spaceGreenGlow : P.spaceGlass) : o.lit ? P.windowLit : P.glass)
     if (x % 5 === 0) pc.vline(x, wallTop - h, wallTop - 1, P.spaceHullDark)
   }
   pc.hline(1, 30, wallTop - 1, color)
