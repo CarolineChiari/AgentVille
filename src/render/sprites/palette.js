@@ -1008,6 +1008,53 @@ export const PALETTE = {
   patchSoilNightLight: '#53506c',
   patchSoilNightDeep: '#222036',
 
+  // ---------- the Hanukkah theme (src/render/themes/hanukkah/) ----------
+  // Paint and cloth: blue and white with silver. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in hanukkah/buildings.js): royal blue, silver, navy, sky, white, walnut,
+  // indigo and gold (the gold is for gelt and the shammash's flame, not for walls).
+  hkPaint: ['#2a5aa8', '#b9c2d0', '#16356b', '#6fa3dc', '#f4f6fa', '#5a4a3a', '#3a4f8f', '#e0b93a'],
+  // Walls: white plaster, pale limestone, glazed blue tilework, brick and a lattice screen.
+  hkWhitewash: '#f2f4f8',
+  hkWhitewashDark: '#c9cfdc',
+  hkWhitewashLight: '#fbfcfe',
+  hkSandstone: '#d9d2c0',
+  hkSandstoneDark: '#b7af9a',
+  hkSandstoneLight: '#ece6d6',
+  // The hanukkiah and its fittings: silver, with the flame of the candles (the village's flame
+  // colours) above. Named for the metal rather than the lantern it replaces.
+  hkBrass: '#a9b3c4',
+  hkBrassDark: '#6f7a90',
+  hkBrassLight: '#dfe6f2',
+  // Dreidels and gelt: a spinning top's blue and the foil of a chocolate coin.
+  dreidelBlue: '#2f62b8',
+  geltGold: '#e3b93c',
+  geltGoldDark: '#a78420',
+  // Ground by yard tone: blue-grey cobbles, a winter lawn, pale snow and blue-and-white tile.
+  // Each is base, shade, light and deepest; then the same in a dry patch and in a lush one.
+  hkGround: [
+    ['#8c97aa', '#76829a', '#a3adbf', '#5f6a80'],
+    ['#6f9a62', '#5b834e', '#85b078', '#466b3a'],
+    ['#dbe4ef', '#c1ccdc', '#edf2f8', '#a3b0c4'],
+    ['#4b78b8', '#3a63a0', '#6a92cc', '#2b4b82'],
+  ],
+  hkGroundSunny: [
+    ['#98a0aa', '#818a96', '#aeb6c0', '#68707c'],
+    ['#7da45a', '#688d48', '#93b970', '#50702f'],
+    ['#e4e9ef', '#cbd2dc', '#f4f7fa', '#acb6c2'],
+    ['#5683b0', '#436e9a', '#72a0c8', '#33577c'],
+  ],
+  hkGroundLush: [
+    ['#828fa6', '#6c7a94', '#97a5bb', '#56637c'],
+    ['#62915f', '#4f7a4c', '#78a876', '#3c6038'],
+    ['#d2dcea', '#b8c4d6', '#e4ebf5', '#9aa8be'],
+    ['#4170b6', '#315a9c', '#5e8ac8', '#244478'],
+  ],
+  // The lane round a plot: pale frosted stone, paler than the ground so the plots read.
+  hkLane: '#d8e0ec',
+  hkLaneDark: '#bbc6d8',
+  hkLaneLight: '#ecf1f8',
+  hkLaneEdge: '#8e9bb2',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

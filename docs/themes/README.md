@@ -338,3 +338,25 @@ carved screen · four families of paint.
 **Finished work**: a **lantern** in the **lantern bed** (☼), one silhouette per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a tiled courtyard, a souk stall, a sweets kitchen and a garden pavilion.
+
+## Hanukkah · `hanukkah`
+
+A village for the festival of lights: a hanukkiah in the windows, blue and white with silver, stars on
+the bunting, dreidels and gelt, sufganiyot and latkes. Religious symbols stay on the buildings and
+fences, not on the villagers. The calendar doesn't dress the village for it yet: Hanukkah follows the
+Hebrew calendar, so it is chosen in **Settings → Theme**. Candles lit do not yet follow the night of the festival.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Window lights | `window-lights` | Homes with a hanukkiah lit in every window facing the street |
+| Blue and silver street | `blue-silver-street` | Blue-and-white bunting and lights, a large hanukkiah in the square |
+| Bakery row | `bakery-row` | Sufganiyot and latkes, warm windows over the counters |
+| Dreidel courtyard | `dreidel-courtyard` | Children's games, gelt and lanterns in a snowy courtyard |
+
+**Built from** — fences: candle posts, a low wall, a lattice, bunting · ground: cobbles, winter lawn,
+snow, tile · walls: whitewash, limestone, tilework, brick, lattice screen · four families of paint.
+**Finished work**: a **candle** in the **candle bed** (❂), one silhouette per kind of work; an open PR's is not lit yet.
+**Rooms**: a lit parlour, a festival hall, a frying kitchen and a game room.
+**Left out / unsure**: the buildings are the Eid pack's shapes re-coloured, so a few props (lanterns, a palm and dates
+by a door) are still festival-generic, and the square's large hanukkiah and nine-branch candelabra on buildings are not
+drawn yet (only the spotlight marker). Said here rather than guessed at.
