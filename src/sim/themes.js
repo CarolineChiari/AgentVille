@@ -466,6 +466,103 @@ export const THEMES = {
       },
     },
   },
+  hanukkah: {
+    label: 'Hanukkah',
+    spotlights: [{ id: 'hanukkiah', label: 'Hanukkiah' }, { id: 'dreidel', label: 'Dreidel' }, { id: 'gelt', label: 'Gelt' }, { id: 'sufganiyah', label: 'Sufganiyah' }, { id: 'latke', label: 'Latkes' }],
+    dims: {
+      // Candle posts, a low whitewashed wall, a lattice screen and a string of blue-and-white bunting.
+      fence: ['candleposts', 'lowwall', 'lattice', 'bunting'],
+      // Blue-grey cobbles, a winter lawn, pale snow and blue-and-white tile.
+      yard: ['cobbles', 'garden', 'snow', 'tiles'],
+      wall: ['whitewash', 'limestone', 'tilework', 'brick', 'screen'],
+      // Paint for the roofs, doors and awnings: blue, silver, sky and navy, in four families of
+      // three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'window-lights', label: 'Window lights', blurb: 'Homes with a hanukkiah lit in every window facing the street', fence: ['lowwall', 'candleposts'], yard: ['cobbles', 'garden'], wall: ['whitewash', 'limestone'], roofs: [0] },
+      { id: 'blue-silver-street', label: 'Blue and silver street', blurb: 'Blue-and-white bunting and lights, a large hanukkiah in the square', fence: ['bunting', 'lattice'], yard: ['tiles', 'snow'], wall: ['tilework', 'whitewash'], roofs: [2] },
+      { id: 'bakery-row', label: 'Bakery row', blurb: 'Sufganiyot and latkes, warm windows over the counters', fence: ['lattice', 'lowwall'], yard: ['cobbles', 'tiles'], wall: ['brick', 'limestone'], roofs: [3] },
+      { id: 'dreidel-courtyard', label: 'Dreidel courtyard', blurb: "Children's games, gelt and lanterns in a snowy courtyard", fence: ['candleposts', 'bunting'], yard: ['snow', 'garden'], wall: ['screen', 'whitewash'], roofs: [1] },
+    ],
+    auto: ['window-lights', 'blue-silver-street', 'bakery-row', 'dreidel-courtyard'],
+    // Finished work is a candle, each kind of work its own shape, with a dreidel for tests. An
+    // open PR's is not lit yet. The glyph is an eight-petalled snowflake, which none of the other themes'
+    // glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ ☼ ★ or the open issues' ⚑) is.
+    finished: {
+      one: 'candle', many: 'candles', place: 'candle bed', glyph: '\u2742', grow: 'Light candles for pull requests',
+      names: {
+        fix: 'Tall candle', feature: 'Fat candle', refactor: 'Twisted candle', docs: 'Taper', test: 'Dreidel',
+        ui: 'Blue candle', infra: 'Candle in a holder', data: 'Striped candle', perf: 'Slim candle', review: 'Shammash',
+        research: 'Beeswax candle', misc: 'Little candle',
+      },
+    },
+  },
+  christmas: {
+    label: 'Christmas',
+    spotlights: [{ id: 'tree', label: 'Christmas tree' }, { id: 'present', label: 'Wrapped present' }, { id: 'candycane', label: 'Candy cane' }, { id: 'snowman', label: 'Snowman' }, { id: 'wreath', label: 'Wreath' }],
+    dims: {
+      // Pine-rail fences hung with lights, a snowed-over low wall, candy canes and a garland of
+      // holly and baubles.
+      fence: ['lights', 'snowwall', 'candycane', 'holly'],
+      yard: ['snow', 'market', 'frost', 'ginger'],
+      wall: ['planks', 'logs', 'gingerbread', 'icing', 'stone'],
+      // Paint for the roofs, doors and awnings: red, green, gold and candy pink, in four families
+      // of three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'christmas-market', label: 'Christmas market', blurb: 'Wooden stalls of mulled wine and gingerbread under strings of lights', fence: ['lights', 'holly'], yard: ['market', 'snow'], wall: ['planks'], roofs: [0] },
+      { id: 'snowy-cottages', label: 'Snowy cottages', blurb: 'Deep snow, smoke from every chimney and a candle in each window', fence: ['snowwall', 'lights'], yard: ['snow', 'frost'], wall: ['logs', 'stone'], roofs: [1] },
+      { id: 'santas-workshop', label: "Santa's workshop", blurb: 'Toymakers, a sleigh by the door and presents piled to the eaves', fence: ['lights', 'candycane'], yard: ['snow', 'market'], wall: ['planks', 'logs'], roofs: [2] },
+      { id: 'gingerbread-lane', label: 'Gingerbread lane', blurb: 'Sweet-coloured houses behind candy-cane fences', fence: ['candycane', 'holly'], yard: ['ginger', 'frost'], wall: ['gingerbread', 'icing'], roofs: [3] },
+      { id: 'carol-chapel', label: "Carol singers' chapel", blurb: 'A small church with a lit star over the door and a nativity in the yard', fence: ['holly', 'snowwall'], yard: ['frost', 'snow'], wall: ['stone', 'icing'], roofs: [1, 0] },
+    ],
+    auto: ['christmas-market', 'snowy-cottages', 'santas-workshop', 'gingerbread-lane', 'carol-chapel'],
+    // Finished work is a wrapped present: a different shape for each kind of work, the ribbon in
+    // the pull request's colour. An open PR's is still being wrapped. The glyph is a snowflake,
+    // which none of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ✶ ⚘ ✸ ★ ✺ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'present', many: 'presents', place: 'present pile', glyph: '\u2744', grow: 'Wrap presents for pull requests',
+      names: {
+        fix: 'Ribboned box', feature: 'Tall box', refactor: 'Round tin', docs: 'Flat parcel', test: 'Spotted box',
+        ui: 'Star-topped box', infra: 'Toy chest', data: 'Plaid box', perf: 'Streamer box', review: 'Stocking',
+        research: 'Snow globe', misc: 'Gift sack',
+      },
+    },
+  },
+  'lunar-new-year': {
+    label: 'Lunar New Year',
+    spotlights: [{ id: 'lantern', label: 'Red lantern' }, { id: 'firecracker', label: 'Firecrackers' }, { id: 'envelope', label: 'Red envelope' }, { id: 'blossom', label: 'Plum blossom' }, { id: 'tangerine', label: 'Mandarins' }],
+    dims: {
+      // Red lantern posts, a low whitewashed wall banded in red and gold, a carved lattice, and a
+      // garland of blossom and gold.
+      fence: ['lanterns', 'lowwall', 'lattice', 'garland'],
+      yard: ['flagstone', 'garden', 'brick', 'jadetile'],
+      wall: ['whitewash', 'greybrick', 'lacquer', 'rammed', 'lattice'],
+      // Paint for the roofs, doors and awnings: red, gold, jade and crimson, in four families of
+      // three (PAINT_FAMILIES in the pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'lantern-street', label: 'Lantern street', blurb: 'Rows of red lanterns strung over the lane, glowing after dark', fence: ['lanterns', 'garland'], yard: ['flagstone', 'brick'], wall: ['lacquer', 'whitewash'], roofs: [0] },
+      { id: 'temple-fair', label: 'Temple fair', blurb: 'Stalls, snacks and a stage for the lion dance, gold on every awning', fence: ['lanterns', 'lattice'], yard: ['brick', 'flagstone'], wall: ['lattice', 'rammed'], roofs: [1] },
+      { id: 'blossom-garden', label: 'Blossom garden', blurb: 'Plum blossom over green lawn, pale walls and jade-tile paths', fence: ['garland', 'lowwall'], yard: ['garden', 'jadetile'], wall: ['whitewash', 'greybrick'], roofs: [2] },
+      { id: 'family-courtyard', label: 'Family courtyard', blurb: 'Homes round a courtyard with red couplets on every door', fence: ['lowwall', 'lattice'], yard: ['brick', 'jadetile'], wall: ['greybrick', 'lacquer'], roofs: [3] },
+    ],
+    auto: ['lantern-street', 'temple-fair', 'blossom-garden', 'family-courtyard'],
+    // Finished work is a red lantern, each kind of work its own shape. An open PR's is not lit yet.
+    // The glyph is a black diamond with a white cross, the shape of a fu pasted on a door, which none
+    // of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧ ⚘ ✶ ★ ☼ or the open issues' ⚑) is.
+    finished: {
+      one: 'lantern', many: 'lanterns', place: 'lantern bed', glyph: '\u2756', grow: 'Hang lanterns for pull requests',
+      names: {
+        fix: 'Round lantern', feature: 'Tall lantern', refactor: 'Hexagonal lantern', docs: 'Paper lantern', test: 'Candle lantern',
+        ui: 'Star lantern', infra: 'Gold-bound lantern', data: 'Lattice lantern', perf: 'Teardrop lantern', review: 'Hanging lantern',
+        research: 'Silk lantern', misc: 'Small lantern',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

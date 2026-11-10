@@ -275,6 +275,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
         <div style="min-width:0;flex:1">
           <b title="${esc(wasTitle(t))}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</b>
           <span class="status" ${statusColor ? `style="color:${statusColor}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || '')}</span>
+          ${t.needsInput && t.needsInputText ? `<q class="asking">${esc(t.needsInputText)}</q>` : ''}
         </div>
         <button class="btn" data-act="rename" title="Rename (or double-click the name)" aria-label="Rename">✎</button>
         <button class="btn" data-act="close" title="Close (Esc)">✕</button>
@@ -677,7 +678,7 @@ export function createCard(root, village, { onTranscript = () => {}, onEditTasks
       }
       ensureBuilt(t)
       const flower = village.isFinished(id) ? village.flower(id) : null
-      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
+      const key = `${flower ? `f:${flower.theme}` : t.status}|${t.unread}|${t.needsInput || ''}|${t.needsInputText || ''}|${t.title}|${t.lastActivityAt}|${t.canOpen}|${village.settings.openIn}|${village.settings.taskIn}|${JSON.stringify(village.customTasks(t.project))}|${JSON.stringify(village.customTasks('*'))}|${t.group?.id || ''}|${JSON.stringify(village.groupsOf(t.project))}|${JSON.stringify(village.threadPrs(t))}|${village.spotlightOf(id)}|${timeLeft(village.spotlightOf(id))}|${JSON.stringify(village.spotlightMarker(id))}|${village.spotlightPicked(id)}|${Boolean(village.postMortemOf(id))}`
       // A group picker held open is left open: a poll redrawing the card under it would shut it.
       if (id === shownId && key !== shownKey && card.querySelector('select[data-f="group"]:focus, select[data-f="spotlight"]:focus, select[data-f="marker"]:focus, textarea.reply:focus') && Boolean(t.running || t.needsInput) === replyBusy) return
       if (id !== shownId || key !== shownKey) {

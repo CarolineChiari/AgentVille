@@ -108,6 +108,28 @@ export function addPr(list, pr) {
 /** Tools that stop and wait for the person: a question dialog, or a plan waiting for approval. */
 export const ASKING_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode'])
 
+/** What a waiting thread is waiting on, to show on its card. About this long, no more. */
+export const QUESTION_TEXT_MAX = 200
+
+/**
+ * The words of the question the thread stopped on: the first question of an `AskUserQuestion`,
+ * or the plan's first line for an `ExitPlanMode`. '' when it isn't stopped on one, or can't say.
+ */
+export function questionText(records) {
+  if (!pendingQuestion(records)) return ''
+  for (let i = records.length - 1; i >= 0; i--) {
+    const r = records[i]
+    if (!isMain(r) || r.type !== 'assistant') continue
+    const block = (r.message?.content || []).find((b) => b?.type === 'tool_use' && ASKING_TOOLS.has(b.name))
+    const input = block?.input || {}
+    let text = ''
+    if (block?.name === 'AskUserQuestion') text = input.questions?.[0]?.question ?? input.question ?? ''
+    else if (typeof input.plan === 'string') text = input.plan.split('\n').map((l) => l.replace(/^[#\s>*-]+/, '').trim()).find(Boolean) || ''
+    return typeof text === 'string' ? clip(text.replace(/\s+/g, ' ').trim(), QUESTION_TEXT_MAX) : ''
+  }
+  return ''
+}
+
 /**
  * Is the model stopped on a question to the person? The last main-thread record is an assistant
  * turn calling a tool that waits for them, with no answer after it.
