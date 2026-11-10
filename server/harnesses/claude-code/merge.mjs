@@ -109,6 +109,7 @@ export function toThread(entry, harnessName) {
     unread: Boolean(entry.unread),
     hasError: entry.hasError,
     needsInput: entry.needsInput || '',
+    needsInputText: entry.needsInputText || '',
     prState: entry.prState,
     prNumber: entry.prNumber,
     prUrl: entry.prUrl,

@@ -21,6 +21,7 @@
  * @property {boolean} running         Working right now
  * @property {boolean} unread          Moved on since you last looked
  * @property {string}  needsInput      Stopped on the person right now: 'dialog open', 'permission prompt', … or ''
+ * @property {string}  needsInputText What it is asking, about 200 characters at most, or '' when the harness can't tell
  * @property {boolean} hasError
  * @property {string}  prState         `'MERGED'` triggers the celebration
  * @property {number}  prNumber        The PR this thread opened or linked, 0 if none
