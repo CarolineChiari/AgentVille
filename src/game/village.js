@@ -371,6 +371,8 @@ export class Village {
       id: t.id, project: t.project, createdAt: t.createdAt, status: t.status, known: Boolean(this.state.seen[t.id]), wear: wearOf(t, now), grade: this._gradeOf(t),
       // Its group, for where its house stands, and the colour of the flag it flies.
       group: t.group?.id || '', banner: t.group ? t.group.color : null,
+      // What it is stopped on you for, for the bubble over its head; '' when it isn't, or can't say.
+      asking: t.needsInput && typeof t.needsInputText === 'string' ? t.needsInputText : '',
     }))
     if (this._gradesChanged) {
       this._gradesChanged = false

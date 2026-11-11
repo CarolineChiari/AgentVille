@@ -86,6 +86,7 @@ export class Villager {
     this.animTime = (hashString(id) % 1000) / 1000 // nobody moves in unison
     this.phase = (hashString(`phase:${id}`) % 6000) / 1000
     this.status = status
+    this.asking = '' // what it is stopped on you for, while it is (see World.setRoster)
     this.loco = loco // queued | entering | site | leaving | gone
     this.building = null
     this.goal = null

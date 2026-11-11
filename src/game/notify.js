@@ -9,6 +9,8 @@ export const LISTED_MAX = 3
  * list in the few lines a notification shows, rather than the first one filling it.
  */
 export const TITLE_MAX = 60
+/** The question a villager is asking, in its notification: two titles' worth, a couple of lines on screen. */
+export const ASKING_MAX = TITLE_MAX * 2
 
 const needsYou = (status) => status === 'waiting' || status === 'blocked'
 
@@ -52,7 +54,10 @@ export function noticeFor(fresh) {
   if (fresh.length === 1) {
     const [t] = fresh
     const what = needsInputLabel(t.needsInput) || STATUS_LABEL[t.status] || ''
-    return { id: t.id, title: clip(titleOf(t), TITLE_MAX * 2), body: [what, t.project].filter(Boolean).join(' · ') }
+    // What it asks, when its harness can say, on a line of its own: often enough to answer from memory.
+    const asking = t.needsInput && typeof t.needsInputText === 'string' ? t.needsInputText.replace(/\s+/g, ' ').trim() : ''
+    const body = [[what, t.project].filter(Boolean).join(' · '), asking && `“${clip(asking, ASKING_MAX)}”`].filter(Boolean).join('\n')
+    return { id: t.id, title: clip(titleOf(t), TITLE_MAX * 2), body }
   }
   const listed = fresh.slice(0, LISTED_MAX).map((t) => clip(titleOf(t), TITLE_MAX))
   const more = fresh.length - listed.length

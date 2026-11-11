@@ -15,6 +15,11 @@ const DAY = 24 * HOUR
  */
 const IDLE = [0, 10 * MIN, 20 * MIN, 25 * MIN, 3 * HOUR, 30 * HOUR, 40 * MIN, 8 * HOUR, 2 * DAY]
 const ASLEEP = [5 * DAY, 20 * DAY, 90 * DAY, 10 * DAY, 45 * DAY, 150 * DAY]
+// What a demo villager stopped on you asks, so the card and the bubble over its head have words in them.
+const ASKING = [
+  'Should the cache live in Redis or in memory?', 'Run the database migration now?', 'Which of the two layouts do you prefer?',
+  'Add a cache in front of the search API',
+]
 
 export function demoThreads(now = Date.now()) {
   const out = []
@@ -44,6 +49,9 @@ export function demoThreads(now = Date.now()) {
         unread: roll === 3 || roll === 4,
         // Roll 4 is stopped on you, so the demo shows the `?` it is all for.
         needsInput: roll === 4 ? (n % 2 ? 'question' : 'permission prompt') : '',
+        // Only a question has words to show: Claude Code's harness can't see a permission prompt's.
+        // `n` is odd here, so it is halved first or only every other one would turn up.
+        needsInputText: roll === 4 && n % 2 ? ASKING[(n >> 1) % ASKING.length] : '',
         hasError: roll === 5,
         prState: roll === 6 ? 'MERGED' : '',
         archived: false,

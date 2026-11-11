@@ -669,3 +669,14 @@ test('a verdict rides on its villager until it is cleared', () => {
   w.setVerdicts(new Map())
   assert.ok(w.snapshot().villagers.every((v) => v.verdict === null))
 })
+
+test('a waiting villager carries what it is asking into the frame, and drops it once answered', () => {
+  const w = new World()
+  w.setRoster([T('t1', 'a', 'waiting', { asking: 'Use Postgres?' }), T('t2', 'a', 'working', { asking: 'stale' })])
+  run(w, 6)
+  const of = (id) => w.snapshot().villagers.find((v) => v.id === id)
+  assert.equal(of('t1').asking, 'Use Postgres?')
+  assert.equal(of('t2').asking, '', 'only a waiting villager is asking anything')
+  w.setRoster([T('t1', 'a', 'working'), T('t2', 'a', 'working')])
+  assert.equal(of('t1').asking, '')
+})

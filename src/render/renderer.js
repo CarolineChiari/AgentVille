@@ -23,6 +23,7 @@ import { SQUARE_OBELISKS } from '../sim/constants.js'
 import { VILLAGER_H, VILLAGER_W } from './sprites/villagers.js'
 import { BADGE_H, BADGE_W, BANNER_H, BANNER_POLE, CLIPBOARD_H, CLIPBOARD_W } from './sprites/effects.js'
 import { MARKER_SCALE, edgePointer } from './spotlight.js'
+import { BUBBLE_MAX_PX, fitLine } from './bubble.js'
 import { MARKER_H, MARKER_W } from './sprites/spotlights.js'
 
 const CHUNK = CELL_TILES * T
@@ -1119,6 +1120,59 @@ export class Canvas2dRenderer {
     }
   }
 
+  /**
+   * What a waiting villager is asking, in a speech bubble over its head, while it is hovered or
+   * picked: one line, cut short with an ellipsis, since the card has the rest. Drawn last, in
+   * screen pixels like the names, so it reads at any zoom and nothing covers it.
+   */
+  _drawAsking(frame) {
+    const { ctx, camera: cam } = this
+    const s = cam.scale
+    const dpr = cam.dpr
+    const pad = 5 * dpr
+    const tail = 5 * dpr
+    ctx.font = `600 ${Math.round(11 * dpr)}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    // The visible part of the canvas, between the transcript panel and the sidebar.
+    const left = cam.insetLeft + 4 * dpr
+    const right = cam.width - cam.insetRight - 4 * dpr
+    // No wider than the room left between them, or a long question runs under the sidebar.
+    const room = Math.min(BUBBLE_MAX_PX * dpr, right - left - pad * 2)
+    for (const v of frame.villagers) {
+      if (!v.asking || !(v.selected || v.hovered) || v.alpha < 0.5) continue
+      // Above the badge, and above the spotlight's marker when there is one, so it hides neither.
+      const lift = VILLAGER_H + BADGE_H + (v.spotlight ? MARKER_H * MARKER_SCALE + 1 : 0) + hopOf(v, this.reducedMotion)
+      const ax = cam.offX + v.x * T * s
+      const ay = cam.offY + (v.y * T - lift) * s - 2 * dpr
+      const feet = cam.offY + v.y * T * s
+      // Off the visible map, a bubble pinned to its edge would point at nobody.
+      if (ax < left || ax > right || feet < 0 || ay > cam.height) continue
+      const line = fitLine(v.asking, room, (t) => ctx.measureText(t).width)
+      if (!line) continue
+      const w = ctx.measureText(line).width + pad * 2
+      const h = 11 * dpr + pad * 2
+      // Kept inside the visible part of the canvas; the tail still points at the villager.
+      const bx = Math.max(left, Math.min(right - w, ax - w / 2))
+      const by = Math.max(4 * dpr, ay - tail - h)
+      const tx = Math.max(bx + tail * 1.5, Math.min(bx + w - tail * 1.5, ax))
+      ctx.beginPath()
+      ctx.roundRect(bx, by, w, h, 4 * dpr)
+      ctx.moveTo(tx - tail, by + h)
+      ctx.lineTo(tx, by + h + tail)
+      ctx.lineTo(tx + tail, by + h)
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = 2 * dpr
+      ctx.strokeStyle = P.labelInk
+      ctx.stroke()
+      // Filled after the stroke, so the box's bottom edge doesn't run across the tail's mouth.
+      ctx.fillStyle = P.white
+      ctx.fill()
+      ctx.fillStyle = P.labelInk
+      ctx.fillText(line, bx + w / 2, by + h / 2)
+    }
+  }
+
   _drawLabels(frame, ui) {
     const { ctx, camera: cam } = this
     const dpr = cam.dpr
@@ -1239,6 +1293,7 @@ export class Canvas2dRenderer {
     this._drawSpotlights(frame)
     this._drawLabels(frame, ui)
     if (ui.villagerNames) this._drawVillagerNames(frame, ui)
+    this._drawAsking(frame)
   }
 
   /** The landmark whose sprite is under world point `w`, the one in front if two overlap. */

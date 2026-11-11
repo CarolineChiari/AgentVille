@@ -212,7 +212,7 @@ export function createHud(root, { village, settings, onSettings, onFly, session 
   function threadRow(t) {
     // The spotlight's pink, the colour at a spotlit villager's feet, so the list says who is spotlit too.
     const lit = village.spotlightOf(t.id) ? `<span class="spot" role="img" aria-label="Spotlit" style="color:${P.spotlight}" title="Spotlit (F flies to it)">▼</span>` : ''
-    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}">${lit}<span class="t" title="${esc(t.title)}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</span><span class="s">${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
+    return `<button class="thread-row ${t.id === village.selected ? 'selected' : ''}" data-act="thread" data-id="${esc(t.id)}">${lit}<span class="t" title="${esc(t.title)}">${t.villager ? `<span class="vname">${esc(t.villager)}</span> ` : ''}${esc(t.title)}</span><span class="s"${t.needsInput && t.needsInputText ? ` title="${esc(t.needsInputText)}"` : ''}>${esc(needsInputLabel(t.needsInput) || STATUS_LABEL[t.status])} · ${ago(t.lastActivityAt)}</span></button>`
   }
 
   /**
