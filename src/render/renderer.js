@@ -1134,19 +1134,25 @@ export class Canvas2dRenderer {
     ctx.font = `600 ${Math.round(11 * dpr)}px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
+    // The visible part of the canvas, between the transcript panel and the sidebar.
+    const left = cam.insetLeft + 4 * dpr
+    const right = cam.width - cam.insetRight - 4 * dpr
+    // No wider than the room left between them, or a long question runs under the sidebar.
+    const room = Math.min(BUBBLE_MAX_PX * dpr, right - left - pad * 2)
     for (const v of frame.villagers) {
       if (!v.asking || !(v.selected || v.hovered) || v.alpha < 0.5) continue
-      const line = fitLine(v.asking, BUBBLE_MAX_PX * dpr, (t) => ctx.measureText(t).width)
-      if (!line) continue
       // Above the badge, and above the spotlight's marker when there is one, so it hides neither.
       const lift = VILLAGER_H + BADGE_H + (v.spotlight ? MARKER_H * MARKER_SCALE + 1 : 0) + hopOf(v, this.reducedMotion)
       const ax = cam.offX + v.x * T * s
       const ay = cam.offY + (v.y * T - lift) * s - 2 * dpr
+      const feet = cam.offY + v.y * T * s
+      // Off the visible map, a bubble pinned to its edge would point at nobody.
+      if (ax < left || ax > right || feet < 0 || ay > cam.height) continue
+      const line = fitLine(v.asking, room, (t) => ctx.measureText(t).width)
+      if (!line) continue
       const w = ctx.measureText(line).width + pad * 2
       const h = 11 * dpr + pad * 2
       // Kept inside the visible part of the canvas; the tail still points at the villager.
-      const left = cam.insetLeft + 4 * dpr
-      const right = cam.width - cam.insetRight - 4 * dpr
       const bx = Math.max(left, Math.min(right - w, ax - w / 2))
       const by = Math.max(4 * dpr, ay - tail - h)
       const tx = Math.max(bx + tail * 1.5, Math.min(bx + w - tail * 1.5, ax))
