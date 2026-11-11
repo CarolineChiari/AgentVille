@@ -315,6 +315,7 @@ export class World {
       let v = this.villagers.get(t.id)
       if (v && v.loco !== 'gone') {
         v.status = t.status
+        v.asking = t.asking || ''
         // Its house has moved (a new group, or the plot grew): off to the new one, whatever it was doing.
         if (v.building !== b || moved.has(t.id)) {
           v.building = b
@@ -334,17 +335,20 @@ export class World {
       const b = this.buildings.get(t.id)
       if (this.first) {
         const v = new Villager(t.id, { x: this.gate.x, y: this.gate.y, status: t.status, loco: 'queued' })
+        v.asking = t.asking || ''
         v.building = b
         this.villagers.set(t.id, v)
         this.queue.push(t.id)
       } else if (!t.known && entering < MAX_ENTERING) {
         const v = new Villager(t.id, { x: this.gate.x, y: this.gate.y, status: t.status, loco: 'entering' })
+        v.asking = t.asking || ''
         v.building = b
         this.villagers.set(t.id, v)
         entering++
       } else {
         const f = this.nav.nearestFree(b.front.x, b.front.y)
         const v = new Villager(t.id, { x: f.x, y: f.y, status: t.status, loco: 'site' })
+        v.asking = t.asking || ''
         v.building = b
         this.villagers.set(t.id, v)
       }
@@ -634,6 +638,7 @@ export class World {
           badge: v.badge, alpha: v.alpha, selected: v.id === selected, hovered: v.id === hovered, plot: v.building?.plot ?? '',
           spotlight: spotlit?.has(v.id) ? markerFor(spotlit.get(v.id), this.plots.get(v.building?.plot)?.style?.theme ?? this.theme) : null,
           verdict: this.verdicts.get(v.id) ?? null,
+          asking: v.status === 'waiting' ? v.asking || '' : '',
         }))
         .concat(this.foreman ? [this._foremanFrame(hovered)] : []),
       flowers: [...this.flowers.values()].map((f) => ({ ...f, selected: f.id === selected, hovered: f.id === hovered })),
@@ -657,7 +662,7 @@ export class World {
     const f = this.foreman
     return {
       id: FOREMAN_ID, name: f.name, x: f.x, y: f.y, facing: f.facing, anim: f.anim, animTime: f.animTime, look: f.look, status: 'idle',
-      badge: null, alpha: f.alpha, selected: false, hovered: hovered === FOREMAN_ID, plot: '', spotlight: null, verdict: 'rounds',
+      badge: null, alpha: f.alpha, selected: false, hovered: hovered === FOREMAN_ID, plot: '', spotlight: null, verdict: 'rounds', asking: '',
     }
   }
 

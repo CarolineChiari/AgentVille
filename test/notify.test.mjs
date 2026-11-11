@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { APP_TITLE, LISTED_MAX, TITLE_MAX, newlyAsking, noticeFor, pageTitle } from '../src/game/notify.js'
+import { APP_TITLE, ASKING_MAX, LISTED_MAX, TITLE_MAX, newlyAsking, noticeFor, pageTitle } from '../src/game/notify.js'
 import { Village } from '../src/game/village.js'
 import { World } from '../src/sim/world.js'
 
@@ -66,6 +66,15 @@ test('one villager: its title, what it wants and its repo', () => {
   })
   assert.equal(noticeFor([T('a', 'blocked')]).body, 'Stuck on an error · orchard')
   assert.equal(noticeFor([T('a', 'waiting', { project: '' })]).body, 'Needs you')
+})
+
+test('one villager asking a question: the question on a line of its own, quoted and clipped', () => {
+  const q = (needsInputText) => noticeFor([T('a', 'waiting', { needsInput: 'question', needsInputText })]).body
+  assert.equal(q('Use  Postgres?'), 'Asking you a question · orchard\n“Use Postgres?”')
+  assert.equal(q(''), 'Asking you a question · orchard')
+  assert.equal(q('x'.repeat(500)).split('\n')[1].length, ASKING_MAX + 2)
+  // Answered: the words are left over, but it isn't asking any more.
+  assert.equal(noticeFor([T('a', 'blocked', { needsInputText: 'Use Postgres?' })]).body, 'Stuck on an error · orchard')
 })
 
 test('a villager is named before its title', () => {
