@@ -60,6 +60,9 @@ function colours(look) {
           // A flat cap is tweed to go with the crew's dungarees: in a villager's own hat colour
           // it read as the everyday cap.
           : kind === 'flatcap' ? P.tweed[(look.vest || 0) % P.tweed.length]
+            // A stetson is felt in the crew's colour, as the sou'wester is oilskin: in a villager's
+            // own hat colour a pink or a green one read as a costume rather than as a cowhand's.
+            : kind === 'stetson' ? P.stetson[(look.vest || 0) % P.stetson.length]
             : look.hat === 1 ? P.hat : P.cloth[(look.hatColor || 0) % P.cloth.length]
   const vest = P.hiVis[(look.vest || 0) % P.hiVis.length]
   // A theme's second uniform colour, on the same draw as the vest's: greenleaf or twilight.
@@ -73,6 +76,8 @@ function colours(look) {
   // And for a Holi tunic: white, splashed with three of the gulal colours, picked by the shirt so
   // that two villagers beside each other are splashed differently.
   const splash = [0, 2, 4].map((d) => P.holiGulal[(look.shirt + d) % P.holiGulal.length])
+  // And for a cowhand's neckerchief: red, or the mission's indigo.
+  const band = P.bandana[(look.vest || 0) % P.bandana.length]
   // Vests and scarves: a colour well away from the shirt's in the list.
   const second = P.cloth[(look.shirt + 5) % P.cloth.length]
   return {
@@ -90,6 +95,7 @@ function colours(look) {
     oil, oilS: shade(oil, -0.24), oilL: shade(oil, 0.22),
     denim, denimS: shade(denim, -0.24), denimL: shade(denim, 0.2),
     splash,
+    band, bandS: shade(band, -0.25),
   }
 }
 
@@ -477,6 +483,33 @@ function hat(pc, c, look, dy, view) {
       if (view === 'front') pc.hline(5, 10, 5 + dy, c.hatS)
       else pc.hline(4, 11, 4 + dy, c.hatS)
     }
+  } else if (kind === 'stetson') {
+    // A cowboy hat: a tall crown pinched in at the top and a wide brim curled up at both ends. The
+    // curl and the pinch are what tell it from the straw hat, which has a flat brim and a round
+    // crown; the band is leather.
+    if (side) {
+      pc.hline(0, 13, 5 + dy, c.hat)
+      pc.px(0, 4 + dy, c.hat)
+      pc.px(13, 4 + dy, c.hat)
+      pc.hline(2, 12, 6 + dy, c.hatS)
+      pc.rect(5, 1 + dy, 6, 4, c.hat)
+      pc.hline(6, 9, 0 + dy, c.hat)
+      pc.px(7, 1 + dy, c.hatS) // the pinch
+      pc.hline(5, 10, 4 + dy, P.wwLeatherDark)
+      pc.px(5, 2 + dy, c.hatL)
+    } else {
+      pc.hline(1, 14, 5 + dy, c.hat)
+      for (const x of [1, 14]) pc.px(x, 4 + dy, c.hat)
+      pc.px(1, 3 + dy, c.hatL)
+      pc.px(14, 3 + dy, c.hatS)
+      pc.hline(3, 12, 6 + dy, c.hatS)
+      pc.rect(5, 1 + dy, 6, 4, c.hat)
+      pc.hline(5, 6, 0 + dy, c.hat)
+      pc.hline(9, 10, 0 + dy, c.hat)
+      pc.hline(7, 8, 1 + dy, c.hatS) // the pinch, down the middle of the crown
+      pc.hline(5, 10, 4 + dy, P.wwLeatherDark)
+      pc.px(5, 1 + dy, c.hatL)
+    }
   } else if (kind === 'partyhat') {
     // A paper cone sat on the crown, a band of white round it and a pom on the point. It leans a
     // pixel the way a hat does when the wearer is facing sideways.
@@ -629,6 +662,24 @@ function topFront(pc, c, look, dy, back) {
     pc.px(6, 16 + dy, d)
     pc.px(9, 13 + dy, d)
   }
+  if (t === 'bandana') {
+    // A leather vest worn open over the shirt, and a neckerchief knotted at the throat with its
+    // point hanging down the chest. The shirt shows between the vest's edges, which keeps the
+    // villager's own colour.
+    if (back) {
+      pc.rect(5, 13 + dy, 6, 4, P.wwLeather)
+      pc.vline(10, 13 + dy, 16 + dy, P.wwLeatherDark)
+      pc.hline(5, 10, 12 + dy, c.band)
+      pc.px(7, 13 + dy, c.bandS) // the knot
+    } else {
+      for (const x of [5, 6]) pc.vline(x, 13 + dy, 16 + dy, P.wwLeather)
+      pc.vline(9, 13 + dy, 16 + dy, P.wwLeather)
+      pc.vline(10, 13 + dy, 16 + dy, P.wwLeatherDark)
+      pc.hline(5, 10, 12 + dy, c.band)
+      pc.hline(6, 9, 13 + dy, c.band)
+      pc.hline(7, 8, 14 + dy, c.bandS)
+    }
+  }
   if (t === 'hivis') {
     // A hi-vis vest: silver bands over the shoulders and one round the middle.
     pc.rect(5, 12 + dy, 6, 5, c.vest)
@@ -700,6 +751,13 @@ function topSide(pc, c, look, dy) {
     pc.px(8, 15 + dy, b)
     pc.px(7, 16 + dy, d)
     pc.px(9, 14 + dy, b)
+  }
+  if (t === 'bandana') {
+    // Side on, the vest down the front and back, and the neckerchief's point out under the chin.
+    pc.vline(6, 13 + dy, 16 + dy, P.wwLeather)
+    pc.vline(9, 13 + dy, 16 + dy, P.wwLeatherDark)
+    pc.hline(5, 9, 12 + dy, c.band)
+    pc.px(5, 13 + dy, c.bandS)
   }
   if (t === 'hivis') {
     pc.rect(6, 12 + dy, 4, 5, c.vest)

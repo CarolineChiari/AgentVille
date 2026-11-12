@@ -495,3 +495,28 @@ greenhouse panels · five families of paint.
 **Finished work**: a **beacon or crystal sample** in the **sample bay** (◈), one shape per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a dome lounge, an ore bay, a grow lab, mission control and a research lab.
+
+---
+
+## Wild West · `wild-west`
+
+A frontier town: false-front saloons and stores along a boardwalk, log cabins and windpumps on the
+ranch, mines in the red rock, a water tower by the line and an adobe mission. Everybody works in a
+stetson, a leather vest and a neckerchief; the landmarks stay the village's.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Main street | `main-street` | False-front saloons and stores along a boardwalk, horses at the hitching rail |
+| Ranch | `ranch` | Log cabins and a windpump in the sagebrush, split rails round the corral |
+| Gold mine | `gold-mine` | Timbered adits in the red rock, ore carts on their rails, barbed wire round the claim |
+| Railroad depot | `railroad-depot` | A painted depot and a water tower on its legs beside the line |
+| Desert mission | `desert-mission` | Whitewashed adobe and a bell in its arch, a low mud wall round the yard |
+
+**Built from** — fences: split rail, adobe wall, barbed wire, hitching rail · ground: desert sand,
+boardwalk, sagebrush scrub, red rock · walls: clapboard, logs, adobe, barn boards, stone · five
+families of paint.
+**Finished work**: a **keepsake** in the **corral** (Ω): a cactus in flower or a horseshoe, one
+shape per kind of work; an open PR's cactus is still in bud and its paint not yet dry.
+**Work clothes**: a stetson and a neckerchief over a leather vest, red for most crews and indigo at
+the mission.
+**Rooms**: a saloon, a bunkhouse, an assay office, a ticket office and a mission room.

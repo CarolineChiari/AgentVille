@@ -693,6 +693,42 @@ export const THEMES = {
       },
     },
   },
+  'wild-west': {
+    label: 'Wild West',
+    spotlights: [{ id: 'star', label: "Sheriff's star" }, { id: 'horseshoe', label: 'Horseshoe' }, { id: 'cactus', label: 'Saguaro' }, { id: 'boot', label: 'Cowboy boot' }, { id: 'wheel', label: 'Wagon wheel' }],
+    dims: {
+      // Split rails, a low adobe wall, barbed wire on cedar posts and a hitching rail.
+      fence: ['splitrail', 'adobe', 'barbed', 'hitching'],
+      // Desert sand, a plank boardwalk, sagebrush scrub and red rock from the mesa.
+      yard: ['desert', 'boardwalk', 'scrub', 'redrock'],
+      wall: ['clapboard', 'logs', 'adobe', 'barnwood', 'stone'],
+      // Paint for the false fronts, doors and trim: barn red, rust, mustard, sage green, sky blue,
+      // turquoise, saddle brown and cream, in five families of three (PAINT_FAMILIES in the pack).
+      roofs: 5,
+    },
+    subthemes: [
+      { id: 'main-street', label: 'Main street', blurb: 'False-front saloons and stores along a boardwalk, horses at the hitching rail', fence: ['hitching', 'splitrail'], yard: ['boardwalk', 'desert'], wall: ['clapboard', 'barnwood'], roofs: [0] },
+      { id: 'ranch', label: 'Ranch', blurb: 'Log cabins and a windpump in the sagebrush, split rails round the corral', fence: ['splitrail', 'barbed'], yard: ['scrub', 'desert'], wall: ['logs', 'barnwood'], roofs: [1] },
+      { id: 'gold-mine', label: 'Gold mine', blurb: 'Timbered adits in the red rock, ore carts on their rails, barbed wire round the claim', fence: ['barbed', 'splitrail'], yard: ['redrock', 'scrub'], wall: ['barnwood', 'stone'], roofs: [2] },
+      { id: 'railroad-depot', label: 'Railroad depot', blurb: 'A painted depot and a water tower on its legs beside the line', fence: ['hitching', 'barbed'], yard: ['desert', 'boardwalk'], wall: ['clapboard', 'stone'], roofs: [3] },
+      { id: 'desert-mission', label: 'Desert mission', blurb: 'Whitewashed adobe and a bell in its arch, a low mud wall round the yard', fence: ['adobe'], yard: ['desert', 'redrock'], wall: ['adobe'], roofs: [4], outfit: { vest: 1 } },
+    ],
+    auto: ['main-street', 'ranch', 'gold-mine', 'railroad-depot', 'desert-mission'],
+    outfit: { hat: 'stetson', top: 'bandana' },
+    // Finished work is a cactus come into flower or a horseshoe nailed up for luck, set out in the
+    // plot's corral: what it is says what kind of work it was, its bloom or its paint is the pull
+    // request's colour, and an open PR's cactus is still in bud, its paint not yet dry. The glyph is
+    // an omega, which is a horseshoe hung the lucky way up, and none of the other themes' glyphs
+    // or the open issues' ⚑.
+    finished: {
+      one: 'keepsake', many: 'keepsakes', place: 'corral', glyph: '\u03a9', grow: 'Grow cacti and hang horseshoes for pull requests',
+      names: {
+        fix: 'Lucky horseshoe', feature: 'Saguaro', refactor: 'Barrel cactus', docs: 'Wanted poster', test: 'Prickly pear',
+        ui: 'Painted olla', infra: 'Wagon wheel', data: 'Gold pan', perf: 'Lariat', review: 'Lantern',
+        research: 'Ocotillo', misc: 'Horseshoe pitch',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

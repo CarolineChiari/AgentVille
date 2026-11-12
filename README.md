@@ -151,6 +151,12 @@ glass habitat domes, hab modules, rockets on their pads, drill rigs and greenhou
 work is a beacon or a crystal sample in each plot's sample bay instead of a flower: a warning beacon for a bug
 fix, a cut gem for design work, a sample jar for docs.
 
+Or the Wild West, where the fences are split rails, a low adobe wall, barbed wire and a hitching rail, the
+ground is desert sand, a plank boardwalk, sagebrush scrub or mesa red rock, the threads build false-front
+saloons and stores, log cabins, windpumps, water towers, mines in the rock and adobe missions, everybody works
+in a stetson and a neckerchief, and finished work is a cactus in flower or a horseshoe in each plot's corral
+instead of a flower: a lucky horseshoe for a bug fix, a saguaro for a feature, a wanted poster for docs.
+
 Or Eid, where the fences are lantern posts, a low whitewashed wall banded in tile, a carved lattice and
 a garland of crescents and stars, the ground is sand, garden lawn, terracotta pavers and blue mosaic,
 and finished work is a lit fanous in each plot's lantern bed instead of a flower: a round fanous for
@@ -206,7 +212,7 @@ fireworks or small-town porches on the Fourth of July; colour lanes, flower Holi
 a bonfire square or courtyard homes at Holi; a lantern souk, courtyard homes, a night garden or a
 sweets street at Eid; window lights, a blue and silver street, a bakery row or a dreidel courtyard at Hanukkah; a Christmas market, snowy cottages, Santa's workshop, gingerbread lane or a carol
 singers' chapel at Christmas; a lantern street, a temple fair, a blossom
-garden or a family courtyard at Lunar New Year; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali; a parade route, a picnic green, a builders' yard or bakers' row on Labor Day; habitat domes, a mining outpost, a hydroponics ring, a launch site or a research station in a space colony. A
+garden or a family courtyard at Lunar New Year; diya-lit homes, rangoli courtyards, a lantern bazaar or a marigold haveli at Diwali; a parade route, a picnic green, a builders' yard or bakers' row on Labor Day; habitat domes, a mining outpost, a hydroponics ring, a launch site or a research station in a space colony; main street, a ranch, a gold mine, a railroad depot or a desert mission in the Wild West. A
 folder is handed one of the village theme's looks by its name, or **Settings → Every folder**
 puts them all in one. Mix and match with **Look** in a folder's panel: it can wear any theme's
 look, so a roadworks site can stand in a countryside village, and it keeps that look whatever
@@ -362,7 +368,7 @@ lantern, crystal and wisp; Halloween's jack-o'-lantern, bat, ghost, witch's hat 
 harbour's anchor, buoy, starfish, scallop and message in a bottle; the farm's apple, hen, hay bale,
 sunflower and milk churn; Thanksgiving's maple leaf, acorn, pie, corn cob and turkey; Independence Day's flag, firework,
 liberty bell, watermelon and sparkler; Holi's pichkari, plate of gulal,
-marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; Hanukkah's hanukkiah, dreidel, gelt, sufganiyah and latkes; Christmas's tree, present, candy cane, snowman and wreath; Lunar New Year's red lantern, firecrackers, red envelope, plum blossom and mandarins; Diwali's diya, rangoli, marigold garland, akash kandil and mithai; Labor Day's banner, hammer, fresh loaf, lunch pail and gear; and the space colony's dome, rover, rocket, radar dish and helmet. A spotlight
+marigold, handprint and water balloon; Eid's crescent and star, fanous, dates, ma'amoul and palm; Hanukkah's hanukkiah, dreidel, gelt, sufganiyah and latkes; Christmas's tree, present, candy cane, snowman and wreath; Lunar New Year's red lantern, firecrackers, red envelope, plum blossom and mandarins; Diwali's diya, rangoli, marigold garland, akash kandil and mithai; Labor Day's banner, hammer, fresh loaf, lunch pail and gear; the space colony's dome, rover, rocket, radar dish and helmet; and the Wild West's sheriff's star, horseshoe, saguaro, cowboy boot and wagon wheel. A spotlight
 shows its own plot's theme's first until you pick another under **Marker** on the card, from any
 theme, so three villagers you're following can each carry a different one. Spotlights are kept in
 `data/village.json` and forgotten once they go out.
