@@ -1339,6 +1339,85 @@ export const PALETTE = {
   spaceBedLight: '#403c58',
   spaceBedDeep: '#181625',
 
+  // ---------- the Wild West theme (src/render/themes/wild-west/) ----------
+  // Paint for the false fronts, doors and trim: barn red, rust, mustard, sage green, sky blue,
+  // turquoise, saddle brown and cream. A plot's buildings share a family (PAINT_FAMILIES in
+  // wild-west/buildings.js); the cream is every family's trim.
+  wwPaint: ['#a8432f', '#c46d3b', '#d4a23c', '#5f8a5a', '#4f7fa8', '#3aa3a0', '#7d5a3c', '#ece0c4'],
+  // Walls: logs with their ends showing, adobe, grey barn boards and dressed stone. Clapboard is
+  // the plot's paint.
+  wwLog: '#8a5a36',
+  wwLogDark: '#5f3c22',
+  wwLogLight: '#a9764b',
+  wwLogEnd: '#d2a876',
+  wwAdobe: '#c98f62',
+  wwAdobeDark: '#a8714a',
+  wwAdobeLight: '#ddaa7f',
+  wwWhitewash: '#f0e6d2',
+  wwBarnwood: '#8f857a',
+  wwBarnwoodDark: '#6b635a',
+  wwBarnwoodLight: '#aaa196',
+  wwStone: '#a39279',
+  wwStoneDark: '#7c6d58',
+  wwStoneLight: '#bfb097',
+  // Timber for posts, rails and the boardwalk; corrugated tin for the roofs; iron for the rails,
+  // bands and the barbed wire.
+  wwTimber: '#7a5233',
+  wwTimberDark: '#553720',
+  wwTimberLight: '#9c6e46',
+  wwTin: '#98a2a7',
+  wwTinDark: '#6f777a',
+  wwTinLight: '#c3c9cb',
+  wwIron: '#3d3a3a',
+  wwIronLight: '#6e6a66',
+  // The desert's own: cactus green and its bloom, sun-bleached bone, gold in the pan.
+  wwCactus: '#4f8a4a',
+  wwCactusDark: '#36663a',
+  wwCactusLight: '#73ad5f',
+  wwBloom: '#e86a8a',
+  wwBone: '#efe6d2',
+  wwBoneShade: '#c9bea6',
+  wwGold: '#e8c34a',
+  wwGoldLight: '#f7e08a',
+  wwPaper: '#e8d9b0',
+  // Work clothes: the hat's felt and the neckerchief, each in two, one per crew (look.vest), and
+  // the leather of the vest worn over the shirt.
+  stetson: ['#b48a5a', '#5e4330'],
+  bandana: ['#b8332c', '#2f4f7f'],
+  wwLeather: '#7a4e2d',
+  wwLeatherDark: '#5a3820',
+  // Ground by yard tone: desert sand, boardwalk planks, sagebrush scrub and mesa red rock. Each is
+  // base, shade, light and deepest; then the same in a dry patch and in a lush one, one for one
+  // (see src/render/ground.js). Only the ground is drawn in these.
+  wwGround: [
+    ['#d8b47c', '#c49e68', '#e6c894', '#a9844f'],
+    ['#9a6a42', '#7c5232', '#b38158', '#5c3c23'],
+    ['#aaa276', '#928a60', '#bfb88c', '#78714b'],
+    ['#b8613d', '#9b4d2f', '#ce7853', '#7f3c23'],
+  ],
+  wwGroundSunny: [
+    ['#dbb67a', '#c9a369', '#e7c88f', '#b28c53'],
+    ['#a47547', '#8a6039', '#ba8a5b', '#6e4d2c'],
+    ['#b2a775', '#9d9162', '#c5ba88', '#867b4f'],
+    ['#bf6d43', '#a55c37', '#d28256', '#8d4d2c'],
+  ],
+  wwGroundLush: [
+    ['#cbae77', '#ba9b65', '#d8c08c', '#a2844f'],
+    ['#956d44', '#7a5836', '#ab8157', '#5e4428'],
+    ['#a39e71', '#8e895e', '#b5b285', '#77734c'],
+    ['#af653f', '#965333', '#c27953', '#7d4428'],
+  ],
+  // The wagon road round a plot: packed brown dirt with ruts, darker than the sand so the plots read.
+  wwLane: '#a88a62',
+  wwLaneDark: '#8f734f',
+  wwLaneLight: '#bea079',
+  wwLaneEdge: '#6f5739',
+  // The corral: trampled dark earth, so the cacti and horseshoes stand out from the plot's ground.
+  wwBed: '#6b4e35',
+  wwBedDark: '#563d29',
+  wwBedLight: '#7f5f43',
+  wwBedDeep: '#3f2c1d',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',
