@@ -34,7 +34,13 @@ test('Halloween dresses the village from the 24th of October to the 1st of Novem
   assert.equal(on(10, 24), 'halloween')
   assert.equal(on(10, 31), 'halloween')
   assert.equal(on(11, 1), 'halloween')
-  assert.equal(on(11, 2), undefined)
+})
+
+test('Día de los Muertos dresses the village on the 2nd of November, the day after Halloween ends', () => {
+  const on = (m, d) => activeHoliday(dayOf(2026, m, d))?.holiday.id
+  assert.equal(on(11, 1), 'halloween')
+  assert.equal(on(11, 2), 'dia-de-muertos')
+  assert.equal(on(11, 3), undefined)
 })
 
 test("New Year's Eve reaches across the new year", () => {

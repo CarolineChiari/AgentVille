@@ -58,6 +58,9 @@ export const HOLIDAYS = [
   { id: 'labor-day', label: 'Labor Day', theme: 'labor-day', on: (y) => nthWeekday(y, 9, 1, 1), lead: 6, tail: 1, def: true },
   // The last week of the year, through New Year's Day, which is in the next year's window.
   { id: 'new-years-eve', label: "New Year's Eve", theme: 'new-years-eve', on: (y) => dayOf(y, 12, 31), lead: 5, tail: 1, def: true },
+  // The 2nd of November, and only that: the 1st is already Halloween's morning-after, and every
+  // holiday keeps its whole window to itself (a lead-in here would take that day from Halloween).
+  { id: 'dia-de-muertos', label: 'Día de los Muertos', theme: 'dia-de-muertos', on: (y) => dayOf(y, 11, 2), lead: 0, tail: 0, def: true },
 ]
 
 /** Whether a settings value names a holiday that exists. */
