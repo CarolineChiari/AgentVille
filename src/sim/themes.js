@@ -693,6 +693,42 @@ export const THEMES = {
       },
     },
   },
+  'dia-de-muertos': {
+    label: 'Día de los Muertos',
+    spotlights: [{ id: 'cempasuchil', label: 'Cempasúchil' }, { id: 'calavera', label: 'Sugar skull' }, { id: 'veladora', label: 'Veladora' }, { id: 'picado', label: 'Papel picado' }, { id: 'pan', label: 'Pan de muerto' }],
+    dims: {
+      // Posts strung with papel picado, a garland of cempasúchil, a low adobe wall with candles
+      // along its top, and the wrought-iron railing round a panteón.
+      fence: ['picado', 'marigolds', 'adobe', 'railing'],
+      // Pale cantera flags, earth strewn with marigold petals, terracotta tile and the grass of a
+      // cemetery.
+      yard: ['plaza', 'petals', 'terracotta', 'panteon'],
+      // Rosa mexicano and añil-blue stucco, adobe, Talavera tile and pink cantera stone.
+      wall: ['pinkwash', 'bluewash', 'adobe', 'talavera', 'cantera'],
+      // Paint for the roofs, doors and awnings: four families of three (PAINT_FAMILIES in the
+      // pack's buildings).
+      roofs: 4,
+    },
+    subthemes: [
+      { id: 'ofrenda-homes', label: 'Ofrenda homes', blurb: 'Painted houses with tiered altars of photos, candles, pan de muerto and marigolds at the door', fence: ['adobe', 'picado'], yard: ['plaza', 'terracotta'], wall: ['pinkwash', 'bluewash'], roofs: [0] },
+      { id: 'marigold-paths', label: 'Marigold paths', blurb: 'Footpaths and fences garlanded in cempasúchil, petals leading the way home', fence: ['marigolds', 'adobe'], yard: ['petals'], wall: ['adobe', 'pinkwash'], roofs: [1] },
+      { id: 'papel-picado-street', label: 'Papel picado street', blurb: 'Cut-paper banners in every colour strung over a tiled street', fence: ['picado', 'marigolds'], yard: ['terracotta', 'plaza'], wall: ['talavera', 'bluewash'], roofs: [2] },
+      { id: 'panteon', label: 'Panteón', blurb: 'A cemetery decorated by families, candles glowing on the graves after dark', fence: ['railing', 'marigolds'], yard: ['panteon', 'petals'], wall: ['cantera', 'adobe'], roofs: [3] },
+    ],
+    auto: ['ofrenda-homes', 'marigold-paths', 'papel-picado-street', 'panteon'],
+    // Finished work is an offering set out on the marigold bed: a cempasúchil or a candle, each
+    // kind of work its own. An open PR's marigold is still in bud and its candle not yet lit. The
+    // glyph is an eight-petalled florette, which none of the other themes' glyphs (✿ ⚐ ✦ ☻ ❂ ♣ ❧
+    // ⚘ ✶ ★ ✺ ☼ ❂ ❄ ❖ ◈ ☀ ⚒ or the open issues' ⚑) is.
+    finished: {
+      one: 'offering', many: 'offerings', place: 'marigold bed', glyph: '❁', grow: 'Set out marigolds and candles for pull requests',
+      names: {
+        fix: 'Cempasúchil', feature: 'Tall candle', refactor: 'Pair of marigolds', docs: 'Papel picado', test: 'Votive',
+        ui: 'Sugar skull', infra: 'Candelabra', data: 'Row of votives', perf: 'Taper', review: 'Farol',
+        research: 'Veladora', misc: 'Marigold and petals',
+      },
+    },
+  },
 }
 
 export const THEME_IDS = Object.keys(THEMES)

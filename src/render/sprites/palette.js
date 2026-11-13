@@ -1339,6 +1339,66 @@ export const PALETTE = {
   spaceBedLight: '#403c58',
   spaceBedDeep: '#181625',
 
+  // ---------- the Día de los Muertos theme (src/render/themes/dia-de-muertos/) ----------
+  // Paint and cut paper for the festival: rosa mexicano, cempasúchil orange, turquoise, violet,
+  // sun yellow, cream, cobalt and lime. A plot's buildings share a family of three
+  // (PAINT_FAMILIES in dia-de-muertos/buildings.js). Marigolds reuse the Diwali block's.
+  muertosPaint: ['#d6246e', '#ef8a17', '#1aa6a0', '#6b2d8c', '#f2c230', '#f5ead2', '#2a4fa8', '#7fb33a'],
+  // Stucco washed rosa mexicano and añil blue, sun-dried adobe, Talavera tile and pink cantera stone.
+  muertosPink: '#e86a9a',
+  muertosPinkDark: '#c24d7c',
+  muertosPinkLight: '#f59bbd',
+  muertosBlue: '#3f9bd0',
+  muertosBlueDark: '#2b78a8',
+  muertosBlueLight: '#72bde6',
+  muertosAdobe: '#c48a5a',
+  muertosAdobeDark: '#9e6a40',
+  muertosAdobeLight: '#dca77a',
+  talavera: '#f3efe4',
+  talaveraDark: '#cfc8b6',
+  talaveraBlue: '#2a3f9a',
+  cantera: '#b9a59a',
+  canteraDark: '#958175',
+  canteraLight: '#d3c2b8',
+  // Candle wax, a sugar skull's icing and the crust of pan de muerto.
+  candleWax: '#f4ecd2',
+  candleWaxDark: '#d6c79e',
+  sugarSkull: '#fbf7ef',
+  sugarSkullShade: '#d9cfc2',
+  panMuerto: '#c9873c',
+  panMuertoDark: '#985f26',
+  // The wrought iron of a cemetery railing and the grey of a headstone.
+  muertosIron: '#2f2c3a',
+  muertosIronLight: '#55506a',
+  headstone: '#a7a6a2',
+  headstoneDark: '#7f7e7b',
+  headstoneLight: '#c8c7c2',
+  // Ground by yard tone: cantera flags, earth strewn with petals, terracotta tile and the grass of a
+  // panteón. Each is base, shade, light and deepest; then the same in a dry patch and in a lush
+  // one, one for one (see src/render/ground.js). Only the ground is drawn in these.
+  muertosGround: [
+    ['#d9cbb6', '#c1b19b', '#ebdfcd', '#a2917d'],
+    ['#a9764d', '#8e603c', '#be8b61', '#6f492b'],
+    ['#c56a3f', '#a8552e', '#da8459', '#86411e'],
+    ['#5c7b44', '#4a6736', '#718e56', '#395228'],
+  ],
+  muertosGroundSunny: [
+    ['#e2d1aa', '#cab78f', '#f4e5c1', '#ab9771'],
+    ['#b27c41', '#976630', '#c79155', '#784f1f'],
+    ['#ce7033', '#b15b22', '#e38a4d', '#8f4712'],
+    ['#658138', '#536d2a', '#7a944a', '#42581c'],
+  ],
+  muertosGroundLush: [
+    ['#d0ceb3', '#b8b498', '#e2e2ca', '#99947a'],
+    ['#a0794a', '#856339', '#b58e5e', '#664c28'],
+    ['#bc6d3c', '#9f582b', '#d18756', '#7d441b'],
+    ['#537e41', '#416a33', '#689153', '#305525'],
+  ],
+  muertosLane: '#d8be97',
+  muertosLaneDark: '#bea37a',
+  muertosLaneLight: '#e9d5b1',
+  muertosLaneEdge: '#98825f',
+
   // ---------- landmarks (src/render/sprites/landmarks.js) ----------
   // A campfire's flame, outside in to its white-hot heart, and the embers left when nobody is in.
   flame: '#f0662a',

@@ -495,3 +495,28 @@ greenhouse panels · five families of paint.
 **Finished work**: a **beacon or crystal sample** in the **sample bay** (◈), one shape per kind of work; an
 open PR's is not lit yet.
 **Rooms**: a dome lounge, an ore bay, a grow lab, mission control and a research lab.
+
+## Día de los Muertos · `dia-de-muertos`
+
+The Day of the Dead, 1–2 November, when families welcome home the ones they remember: papel picado
+strung over the streets, cempasúchil petals laid in a path to the door, candles, sugar skulls and pan de
+muerto on the ofrendas, bright painted walls. It is drawn as a celebration, warm and colourful. The
+villagers keep their everyday clothes (no calavera face paint or costume), and the landmarks stay the
+village's. **Follow the calendar** puts it on for the 2nd of November; the 1st stays Halloween's last day.
+
+| Sub-theme | `id` | |
+| --- | --- | --- |
+| Ofrenda homes | `ofrenda-homes` | Painted houses with tiered altars of photos, candles, pan de muerto and marigolds |
+| Marigold paths | `marigold-paths` | Footpaths and fences garlanded in cempasúchil, petals leading the way home |
+| Papel picado street | `papel-picado-street` | Cut-paper banners in every colour over a tiled street |
+| Panteón | `panteon` | A cemetery decorated by families, candles glowing on the graves |
+
+**Built from** — fences: papel picado, a cempasúchil garland, a low adobe wall with candles, a panteón's
+iron railing · ground: cantera flags, petal-strewn earth, terracotta tile, a cemetery's grass · walls:
+rosa mexicano and añil stucco, adobe, Talavera tile, pink cantera · four families of paint.
+**Finished work**: an **offering** on the **marigold bed** (❁), a cempasúchil or a candle, one shape per
+kind of work; an open PR's marigold is still in bud and its candle not yet lit.
+**Rooms**: an ofrenda room, a flower stall, a panadería and a panteón caretaker's lodge.
+**Left out on purpose**: crosses, saints and other religious imagery (the ridge ornaments are marigold
+blooms), Catrina figures and calavera face paint on the villagers, and copal is only a censer lying in
+the yard. These would want review by people who keep the day before being added.
