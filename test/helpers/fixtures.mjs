@@ -62,3 +62,21 @@ export function writeDesktop(home, record) {
 
 /** A pid that is certainly not running: spawn-and-reap would race, so use a huge one. */
 export const DEAD_PID = 2 ** 22 - 3
+
+/** A main checkout at `<home>/app` and a linked worktree of it at `<home>/<name>`, laid out as `git worktree add` leaves them. */
+export function worktreeFixture(home, names = ['app-feat', 'app-fix']) {
+  const repo = path.join(home, 'app')
+  fs.mkdirSync(path.join(repo, '.git'), { recursive: true })
+  fs.writeFileSync(path.join(repo, '.git', 'config'), '[core]\n\tbare = false\n')
+  for (const [i, name] of names.entries()) {
+    const own = path.join(repo, '.git', 'worktrees', name)
+    fs.mkdirSync(own, { recursive: true })
+    fs.writeFileSync(path.join(own, 'commondir'), '../..\n')
+    const wt = path.join(home, name)
+    fs.mkdirSync(wt)
+    // git writes an absolute gitdir; a relative one (worktree.useRelativePaths) is resolved from the folder.
+    const gitdir = i % 2 ? path.relative(wt, own) : own
+    fs.writeFileSync(path.join(wt, '.git'), `gitdir: ${gitdir}\n`)
+  }
+  return repo
+}

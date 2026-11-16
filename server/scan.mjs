@@ -1,6 +1,7 @@
 // Harness-agnostic: ask every detected harness for its threads, merge, disambiguate, sort.
 import { HARNESSES, detectedHarnesses, harnessById } from './harnesses/index.mjs'
 import { basename } from './harnesses/thread.mjs'
+import { resolveWorktrees } from './worktree.mjs'
 
 const SEP_RE = /[\\/]/
 // A drive letter or a UNC share: a path Windows owns, whichever machine is reading it.
@@ -99,7 +100,8 @@ export async function scanAll({ harnesses = HARNESSES } = {}) {
       }
     }),
   )
-  const threads = disambiguateProjects(lists.flat())
+  // Worktrees first, so a repo's name is settled with all its threads on it.
+  const threads = disambiguateProjects(await resolveWorktrees(lists.flat()))
   threads.sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
   return { threads, warnings }
 }
