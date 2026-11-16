@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import path from 'node:path'
 import { disambiguateProjects, normalizePath, pathKey, scanAll } from '../server/scan.mjs'
+import { tmpHome, worktreeFixture } from './helpers/fixtures.mjs'
 
 const th = (project, projectPath) => ({ id: projectPath, project, projectPath })
 
@@ -58,4 +60,19 @@ test('a throwing adapter does not sink the scan', async () => {
   assert.equal(threads.length, 1)
   assert.equal(threads[0].harness, 'good')
   assert.match(warnings[0], /Bad: boom/)
+})
+
+test('a main checkout and two worktrees land on one plot through the scan', async (t) => {
+  const { home, cleanup } = tmpHome()
+  t.after(cleanup)
+  const repo = worktreeFixture(home)
+  const at = (p, n) => ({ id: `h:${n}`, project: path.basename(p), projectPath: p, worktree: '', cwd: p, lastActivityAt: n })
+  const h = { id: 'h', name: 'H', detect: async () => true, scanThreads: async () => [at(repo, 3), at(path.join(home, 'app-feat'), 2), at(path.join(home, 'app-fix'), 1)] }
+  const { threads } = await scanAll({ harnesses: [h] })
+  assert.deepEqual(threads.map((t) => [t.project, t.projectPath, t.worktree]), [
+    ['app', repo, ''],
+    ['app', repo, 'app-feat'],
+    ['app', repo, 'app-fix'],
+  ])
+  assert.deepEqual(threads.map((t) => t.cwd), [repo, path.join(home, 'app-feat'), path.join(home, 'app-fix')])
 })

@@ -21,7 +21,7 @@ complete, valid `Thread`.
 
 | Field | Drives |
 | --- | --- |
-| `project` (or `projectPath`'s basename) | Which plot the thread stands on. Same name, same plot, across every harness |
+| `project` (or `projectPath`'s basename) | Which plot the thread stands on. Same name, same plot, across every harness. A `projectPath` that is a linked git worktree is moved to its main checkout by the scan (`server/worktree.mjs`), so a harness can just report the folder it ran in |
 | `lastActivityAt` | Sort order, and — three days stale — the "asleep" state |
 | `running` | The working animation, hammering and sparks |
 | `needsInput` | The waving `?`: `'dialog open'`, `'permission prompt'`, `'sandbox request'`, `'worker request'`, or any other non-empty string for a generic "needs your input" |
