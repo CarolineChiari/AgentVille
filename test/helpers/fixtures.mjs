@@ -67,6 +67,7 @@ export const DEAD_PID = 2 ** 22 - 3
 export function worktreeFixture(home, names = ['app-feat', 'app-fix']) {
   const repo = path.join(home, 'app')
   fs.mkdirSync(path.join(repo, '.git'), { recursive: true })
+  fs.writeFileSync(path.join(repo, '.git', 'config'), '[core]\n\tbare = false\n')
   for (const [i, name] of names.entries()) {
     const own = path.join(repo, '.git', 'worktrees', name)
     fs.mkdirSync(own, { recursive: true })
