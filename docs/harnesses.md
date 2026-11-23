@@ -1,15 +1,16 @@
 # Writing a harness adapter
 
 A **harness** is a coding-agent tool AgentVille reads sessions from — Claude Code, Copilot, Cursor,
-Antigravity today. Adding one is one new directory under `server/harnesses/` plus one line in
-`server/harnesses/index.mjs`, and its own test file under `test/`. Everything else —
+Antigravity and the Codex CLI today. Adding one is one new directory under `server/harnesses/` plus
+one line in `server/harnesses/index.mjs`, and its own test file under `test/`. Everything else —
 `server/scan.mjs`, `server/api.mjs`, the whole of `src/` — is written against the `Thread` shape
 below and never against a harness, so no other production code needs to change.
 
 Start from the smallest existing adapter that's shaped like the one you're writing:
 `server/harnesses/cursor/index.mjs` and `server/harnesses/antigravity/index.mjs` are single-file,
-read-only adapters over a local database; `server/harnesses/claude-code/` is the biggest, split
-across files, because it merges three separate stores (desktop records, CLI transcripts, live
+read-only adapters over a local database; `server/harnesses/codex/` reads one folder of JSONL logs
+and resumes in a terminal, the shape for a CLI-only harness; `server/harnesses/claude-code/` is the
+biggest, split across files, because it merges three separate stores (desktop records, CLI transcripts, live
 processes) into one thread.
 
 ## The `Thread` shape
