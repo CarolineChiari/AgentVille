@@ -27,8 +27,6 @@ const TAIL_BYTES = 64 * 1024
 // A turn writes a line every few seconds, but one long command (a build, a test run) can go quiet
 // for minutes. Past this, a turn with no answer was cut off (the terminal closed), not working.
 const RUNNING_WINDOW_MS = 10 * 60 * 1000
-// A turn that stopped on an error is worth flagging the day it happens, not for ever after.
-const ERROR_WINDOW_MS = 24 * 60 * 60 * 1000
 const TRANSCRIPT_MAX_BYTES = 64 * 1024 * 1024
 
 /**
@@ -50,8 +48,12 @@ export function createCodexAdapter(opts = {}) {
 
   const codexExe = () => (opts.codexPath !== undefined ? opts.codexPath : findExe('codex', { home, env, platform, dirs: [path.join(home, '.npm-global', 'bin')] }))
 
+  /**
+   * Either store, or the CLI itself: a fresh install has written no session yet, and its first one
+   * is started from here. A few `stat`s whichever way it goes.
+   */
   async function detect() {
-    return exists(sessionsDir)
+    return (await exists(sessionsDir)) || (await exists(archivedDir)) || Boolean(await codexExe())
   }
 
   async function statKey(file) {
@@ -126,7 +128,8 @@ export function createCodexAdapter(opts = {}) {
         needsInput: '',
         // Answered its turn: ready for review until you mark it seen.
         unread: !r.archived && Boolean(tail?.finished),
-        hasError: !r.archived && Boolean(tail?.error) && sinceWrite < ERROR_WINDOW_MS,
+        // Never: Codex doesn't write an error to the rollout (see rolloutTail).
+        hasError: false,
         archived: r.archived,
         sizeBytes: st.size,
         source: head.source,
@@ -185,9 +188,10 @@ export function createCodexAdapter(opts = {}) {
     if (target !== 'terminal') return { ok: false, error: 'Unknown place to start a session.' }
     const exe = await codexExe()
     if (!exe) return { ok: false, error: "Couldn't find the codex command." }
-    // `codex <prompt>` starts the interactive CLI already working on it.
+    // `codex -- <prompt>` starts the interactive CLI already working on it. The `--` is what makes
+    // it a prompt: a bare `logout` or `resume` would be read as that subcommand and run it.
     const text = typeof prompt === 'string' ? prompt.trim().slice(0, 20000) : ''
-    return { ok: true, where: 'a terminal', terminal: { exe, args: [], cwd: dir, prompt: text } }
+    return { ok: true, where: 'a terminal', terminal: { exe, args: [], promptArgs: ['--'], cwd: dir, prompt: text } }
   }
 
   return {

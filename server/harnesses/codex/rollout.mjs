@@ -55,7 +55,6 @@ function personText(item) {
  */
 export function rolloutHead(records) {
   const out = { id: '', cwd: '', branch: '', model: '', effort: '', source: '', createdAt: 0, firstPrompt: '' }
-  let fallback = '' // a user message item: the prompt only when no event said it
   for (const r of records) {
     if (!isObj(r)) continue
     if (r.type === 'session_meta' && isObj(r.payload)) {
@@ -74,36 +73,54 @@ export function rolloutHead(records) {
       out.model ||= str(r.payload.model)
       out.effort ||= str(r.payload.effort)
     }
-    const ev = eventOf(r)
-    if (ev?.type === 'user_message' && !out.firstPrompt) {
-      const text = str(ev.message).trim()
-      if (text && !INJECTED.test(text)) out.firstPrompt = oneLine(text).slice(0, 300)
-    }
-    const item = itemOf(r)
-    if (item?.type === 'message' && item.role === 'user' && !fallback) fallback = oneLine(personText(item)).slice(0, 300)
+    // The first thing the person said, whichever way the line holds it: newer rollouts say it as a
+    // message item and again as an event straight after, and older ones only as the item.
+    if (!out.firstPrompt) out.firstPrompt = oneLine(userText(r)).slice(0, 300)
   }
-  out.firstPrompt ||= fallback
   return out
 }
 
+/** What the person said on this line, as a user message item or a `user_message` event; '' else. */
+function userText(r) {
+  const ev = eventOf(r)
+  if (ev?.type === 'user_message') {
+    const text = str(ev.message).trim()
+    return text && !INJECTED.test(text) ? text : ''
+  }
+  const item = itemOf(r)
+  return item?.type === 'message' && item.role === 'user' ? personText(item) : ''
+}
+
+// The events that open and close a turn. Codex renamed tasks to turns; older rollouts say task.
+const TURN_START = new Set(['task_started', 'turn_started'])
+const TURN_END = new Set(['task_complete', 'turn_complete'])
+
+/**
+ * Whether an assistant message ends its turn. Newer Codex says so in `phase`: commentary and a
+ * partial answer are on the way to more work. Without it, the last message is taken for the answer,
+ * and a message followed by more tool calls turns out to have been only a preamble.
+ */
+const answers = (m) => m.phase !== 'commentary' && m.phase !== 'partial_answer'
+
 /**
  * Where the session stands, from the tail of its rollout. A turn is under way from the person's
- * message until the agent answers in words, is aborted or says it is complete: Codex's last word
- * in a turn is a message, and a message that is followed by more tool calls was only a preamble.
- * @returns {{ inTurn: boolean, finished: boolean, error: boolean, at: number, model: string } | null} null for an empty tail
+ * message until the agent answers, the turn completes or it is aborted.
+ *
+ * There is no error here, nor anything asking for approval: Codex counts both as transient and never
+ * writes them to a rollout, so a turn that stopped on one looks like one cut off, and a pending
+ * approval like a long command.
+ * @returns {{ inTurn: boolean, finished: boolean, at: number, model: string } | null} null for an empty tail
  *          `finished`: the last turn ended with an answer (not aborted), so there is something to review.
  */
 export function rolloutTail(records) {
   let seen = false
   let inTurn = false
   let finished = false
-  let error = false
   let last = 0
   let model = ''
-  const start = () => {
-    inTurn = true
-    finished = false
-    error = false
+  const set = (working, done) => {
+    inTurn = working
+    finished = done
   }
   for (const r of records) {
     if (!isObj(r)) continue
@@ -112,37 +129,21 @@ export function rolloutTail(records) {
     if (r.type === 'turn_context' && isObj(r.payload)) model = str(r.payload.model) || model
     const ev = eventOf(r)
     if (ev) {
-      if (ev.type === 'user_message' || ev.type === 'task_started') start()
-      else if (ev.type === 'agent_message' || ev.type === 'task_complete') {
-        inTurn = false
-        finished = true
-      } else if (ev.type === 'turn_aborted') {
-        inTurn = false
-        finished = false
-      } else if (ev.type === 'error') {
-        // The turn stopped on it. A `stream_error` is only a retry on the way, not an end.
-        inTurn = false
-        finished = false
-        error = true
-      }
+      if (TURN_START.has(ev.type) || (ev.type === 'user_message' && userText(r))) set(true, false)
+      else if (TURN_END.has(ev.type)) set(false, true)
+      else if (ev.type === 'agent_message') set(!answers(ev), answers(ev))
+      else if (ev.type === 'turn_aborted') set(false, false)
       continue
     }
     const item = itemOf(r)
     if (!item) continue
     if (item.type === 'message' && item.role === 'user') {
-      if (personText(item)) start()
-    } else if (item.type === 'message' && item.role === 'assistant') {
-      inTurn = false
-      finished = true
-      error = false
-    } else if (CALLS.has(item.type) || item.type === 'function_call_output' || item.type === 'custom_tool_call_output' || item.type === 'reasoning') {
-      inTurn = true
-      finished = false
-      error = false // it carried on past the error
-    }
+      if (personText(item)) set(true, false)
+    } else if (item.type === 'message' && item.role === 'assistant') set(!answers(item), answers(item))
+    else if (CALLS.has(item.type) || item.type === 'function_call_output' || item.type === 'custom_tool_call_output' || item.type === 'reasoning') set(true, false)
   }
   if (!seen) return null
-  return { inTurn, finished, error, at: last, model }
+  return { inTurn, finished, at: last, model }
 }
 
 /** A command as it was run: `["bash", "-lc", "npm test"]` is `npm test`. */
@@ -187,46 +188,74 @@ export function summarizeCall(item) {
 
 /**
  * The conversation, in the transcript panel's shape: what you asked, what Codex thought, what it
- * said, and a line per tool call. Newer rollouts say each message twice, as a response item and as
- * an event; the events are what the CLI showed, so where there are any they are the ones read.
+ * said, and a line per tool call. Many rollouts say a message twice, as a response item and as an
+ * event beside it; each pair is shown once, and a message said only one way is still shown.
  * A folded line's key is its line number: a rollout only ever grows at the end.
  * @returns {{ role: 'user'|'thinking'|'assistant'|'tool', text?: string, key?: string, name?: string, detail?: string, code?: string, at: number }[]}
  */
 export function rolloutMessages(records) {
-  const evs = new Set()
-  for (const r of records) {
-    const ev = eventOf(r)
-    if (ev) evs.add(ev.type)
-  }
-  const userEvents = evs.has('user_message')
-  const agentEvents = evs.has('agent_message')
-  const thinkEvents = evs.has('agent_reasoning')
   const out = []
+  const from = [] // beside `out`: 'item' or 'event', and whether its twin has been seen
+  /**
+   * The other half of a pair: the same words, said the other way, in the same turn and not yet
+   * matched. Reasoning is the exception: one summary item, but an event per part of it, so the
+   * events are joined into one thought and an item's summary takes in every part it contains.
+   */
+  const twin = (role, text, kind) => {
+    for (let i = out.length - 1; i >= 0; i--) {
+      const m = out[i]
+      if (m.role === role && from[i].kind !== kind) {
+        if (!from[i].paired && m.text === text) return i
+        if (role === 'thinking' && (kind === 'event' ? m.text.includes(text) : !from[i].paired && text.includes(m.text))) return i
+      }
+      if (m.role === 'user') break // a turn's twins never cross into the turn before
+    }
+    return -1
+  }
+  const say = (role, text, kind, extra) => {
+    const max = role === 'thinking' ? THINK_MAX : TEXT_MAX
+    const t = clip(text, max)
+    const i = twin(role, t, kind)
+    if (i >= 0) {
+      from[i].paired = true
+      // A whole summary is worth more than the parts of it said so far.
+      if (t.length > out[i].text.length) out[i].text = t
+      return
+    }
+    const prev = out.length - 1
+    if (role === 'thinking' && kind === 'event' && out[prev]?.role === 'thinking' && from[prev].kind === 'event' && !from[prev].paired) {
+      out[prev].text = clip(`${out[prev].text}\n\n${t}`, max)
+      return
+    }
+    out.push({ role, text: t, ...extra })
+    from.push({ kind, paired: false })
+  }
   for (const [n, r] of records.entries()) {
     const t = at(r)
     const ev = eventOf(r)
     if (ev) {
       const text = str(ev.type === 'agent_reasoning' ? ev.text : ev.message).trim()
       if (!text) continue
-      if (ev.type === 'user_message' && !INJECTED.test(text)) out.push({ role: 'user', text: clip(text, TEXT_MAX), at: t })
-      else if (ev.type === 'agent_message') out.push({ role: 'assistant', text: clip(text, TEXT_MAX), at: t })
-      else if (ev.type === 'agent_reasoning') out.push({ role: 'thinking', text: clip(text, THINK_MAX), key: String(n), at: t })
+      if (ev.type === 'user_message' && !INJECTED.test(text)) say('user', text, 'event', { at: t })
+      else if (ev.type === 'agent_message') say('assistant', text, 'event', { at: t })
+      else if (ev.type === 'agent_reasoning') say('thinking', text, 'event', { key: String(n), at: t })
       continue
     }
     const item = itemOf(r)
     if (!item) continue
-    if (item.type === 'message' && item.role === 'user' && !userEvents) {
+    if (item.type === 'message' && item.role === 'user') {
       const text = personText(item)
-      if (text) out.push({ role: 'user', text: clip(text, TEXT_MAX), at: t })
-    } else if (item.type === 'message' && item.role === 'assistant' && !agentEvents) {
+      if (text) say('user', text, 'item', { at: t })
+    } else if (item.type === 'message' && item.role === 'assistant') {
       const text = messageText(item).trim()
-      if (text) out.push({ role: 'assistant', text: clip(text, TEXT_MAX), at: t })
-    } else if (item.type === 'reasoning' && !thinkEvents) {
+      if (text) say('assistant', text, 'item', { at: t })
+    } else if (item.type === 'reasoning') {
       // Only the summary is readable; the reasoning itself is sent back encrypted.
       const text = (Array.isArray(item.summary) ? item.summary : []).map((s) => str(s?.text)).filter(Boolean).join('\n\n').trim()
-      if (text) out.push({ role: 'thinking', text: clip(text, THINK_MAX), key: String(n), at: t })
+      if (text) say('thinking', text, 'item', { key: String(n), at: t })
     } else if (CALLS.has(item.type)) {
       out.push({ role: 'tool', ...summarizeCall(item), key: String(n), at: t })
+      from.push({ kind: 'item', paired: true })
     }
   }
   return out

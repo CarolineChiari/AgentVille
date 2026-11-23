@@ -42,6 +42,7 @@ test('no ~/.codex is not detected, and scans to nothing', async (t) => {
   t.after(cleanup)
   assert.equal(await adapterFor(home).detect(), false)
   assert.deepEqual(await adapterFor(home).scanThreads(), [])
+  assert.equal(await adapterFor(home, { codexPath: '/usr/local/bin/codex' }).detect(), true, 'a fresh install, before its first session')
 })
 
 test('a finished session stands on its folder\'s plot, titled by what you asked, ready for review', async (t) => {
@@ -77,16 +78,17 @@ test('a turn with no answer yet is working only while the rollout keeps moving',
   assert.equal(cold.running, false, 'an hour without a write: cut off, not working')
 })
 
-test('an aborted turn has nothing to review; one stopped on an error is stuck, the day it happens', async (t) => {
+test('an aborted turn has nothing to review; a completed one does, and commentary is not the answer', async (t) => {
   const { home, cleanup } = tmpHome()
   t.after(cleanup)
   rollout(home, { id: uuid(1), records: [...opening(uuid(1)), shell('npm test', 500_000), event('turn_aborted', { reason: 'interrupted' }, 400_000)] })
-  rollout(home, { id: uuid(2), records: [...opening(uuid(2)), shell('npm test', 500_000), event('error', { message: 'stream disconnected' }, 400_000)] })
-  const byId = Object.fromEntries((await adapterFor(home).scanThreads()).map((x) => [x.id, x]))
-  assert.deepEqual([byId[`codex:${uuid(1)}`].unread, byId[`codex:${uuid(1)}`].running, byId[`codex:${uuid(1)}`].hasError], [false, false, false])
-  assert.deepEqual([byId[`codex:${uuid(2)}`].hasError, byId[`codex:${uuid(2)}`].running], [true, false])
-  const later = await adapterFor(home, { now: () => NOW + 2 * 86_400_000 }).scanThreads()
-  assert.equal(later.find((x) => x.id === `codex:${uuid(2)}`).hasError, false)
+  rollout(home, { id: uuid(2), records: [...opening(uuid(2)), shell('npm test', 500_000), output(490_000), event('turn_complete', {}, 400_000)] })
+  rollout(home, { id: uuid(3), records: [...opening(uuid(3)), shell('npm test', 500_000), output(490_000), line('response_item', { type: 'message', role: 'assistant', phase: 'commentary', content: [{ type: 'output_text', text: 'Tests pass; now the docs.' }] }, 60_000)] })
+  const byId = Object.fromEntries((await adapterFor(home).scanThreads()).map((x) => [x.id.slice(6), x]))
+  assert.deepEqual([byId[uuid(1)].unread, byId[uuid(1)].running], [false, false])
+  assert.deepEqual([byId[uuid(2)].unread, byId[uuid(2)].running], [true, false])
+  assert.deepEqual([byId[uuid(3)].unread, byId[uuid(3)].running], [false, true], 'commentary is on the way to more work')
+  assert.equal(byId[uuid(1)].hasError, false, 'Codex never writes an error down, so none is guessed at')
 })
 
 test('a session launched and left, or from before rollouts said where they ran, is not a villager', async (t) => {
@@ -172,7 +174,7 @@ test('new sessions: a terminal, only with the CLI installed, starting on the pro
   assert.deepEqual(await adapterFor(home).targets(), [])
   const a = adapterFor(home, { codexPath: '/usr/local/bin/codex' })
   assert.deepEqual((await a.targets()).map((x) => x.id), ['terminal'])
-  assert.deepEqual((await a.newSession('/work/app', { target: 'terminal', prompt: ' hi ' })).terminal, { exe: '/usr/local/bin/codex', args: [], cwd: '/work/app', prompt: 'hi' })
+  assert.deepEqual((await a.newSession('/work/app', { target: 'terminal', prompt: ' hi ' })).terminal, { exe: '/usr/local/bin/codex', args: [], promptArgs: ['--'], cwd: '/work/app', prompt: 'hi' }, 'after --, a prompt like `logout` is not the subcommand')
   assert.equal((await a.newSession('relative', { target: 'terminal' })).ok, false)
   assert.equal((await a.newSession('/work/app', { target: 'vscode' })).ok, false)
 })
@@ -184,11 +186,39 @@ test('rollout helpers: the earliest unwrapped lines, user prompts without events
   assert.deepEqual(rolloutMessages(old).map((m) => m.text), ['hello\nthere'])
   assert.equal(rolloutTail([]), null)
   assert.equal(rolloutTail(old).inTurn, true)
-  // A stream error is a retry on the way, not the end of the turn.
-  assert.equal(rolloutTail([...opening(uuid(1)), event('stream_error', { message: 'retrying' }, 1)]).error, false)
+  assert.deepEqual(rolloutTail([...opening(uuid(1)), event('agent_message', { message: 'Looking', phase: 'commentary' }, 2), event('agent_message', { message: 'Done', phase: 'final_answer' }, 1)]), { inTurn: false, finished: true, at: NOW - 1, model: 'gpt-5-codex' })
   assert.deepEqual(summarizeCall({ type: 'local_shell_call', action: { command: ['zsh', '-lc', 'ls -la'] } }), { name: 'shell', detail: 'ls -la', code: 'ls -la' })
   assert.deepEqual(summarizeCall({ type: 'function_call', name: 'shell', arguments: JSON.stringify({ command: ['git', 'status'] }) }), { name: 'shell', detail: 'git status', code: 'git status' })
   assert.deepEqual(summarizeCall({ type: 'function_call', name: 'read_file', arguments: '{"path":"/work/app/a.js"}' }), { name: 'read_file', detail: '/work/app/a.js' })
   assert.deepEqual(summarizeCall({ type: 'web_search_call', action: { query: 'node fs.watch' } }), { name: 'web search', detail: 'node fs.watch' })
   assert.equal(summarizeCall({ type: 'function_call', name: 'x', arguments: 'not json' }).detail, 'not json')
+})
+
+test('a rollout that started item-only and was resumed with events keeps its first prompt and every message', () => {
+  const records = [
+    meta(uuid(4)),
+    userItem('first ask', 500_000),
+    agentItem('first answer', 490_000),
+    line('response_item', { type: 'reasoning', summary: [{ type: 'summary_text', text: 'part one' }, { type: 'summary_text', text: 'part two' }] }, 480_000),
+    userItem('second ask', 400_000),
+    event('user_message', { message: 'second ask' }, 400_000),
+    event('agent_reasoning', { text: 'part one' }, 395_000),
+    event('agent_reasoning', { text: 'part two' }, 394_000),
+    line('response_item', { type: 'reasoning', summary: [{ type: 'summary_text', text: 'part one' }, { type: 'summary_text', text: 'part two' }] }, 393_000),
+    event('agent_message', { message: 'second answer' }, 390_000),
+    agentItem('second answer', 390_000),
+    // The same words in the next turn are a new message, not a twin.
+    userItem('second ask', 300_000),
+    event('user_message', { message: 'second ask' }, 300_000),
+  ]
+  assert.equal(rolloutHead(records).firstPrompt, 'first ask')
+  assert.deepEqual(rolloutMessages(records).map((m) => [m.role, m.text]), [
+    ['user', 'first ask'],
+    ['assistant', 'first answer'],
+    ['thinking', 'part one\n\npart two'],
+    ['user', 'second ask'],
+    ['thinking', 'part one\n\npart two'],
+    ['assistant', 'second answer'],
+    ['user', 'second ask'],
+  ])
 })
