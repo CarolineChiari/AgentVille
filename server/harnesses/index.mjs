@@ -3,8 +3,9 @@ import claudeCode from './claude-code/index.mjs'
 import copilot from './copilot/index.mjs'
 import cursor from './cursor/index.mjs'
 import antigravity from './antigravity/index.mjs'
+import codex from './codex/index.mjs'
 
-export const HARNESSES = [claudeCode, copilot, cursor, antigravity]
+export const HARNESSES = [claudeCode, copilot, cursor, antigravity, codex]
 
 export const harnessById = (id, list = HARNESSES) => list.find((h) => h.id === id) || null
 
